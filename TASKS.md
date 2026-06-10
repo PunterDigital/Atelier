@@ -22,7 +22,7 @@ file in the same commit as the work it tracks.
       Note: context carries no session yet - the protected,
       `business_id`-scoped procedure helper lands with the agreed auth
       design (ESC-3).
-- [ ] One-command self-host: docker-compose (app + Postgres), `.env.example`,
+- [x] One-command self-host: docker-compose (app + Postgres), `.env.example`,
       documented in README.
 - [ ] Auth: self-hostable email/password sessions, no hosted-only provider.
       [BLOCKED: ESC-3]
@@ -81,6 +81,12 @@ All billing implementation is blocked until the billing spec exists.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Self-host: multi-stage Dockerfile (standalone output), compose
+  stack postgres -> one-shot migrate -> app with overridable env defaults,
+  honest pre-alpha README with quickstart. Verified end-to-end on a Linux
+  Docker engine: migrations applied, health.ping answered ok; on
+  `feat/docker-selfhost`.
 
 - 2026-06-10 tRPC wiring: init/context (no session yet, per ESC-3), health
   router with caller-level test, fetch adapter route, RSC caller, React

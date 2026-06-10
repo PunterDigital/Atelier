@@ -1,0 +1,11 @@
+.git
+.next
+node_modules
+coverage
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+atelier-software-plan.md
+TASKS.md
+ESCALATIONS.md
