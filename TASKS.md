@@ -54,7 +54,7 @@ file in the same commit as the work it tracks.
 
 ## Phase 2 - billing (the provably-correct core)
 
-- [ ] Draft `BILLING-SPEC.md` from Shay's ESC-2 answers with worked
+- [x] Draft `BILLING-SPEC.md` from Shay's ESC-2 answers with worked
       examples; goes back to Shay for sign-off before any implementation.
 
 All billing implementation stays blocked until the drafted spec is signed

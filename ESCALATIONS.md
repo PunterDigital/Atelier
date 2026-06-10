@@ -24,12 +24,14 @@ in `TASKS.md`.
    with a free-text work summary, as in "shay, day rate of 310 euros, did
    this throughout the week" followed by a list).
 
-**Next step:** I draft `BILLING-SPEC.md` with worked examples encoding
-these decisions plus the details they leave open (rounding rule per minor
-unit, rate precedence, duration rounding, gap guarantee under concurrency).
-Implementation stays blocked until Shay signs the draft off. Per the
-override rule, nothing is implemented from my own draft without explicit
-approval.
+**Status (2026-06-10):** `BILLING-SPEC.md` is drafted - [agreed] items
+encode the answers above, [proposed] items fill the gaps (minor-unit
+integer math, half-up rounding at three defined points, Frankfurter with
+manual-rate fallback, per-business-per-year numbering allocated at issue
+time under a row lock, stored-rate precedence entry > project > client,
+exact-seconds billing). Worked examples are hand-verified. Implementation
+stays blocked until Shay ticks the sign-off box in the spec (or returns
+corrections).
 
 ## Resolved
 
