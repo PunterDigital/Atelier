@@ -1,0 +1,224 @@
+/* ============================================================
+   Atelier - Color tokens
+   Source: the Atelier Design System bundle (Claude Design,
+   2026-06-10). Warm, friendly, professional. Light + dark.
+   Three primary directions ship as raw ramps; the active brand
+   is SOFT TEAL (Shay's pick, 2026-06-10), aliased via the
+   --primary-* tokens below. Switching ramps is an edit to the
+   alias blocks only - never restyle components directly.
+   ============================================================ */
+
+:root {
+  /* --- Primary option A: Terracotta --- */
+  --terracotta-50:  #FDF4F0;
+  --terracotta-100: #FBE6DD;
+  --terracotta-200: #F6CBB8;
+  --terracotta-300: #EEA98C;
+  --terracotta-400: #E8835F;
+  --terracotta-500: #DB6038;
+  --terracotta-600: #C44C28;
+  --terracotta-700: #A33C21;
+  --terracotta-800: #823120;
+  --terracotta-900: #6B2B1E;
+  --terracotta-950: #3A130C;
+
+  /* --- Primary option B: Coral --- */
+  --coral-50:  #FFF4F1;
+  --coral-100: #FFE4DD;
+  --coral-200: #FFC8BC;
+  --coral-300: #FF9F8D;
+  --coral-400: #FB7561;
+  --coral-500: #F0533F;
+  --coral-600: #D93B29;
+  --coral-700: #B42D20;
+  --coral-800: #94281F;
+  --coral-900: #7A261F;
+  --coral-950: #43100B;
+
+  /* --- Primary option C: Soft Teal (active brand) --- */
+  --teal-50:  #EEF9F6;
+  --teal-100: #D2F0EA;
+  --teal-200: #A7E1D6;
+  --teal-300: #71C9BB;
+  --teal-400: #3FAB9C;
+  --teal-500: #228E80;
+  --teal-600: #1A7266;
+  --teal-700: #195C53;
+  --teal-800: #184A44;
+  --teal-900: #163D39;
+  --teal-950: #062420;
+
+  /* --- Warm neutral ramp (taupe-tinted greys) --- */
+  --neutral-50:  #FAF8F5;
+  --neutral-100: #F3EFEA;
+  --neutral-200: #E8E1D8;
+  --neutral-300: #D6CCBF;
+  --neutral-400: #B2A697;
+  --neutral-500: #8C8073;
+  --neutral-600: #6E6458;
+  --neutral-700: #564E45;
+  --neutral-800: #3D362F;
+  --neutral-900: #2A241F;
+  --neutral-950: #1A1612;
+
+  /* --- Semantic ramps --- */
+  --success-50:  #ECF8F0;
+  --success-100: #D2F0DC;
+  --success-500: #2E9E5B;
+  --success-600: #25814A;
+  --success-700: #1E6A3D;
+
+  --warning-50:  #FCF5E8;
+  --warning-100: #F8E8C6;
+  --warning-500: #D9941F;
+  --warning-600: #B97914;
+  --warning-700: #935E10;
+
+  --error-50:  #FDF1EF;
+  --error-100: #FADBD6;
+  --error-500: #D8463A;
+  --error-600: #BC3429;
+  --error-700: #9A2A21;
+
+  --info-50:  #EEF4FC;
+  --info-100: #D6E5F8;
+  --info-500: #3B7BC4;
+  --info-600: #2E63A4;
+  --info-700: #264F84;
+
+  /* ========================================================
+     SEMANTIC ALIASES - LIGHT THEME (default)
+     ======================================================== */
+
+  /* Brand - aliased from Soft Teal */
+  --primary:           var(--teal-500);
+  --primary-hover:     var(--teal-600);
+  --primary-active:    var(--teal-700);
+  --primary-fg:        #FFFFFF;
+  --primary-subtle:    var(--teal-50);
+  --primary-subtle-fg: var(--teal-700);
+  --primary-border:    var(--teal-200);
+  --ring:              var(--teal-400);
+
+  /* Backgrounds & surfaces */
+  --background:      var(--neutral-50);
+  --surface:         #FFFFFF;
+  --surface-raised:  #FFFFFF;
+  --surface-muted:   var(--neutral-100);
+  --surface-sunken:  var(--neutral-100);
+  --surface-inverse: var(--neutral-900);
+
+  /* Borders */
+  --border:        var(--neutral-200);
+  --border-strong: var(--neutral-300);
+  --border-subtle: var(--neutral-100);
+
+  /* Text */
+  --text-strong:  var(--neutral-900);
+  --text-body:    var(--neutral-800);
+  --text-muted:   var(--neutral-600);
+  --text-subtle:  var(--neutral-500);
+  --text-on-inverse: var(--neutral-50);
+  --text-on-primary: #FFFFFF;
+
+  /* Semantic surface/text pairs */
+  --success:        var(--success-600);
+  --success-fg:     #FFFFFF;
+  --success-subtle: var(--success-50);
+  --success-subtle-fg: var(--success-700);
+
+  --warning:        var(--warning-600);
+  --warning-fg:     #FFFFFF;
+  --warning-subtle: var(--warning-50);
+  --warning-subtle-fg: var(--warning-700);
+
+  --error:        var(--error-500);
+  --error-fg:     #FFFFFF;
+  --error-subtle: var(--error-50);
+  --error-subtle-fg: var(--error-700);
+
+  --info:        var(--info-500);
+  --info-fg:     #FFFFFF;
+  --info-subtle: var(--info-50);
+  --info-subtle-fg: var(--info-700);
+
+  /* Status pills (invoice lifecycle) */
+  --status-draft-bg:   var(--neutral-200);
+  --status-draft-fg:   var(--neutral-700);
+  --status-sent-bg:    var(--info-100);
+  --status-sent-fg:    var(--info-700);
+  --status-paid-bg:    var(--success-100);
+  --status-paid-fg:    var(--success-700);
+  --status-overdue-bg: var(--error-100);
+  --status-overdue-fg: var(--error-700);
+
+  color-scheme: light;
+}
+
+/* ========================================================
+   DARK THEME
+   Apply via <html class="dark"> or [data-theme="dark"].
+   Warm near-black surfaces; primary lightened for contrast.
+   rgba tints below are teal-400 (63, 171, 156).
+   ======================================================== */
+
+.dark,
+[data-theme="dark"] {
+  --primary:           var(--teal-400);
+  --primary-hover:     var(--teal-300);
+  --primary-active:    var(--teal-200);
+  --primary-fg:        var(--teal-950);
+  --primary-subtle:    rgba(63, 171, 156, 0.14);
+  --primary-subtle-fg: var(--teal-300);
+  --primary-border:    rgba(63, 171, 156, 0.32);
+  --ring:              var(--teal-400);
+
+  --background:      #15120F;
+  --surface:         #1F1B17;
+  --surface-raised:  #262019;
+  --surface-muted:   #262019;
+  --surface-sunken:  #110E0B;
+  --surface-inverse: var(--neutral-100);
+
+  --border:        #352E27;
+  --border-strong: #463D34;
+  --border-subtle: #2A241E;
+
+  --text-strong:  #FAF7F3;
+  --text-body:    #E7DFD5;
+  --text-muted:   #AB9F90;
+  --text-subtle:  #8A7E70;
+  --text-on-inverse: var(--neutral-900);
+  --text-on-primary: var(--teal-950);
+
+  --success:        #4FB97A;
+  --success-fg:     #06210F;
+  --success-subtle: rgba(46, 158, 91, 0.16);
+  --success-subtle-fg: #7FD3A0;
+
+  --warning:        #E6AC44;
+  --warning-fg:     #2A1C04;
+  --warning-subtle: rgba(217, 148, 31, 0.16);
+  --warning-subtle-fg: #EAC077;
+
+  --error:        #E76054;
+  --error-fg:     #2A0B07;
+  --error-subtle: rgba(216, 70, 58, 0.18);
+  --error-subtle-fg: #F0998F;
+
+  --info:        #5C97D6;
+  --info-fg:     #07182A;
+  --info-subtle: rgba(59, 123, 196, 0.18);
+  --info-subtle-fg: #9CC0E8;
+
+  --status-draft-bg:   #352E27;
+  --status-draft-fg:   #C9BCAC;
+  --status-sent-bg:    rgba(59, 123, 196, 0.20);
+  --status-sent-fg:    #9CC0E8;
+  --status-paid-bg:    rgba(46, 158, 91, 0.20);
+  --status-paid-fg:    #7FD3A0;
+  --status-overdue-bg: rgba(216, 70, 58, 0.22);
+  --status-overdue-fg: #F0998F;
+
+  color-scheme: dark;
+}

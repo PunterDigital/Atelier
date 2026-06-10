@@ -1,0 +1,61 @@
+/* ============================================================
+   Atelier - Spacing, radius, elevation, motion, layout
+   Soft + rounded; shadows subtle and warm-tinted, never harsh.
+   ============================================================ */
+
+:root {
+  /* --- Border radius (leans soft) --- */
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   9px;
+  --radius-lg:   13px;
+  --radius-xl:   18px;
+  --radius-2xl:  24px;
+  --radius-full: 9999px;
+
+  /* --- Border widths --- */
+  --border-width: 1px;
+  --border-width-strong: 1.5px;
+
+  /* --- Elevation: soft, warm-tinted shadows ---
+     Tints use a warm brown (58 42 28) rather than pure black. */
+  --shadow-xs: 0 1px 2px rgba(58, 42, 28, 0.06);
+  --shadow-sm: 0 1px 2px rgba(58, 42, 28, 0.06),
+               0 2px 4px rgba(58, 42, 28, 0.05);
+  --shadow-md: 0 2px 4px rgba(58, 42, 28, 0.05),
+               0 6px 12px rgba(58, 42, 28, 0.07);
+  --shadow-lg: 0 4px 8px rgba(58, 42, 28, 0.06),
+               0 12px 28px rgba(58, 42, 28, 0.10);
+  --shadow-xl: 0 8px 16px rgba(58, 42, 28, 0.08),
+               0 24px 48px rgba(58, 42, 28, 0.14);
+
+  /* Focus ring footprint (paired with --ring color) */
+  --ring-width: 3px;
+  --ring-offset: 2px;
+
+  /* --- Motion --- */
+  --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast:   120ms;
+  --duration-normal: 180ms;
+  --duration-slow:   260ms;
+
+  /* --- Layout --- */
+  --sidebar-width: 244px;
+  --topbar-height: 60px;
+  --content-max:   1180px;
+}
+
+/* Warm-tinted shadows read slightly different in dark mode */
+.dark,
+[data-theme="dark"] {
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30),
+               0 2px 4px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.28),
+               0 6px 12px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.34),
+               0 12px 28px rgba(0, 0, 0, 0.46);
+  --shadow-xl: 0 8px 16px rgba(0, 0, 0, 0.40),
+               0 24px 48px rgba(0, 0, 0, 0.56);
+}

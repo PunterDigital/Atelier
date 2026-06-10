@@ -39,7 +39,7 @@ file in the same commit as the work it tracks.
 
 ## Phase 1 - projects and time
 
-- [ ] Design tokens in `/design` from the design file Shay supplied
+- [x] Design tokens in `/design` from the design file Shay supplied
       (resolved ESC-4): fetch it, read its readme, implement the relevant
       aspects. Screens still get human design review before final.
 - [ ] Clients module: list/create/edit/archive, company + contacts, activity
@@ -89,6 +89,12 @@ off. [BLOCKED: ESC-2]
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Design tokens: implemented the Atelier Design System bundle
+  (Claude Design) with Soft Teal locked as primary (Shay's pick); full
+  color/type/spacing/elevation token set in `/design/tokens`, mapped to
+  the shadcn theme in globals.css, Figtree + JetBrains Mono self-hosted
+  via next/font, brand SVGs in `public/brand`; on `feat/design-tokens`.
 
 - 2026-06-10 Licence: canonical AGPL-3.0 text as LICENSE, SPDX field in
   package.json, README licence section; on `chore/license`.
