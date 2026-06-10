@@ -15,7 +15,7 @@ file in the same commit as the work it tracks.
       (`typecheck`, `lint`, `test`, `test:billing` (empty suite to start),
       `build`). Repo layout per CLAUDE.md Section 11.
 - [ ] Add LICENSE file and licence metadata. [BLOCKED: ESC-1]
-- [ ] Wire Postgres + Drizzle: connection, initial schema for `business`,
+- [x] Wire Postgres + Drizzle: connection, initial schema for `business`,
       `user`, `client`, checked-in migrations, everything scoped by
       `business_id`.
 - [ ] Wire tRPC: server context carrying the authenticated user and
@@ -79,6 +79,11 @@ All billing implementation is blocked until the billing spec exists.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Drizzle + Postgres: `business`/`user`/`client` schema per the
+  plan sketch, checked-in initial migration, lazy DB client (no env needed
+  at build time), structural test enforcing `business_id` on every domain
+  table; on `feat/db-drizzle`.
 
 - 2026-06-10 Scaffold: Next.js 16 (App Router, TS strict) + Tailwind 4 +
   shadcn/ui (radix-nova, neutral, provisional per ESC-4) + Vitest; full gate
