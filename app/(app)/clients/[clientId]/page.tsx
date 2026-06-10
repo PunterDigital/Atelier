@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { StatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime } from "@/lib/format";
@@ -25,15 +26,17 @@ const activityLabels: Record<string, string> = {
   client_updated: "Details updated",
   client_archived: "Archived",
   client_unarchived: "Restored from archive",
+  project_created: "Project created",
 };
 
 async function load(clientId: string) {
   try {
-    const [client, activity] = await Promise.all([
+    const [client, activity, projects] = await Promise.all([
       caller.clients.get({ clientId }),
       caller.clients.activity({ clientId }),
+      caller.projects.list({ clientId }),
     ]);
-    return { client, activity };
+    return { client, activity, projects };
   } catch (error) {
     if (error instanceof TRPCError && error.code === "NOT_FOUND") {
       notFound();
@@ -48,7 +51,7 @@ export default async function ClientDetailPage({
   params: Promise<{ clientId: string }>;
 }) {
   const { clientId } = await params;
-  const { client, activity } = await load(clientId);
+  const { client, activity, projects } = await load(clientId);
   const contacts = client.contacts as Contact[];
 
   return (
@@ -117,6 +120,33 @@ export default async function ClientDetailPage({
         </div>
 
         <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Projects</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {projects.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No projects yet
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {projects.map((project) => (
+                    <li key={project.id} className="flex items-center gap-2">
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className="min-w-0 flex-1 truncate text-sm font-medium underline-offset-4 hover:underline"
+                      >
+                        {project.name}
+                      </Link>
+                      <StatusPill status={project.status} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Contacts</CardTitle>

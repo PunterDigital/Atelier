@@ -32,6 +32,12 @@ export function Topbar({
         >
           Clients
         </Link>
+        <Link
+          href="/projects"
+          className="rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          Projects
+        </Link>
       </nav>
       <div className="flex-1" />
       <div className="flex items-center gap-2.5">

@@ -86,9 +86,37 @@ export const client = pgTable(
   (table) => [index("client_business_id_idx").on(table.businessId)],
 );
 
+// Projects belong to a client of the same business; the service layer
+// enforces that pairing and the integration tests prove it.
+export const project = pgTable(
+  "project",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => business.id),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => client.id),
+    name: text("name").notNull(),
+    status: text("status", {
+      enum: ["active", "on_hold", "completed"],
+    })
+      .notNull()
+      .default("active"),
+    dueDate: timestamp("due_date", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    index("project_business_id_idx").on(table.businessId),
+    index("project_client_id_idx").on(table.clientId),
+  ],
+);
+
 // The client activity thread: notes written by users plus automatic
 // lifecycle events. payload shape depends on type and is owned by
-// modules/clients.
+// modules/clients. The enum is TypeScript-level only (the column is
+// plain text), so extending it is migration-free.
 export const activity = pgTable(
   "activity",
   {
@@ -104,7 +132,14 @@ export const activity = pgTable(
       .references(() => client.id),
     userId: text("user_id").references(() => user.id),
     type: text("type", {
-      enum: ["note", "client_created", "client_updated", "client_archived", "client_unarchived"],
+      enum: [
+        "note",
+        "client_created",
+        "client_updated",
+        "client_archived",
+        "client_unarchived",
+        "project_created",
+      ],
     }).notNull(),
     payload: jsonb("payload").notNull().default({}),
     at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),

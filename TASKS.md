@@ -49,7 +49,7 @@ file in the same commit as the work it tracks.
 - [x] Clients UI: app shell (sidebar + topbar per design system), clients
       list, create/edit, archive, activity thread. Design review: APPROVED
       by Shay 2026-06-10; this screen pattern is the Phase 1 baseline.
-- [ ] Projects module: projects linked to clients, statuses, due dates.
+- [x] Projects module: projects linked to clients, statuses, due dates.
 - [ ] Tasks: CRUD within a project, statuses, estimates, board view + list
       view.
 - [ ] Time tracking: start/stop timer + manual entry against a task,
@@ -97,6 +97,13 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Projects module: schema + migration, scoped services with
+  PGlite isolation suite (including the cross-entity proof that a project
+  cannot link or move to a foreign client), projects router, list/new/
+  detail/edit screens on the approved pattern, project_created on the
+  client activity thread, projects card on client detail. Verified in the
+  browser; on `feat/projects`.
 
 - 2026-06-10 Clients UI: app shell (244px sidebar + translucent topbar per
   the design system, compact topbar nav below md), clients list with
