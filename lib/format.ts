@@ -24,3 +24,13 @@ const timeFormat = new Intl.DateTimeFormat("en-GB", {
 export function formatDateTime(date: Date, now: Date = new Date()): string {
   return `${formatDate(date, now)}, ${timeFormat.format(date)}`;
 }
+
+// Durations render as "2h 30m" in prose per the design system.
+export function formatMinutes(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) {
+    return `${m}m`;
+  }
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}

@@ -50,7 +50,7 @@ file in the same commit as the work it tracks.
       list, create/edit, archive, activity thread. Design review: APPROVED
       by Shay 2026-06-10; this screen pattern is the Phase 1 baseline.
 - [x] Projects module: projects linked to clients, statuses, due dates.
-- [ ] Tasks: CRUD within a project, statuses, estimates, board view + list
+- [x] Tasks: CRUD within a project, statuses, estimates, board view + list
       view.
 - [ ] Time tracking: start/stop timer + manual entry against a task,
       billable flag and rate.
@@ -97,6 +97,12 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Tasks: task schema (todo/in_progress/in_review/done, estimate
+  in minutes), scoped services with PGlite isolation suite, tasks router,
+  kanban board (drag-to-move, per-column quick add) + list toggle on the
+  project page, edit dialog with delete. Verified in the browser; on
+  `feat/tasks`.
 
 - 2026-06-10 Projects module: schema + migration, scoped services with
   PGlite isolation suite (including the cross-entity proof that a project

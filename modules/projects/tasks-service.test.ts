@@ -1,0 +1,145 @@
+import { fileURLToPath } from "node:url";
+
+import { PGlite } from "@electric-sql/pglite";
+import { drizzle } from "drizzle-orm/pglite";
+import { migrate } from "drizzle-orm/pglite/migrator";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { schema, type Db } from "@/db";
+import { createClient } from "@/modules/clients/service";
+
+import { createProject } from "./service";
+import {
+  createTask,
+  deleteTask,
+  listTasks,
+  setTaskStatus,
+  updateTask,
+} from "./tasks-service";
+
+const migrationsFolder = fileURLToPath(
+  new URL("../../db/migrations", import.meta.url),
+);
+
+let pglite: PGlite;
+let db: Db;
+
+let businessA: { id: string };
+let businessB: { id: string };
+let projectA: { id: string };
+let projectB: { id: string };
+const userA = "user-a";
+const userB = "user-b";
+
+beforeAll(async () => {
+  pglite = new PGlite();
+  const pgliteDb = drizzle(pglite, { schema });
+  await migrate(pgliteDb, { migrationsFolder });
+  db = pgliteDb;
+
+  [businessA] = await db
+    .insert(schema.business)
+    .values({ name: "Alpha Studio", currency: "GBP" })
+    .returning();
+  [businessB] = await db
+    .insert(schema.business)
+    .values({ name: "Beta Works", currency: "CZK" })
+    .returning();
+  await db.insert(schema.user).values([
+    { id: userA, name: "Ada", email: "ada@alpha.test" },
+    { id: userB, name: "Ben", email: "ben@beta.test" },
+  ]);
+  const clientA = await createClient(db, businessA.id, userA, {
+    name: "Alpha client",
+    contacts: [],
+  });
+  const clientB = await createClient(db, businessB.id, userB, {
+    name: "Beta client",
+    contacts: [],
+  });
+  projectA = (await createProject(db, businessA.id, userA, {
+    name: "Alpha project",
+    clientId: clientA.id,
+    status: "active",
+  })) as { id: string };
+  projectB = (await createProject(db, businessB.id, userB, {
+    name: "Beta project",
+    clientId: clientB.id,
+    status: "active",
+  })) as { id: string };
+});
+
+afterAll(async () => {
+  await pglite.close();
+});
+
+describe("tasks service - cross-business isolation", () => {
+  it("refuses to create a task on another business's project", async () => {
+    expect(
+      await createTask(db, businessA.id, projectB.id, {
+        title: "Intrusion",
+        status: "todo",
+      }),
+    ).toBeNull();
+  });
+
+  it("denies update, move and delete on another business's task", async () => {
+    const target = await createTask(db, businessB.id, projectB.id, {
+      title: "Beta task",
+      status: "todo",
+    });
+    const targetId = (target as { id: string }).id;
+
+    expect(
+      await updateTask(db, businessA.id, targetId, {
+        title: "hijacked",
+        status: "done",
+      }),
+    ).toBeNull();
+    expect(await setTaskStatus(db, businessA.id, targetId, "done")).toBeNull();
+    expect(await deleteTask(db, businessA.id, targetId)).toBeNull();
+
+    const [untouched] = await listTasks(db, businessB.id, projectB.id);
+    expect(untouched.title).toBe("Beta task");
+    expect(untouched.status).toBe("todo");
+  });
+});
+
+describe("tasks service - lifecycle", () => {
+  it("creates, lists, moves, updates and deletes within a project", async () => {
+    const created = await createTask(db, businessA.id, projectA.id, {
+      title: "Design the board",
+      status: "todo",
+      estimateMinutes: 180,
+    });
+    expect(created?.estimateMinutes).toBe(180);
+
+    const moved = await setTaskStatus(
+      db,
+      businessA.id,
+      (created as { id: string }).id,
+      "in_progress",
+    );
+    expect(moved?.status).toBe("in_progress");
+
+    const updated = await updateTask(
+      db,
+      businessA.id,
+      (created as { id: string }).id,
+      { title: "Design the kanban board", status: "in_review", estimateMinutes: null },
+    );
+    expect(updated?.title).toBe("Design the kanban board");
+    expect(updated?.estimateMinutes).toBeNull();
+
+    const list = await listTasks(db, businessA.id, projectA.id);
+    expect(list).toHaveLength(1);
+
+    const deleted = await deleteTask(
+      db,
+      businessA.id,
+      (created as { id: string }).id,
+    );
+    expect(deleted).not.toBeNull();
+    expect(await listTasks(db, businessA.id, projectA.id)).toEqual([]);
+  });
+});

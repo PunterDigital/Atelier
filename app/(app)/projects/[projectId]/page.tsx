@@ -5,9 +5,10 @@ import { notFound } from "next/navigation";
 
 import { StatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/format";
 import { caller } from "@/server/trpc/server";
+
+import { TasksPanel } from "./tasks-panel";
 
 export const metadata: Metadata = {
   title: "Project - Atelier",
@@ -22,8 +23,12 @@ export default async function ProjectDetailPage({
 }) {
   const { projectId } = await params;
   let project;
+  let tasks;
   try {
-    project = await caller.projects.get({ projectId });
+    [project, tasks] = await Promise.all([
+      caller.projects.get({ projectId }),
+      caller.tasks.list({ projectId }),
+    ]);
   } catch (error) {
     if (error instanceof TRPCError && error.code === "NOT_FOUND") {
       notFound();
@@ -54,16 +59,15 @@ export default async function ProjectDetailPage({
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Tasks</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Tasks land here next - board and list views are on the way
-          </p>
-        </CardContent>
-      </Card>
+      <TasksPanel
+        projectId={project.id}
+        tasks={tasks.map((t) => ({
+          id: t.id,
+          title: t.title,
+          status: t.status,
+          estimateMinutes: t.estimateMinutes,
+        }))}
+      />
     </div>
   );
 }

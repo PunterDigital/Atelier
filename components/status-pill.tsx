@@ -30,3 +30,32 @@ export function StatusPill({ status }: { status: ProjectStatus }) {
     </span>
   );
 }
+
+const taskStyles = {
+  todo: "bg-[var(--status-draft-bg)] text-[var(--status-draft-fg)]",
+  in_progress: "bg-[var(--status-sent-bg)] text-[var(--status-sent-fg)]",
+  in_review: "bg-[var(--warning-subtle)] text-[var(--warning-subtle-fg)]",
+  done: "bg-[var(--status-paid-bg)] text-[var(--status-paid-fg)]",
+} as const;
+
+const taskLabels = {
+  todo: "To do",
+  in_progress: "In progress",
+  in_review: "In review",
+  done: "Done",
+} as const;
+
+export type TaskStatus = keyof typeof taskStyles;
+
+export function TaskStatusPill({ status }: { status: TaskStatus }) {
+  return (
+    <span
+      className={cn(
+        "rounded-full px-2 py-px text-xs font-semibold",
+        taskStyles[status],
+      )}
+    >
+      {taskLabels[status]}
+    </span>
+  );
+}

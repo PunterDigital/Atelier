@@ -1,6 +1,7 @@
 import {
   bigserial,
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -110,6 +111,31 @@ export const project = pgTable(
   (table) => [
     index("project_business_id_idx").on(table.businessId),
     index("project_client_id_idx").on(table.clientId),
+  ],
+);
+
+export const task = pgTable(
+  "task",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => business.id),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => project.id),
+    title: text("title").notNull(),
+    status: text("status", {
+      enum: ["todo", "in_progress", "in_review", "done"],
+    })
+      .notNull()
+      .default("todo"),
+    estimateMinutes: integer("estimate_minutes"),
+    ...timestamps,
+  },
+  (table) => [
+    index("task_business_id_idx").on(table.businessId),
+    index("task_project_id_idx").on(table.projectId),
   ],
 );
 
