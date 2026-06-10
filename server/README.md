@@ -1,7 +1,15 @@
 # Server
 
-tRPC routers and application services. This layer wires the domain modules
-in `/modules` to the Next.js app: auth context, `business_id` scoping, and
-the end-to-end typed API surface.
+tRPC routers and application services - the end-to-end typed API surface
+between the Next.js app and the domain modules in `/modules`.
 
-Not started yet - lands with the Drizzle/Postgres task in Phase 0.
+- `trpc/init.ts` - context and procedure helpers. There is no session in
+  the context yet: the auth design is human-gated (ESC-3 in
+  `ESCALATIONS.md`), so only `publicProcedure` exists. The protected,
+  `business_id`-scoped procedure helper lands with the agreed auth design.
+- `trpc/routers/` - one router per domain area, composed in `_app.ts`.
+- `trpc/server.ts` - direct caller for React Server Components.
+- `trpc/client.tsx` - `TRPCReactProvider` + `useTRPC` for client
+  components (TanStack React Query, superjson over `/api/trpc`).
+
+The HTTP entry point is `app/api/trpc/[trpc]/route.ts` (fetch adapter).

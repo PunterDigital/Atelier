@@ -18,8 +18,10 @@ file in the same commit as the work it tracks.
 - [x] Wire Postgres + Drizzle: connection, initial schema for `business`,
       `user`, `client`, checked-in migrations, everything scoped by
       `business_id`.
-- [ ] Wire tRPC: server context carrying the authenticated user and
-      `business_id`, base router, app integration, end-to-end typed.
+- [x] Wire tRPC: base router, context, app integration, end-to-end typed.
+      Note: context carries no session yet - the protected,
+      `business_id`-scoped procedure helper lands with the agreed auth
+      design (ESC-3).
 - [ ] One-command self-host: docker-compose (app + Postgres), `.env.example`,
       documented in README.
 - [ ] Auth: self-hostable email/password sessions, no hosted-only provider.
@@ -79,6 +81,10 @@ All billing implementation is blocked until the billing spec exists.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 tRPC wiring: init/context (no session yet, per ESC-3), health
+  router with caller-level test, fetch adapter route, RSC caller, React
+  Query provider in the root layout; on `feat/trpc-wiring`.
 
 - 2026-06-10 Drizzle + Postgres: `business`/`user`/`client` schema per the
   plan sketch, checked-in initial migration, lazy DB client (no env needed
