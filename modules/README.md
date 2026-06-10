@@ -8,7 +8,7 @@ each other's internals.
 | Module      | Owns                                          | Status          |
 | ----------- | --------------------------------------------- | --------------- |
 | `clients`   | clients, companies, activity history           | domain + API shipped, UI pending |
-| `projects`  | projects and tasks                             | not started     |
+| `projects`  | projects and tasks                             | projects shipped, tasks pending |
 | `time`      | time tracking, timesheets                      | not started     |
 | `billing`   | invoices, currency, tax, numbering             | blocked (ESC-2) |
 | `proposals` | proposals (later phase)                        | not started     |
