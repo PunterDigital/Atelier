@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, isNull, lt } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Db } from "@/db";
@@ -222,6 +222,45 @@ export async function listEntriesForTask(
       ),
     )
     .orderBy(desc(schema.timeEntry.startedAt));
+}
+
+// Closed entries for one user in [from, to), joined with task/project/
+// client names for the timesheet. Running timers are excluded - they
+// appear once stopped.
+export async function listEntriesBetween(
+  db: Db,
+  businessId: string,
+  userId: string,
+  from: Date,
+  to: Date,
+) {
+  return db
+    .select({
+      id: schema.timeEntry.id,
+      startedAt: schema.timeEntry.startedAt,
+      durationSeconds: schema.timeEntry.durationSeconds,
+      billable: schema.timeEntry.billable,
+      note: schema.timeEntry.note,
+      taskId: schema.timeEntry.taskId,
+      taskTitle: schema.task.title,
+      projectId: schema.task.projectId,
+      projectName: schema.project.name,
+      clientName: schema.client.name,
+    })
+    .from(schema.timeEntry)
+    .innerJoin(schema.task, eq(schema.timeEntry.taskId, schema.task.id))
+    .innerJoin(schema.project, eq(schema.task.projectId, schema.project.id))
+    .innerJoin(schema.client, eq(schema.project.clientId, schema.client.id))
+    .where(
+      and(
+        eq(schema.timeEntry.businessId, businessId),
+        eq(schema.timeEntry.userId, userId),
+        isNotNull(schema.timeEntry.endedAt),
+        gte(schema.timeEntry.startedAt, from),
+        lt(schema.timeEntry.startedAt, to),
+      ),
+    )
+    .orderBy(asc(schema.timeEntry.startedAt));
 }
 
 export async function deleteEntry(db: Db, businessId: string, entryId: string) {

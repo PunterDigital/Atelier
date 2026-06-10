@@ -14,6 +14,7 @@ import { createTask } from "@/modules/projects/tasks-service";
 import {
   deleteEntry,
   getRunningTimer,
+  listEntriesBetween,
   listEntriesForTask,
   logManualEntry,
   startTimer,
@@ -196,6 +197,55 @@ describe("time service - rate resolution (billing spec Section 7)", () => {
     });
     expect(entry?.rateMinor).toBeNull();
     expect(entry?.rateCurrency).toBeNull();
+  });
+});
+
+describe("time service - week listing", () => {
+  it("returns only the caller's closed entries inside the window", async () => {
+    const weekStart = new Date("2026-06-01T00:00:00Z");
+    const weekEnd = new Date("2026-06-08T00:00:00Z");
+
+    await logManualEntry(db, businessA.id, userA, {
+      taskId: taskClientRate.id,
+      startedAt: new Date("2026-06-02T09:00:00Z"),
+      durationSeconds: 5400,
+      billable: true,
+      note: "in window",
+    });
+    // Outside the window, same user
+    await logManualEntry(db, businessA.id, userA, {
+      taskId: taskClientRate.id,
+      startedAt: new Date("2026-06-09T09:00:00Z"),
+      durationSeconds: 3600,
+      billable: true,
+    });
+    // Inside the window, other business/user
+    await logManualEntry(db, businessB.id, userB, {
+      taskId: taskB.id,
+      startedAt: new Date("2026-06-02T10:00:00Z"),
+      durationSeconds: 3600,
+      billable: true,
+    });
+
+    const rows = await listEntriesBetween(
+      db,
+      businessA.id,
+      userA,
+      weekStart,
+      weekEnd,
+    );
+    expect(rows.some((r) => r.note === "in window")).toBe(true);
+    expect(
+      rows.every(
+        (r) =>
+          r.startedAt >= weekStart &&
+          r.startedAt < weekEnd &&
+          r.taskTitle !== "Beta task",
+      ),
+    ).toBe(true);
+    const inWindow = rows.find((r) => r.note === "in window");
+    expect(inWindow?.projectName).toBe("Plain project");
+    expect(inWindow?.clientName).toBe("Alpha client");
   });
 });
 

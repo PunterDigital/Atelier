@@ -54,7 +54,7 @@ file in the same commit as the work it tracks.
       view.
 - [x] Time tracking: start/stop timer + manual entry against a task,
       billable flag and rate.
-- [ ] Weekly timesheet view: entries by day/task, week navigation, totals.
+- [x] Weekly timesheet view: entries by day/task, week navigation, totals.
 
 ## Phase 2 - billing (the provably-correct core)
 
@@ -97,6 +97,12 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Weekly timesheet: /time with Monday-start UTC weeks (tested
+  week math), per-day sections with task/project/client context, day and
+  week totals, prev/this/next navigation, honest empty state. Phase 1
+  feature set complete pending the seed script. Browser-verified; on
+  `feat/timesheet`.
 
 - 2026-06-10 Time tracking: time_entry schema (exact seconds, stored
   rate + currency per the spec's precedence, proven by tests), default

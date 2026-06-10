@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderKanban, Home, Users } from "lucide-react";
+import { Clock, FolderKanban, Home, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: Home },
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/projects", label: "Projects", icon: FolderKanban },
+  { href: "/time", label: "Timesheet", icon: Clock },
 ];
 
 // Spec: design system Sidebar - 244px rail, surface bg, hairline right

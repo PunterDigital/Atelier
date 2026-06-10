@@ -39,6 +39,12 @@ export function Topbar({
         >
           Projects
         </Link>
+        <Link
+          href="/time"
+          className="rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          Time
+        </Link>
       </nav>
       <div className="flex-1" />
       <div className="flex items-center gap-2.5">

@@ -5,6 +5,7 @@ import { getDb } from "@/db";
 import {
   deleteEntry,
   getRunningTimer,
+  listEntriesBetween,
   listEntriesForTask,
   logManualEntry,
   manualEntrySchema,
@@ -52,6 +53,19 @@ export const timeRouter = createTRPCRouter({
     .input(z.object({ taskId: z.string().uuid() }))
     .query(({ ctx, input }) =>
       listEntriesForTask(getDb(), ctx.businessId, input.taskId),
+    ),
+
+  // The caller's own timesheet window. [from, to) in UTC.
+  listMine: businessProcedure
+    .input(z.object({ from: z.date(), to: z.date() }))
+    .query(({ ctx, input }) =>
+      listEntriesBetween(
+        getDb(),
+        ctx.businessId,
+        ctx.session.user.id,
+        input.from,
+        input.to,
+      ),
     ),
 
   deleteEntry: businessProcedure
