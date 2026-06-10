@@ -1,4 +1,5 @@
 import {
+  bigserial,
   index,
   jsonb,
   pgTable,
@@ -92,6 +93,9 @@ export const activity = pgTable(
   "activity",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // Monotonic insertion order: `at` timestamps can collide within a
+    // microsecond, and the thread must render in a stable order.
+    seq: bigserial("seq", { mode: "number" }).notNull(),
     businessId: uuid("business_id")
       .notNull()
       .references(() => business.id),

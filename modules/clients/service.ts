@@ -175,6 +175,8 @@ export async function listActivity(
   businessId: string,
   clientId: string,
 ) {
+  // seq, not at: timestamps can collide within a microsecond and the
+  // thread must render newest-first in stable insertion order.
   return db
     .select()
     .from(schema.activity)
@@ -184,7 +186,7 @@ export async function listActivity(
         eq(schema.activity.clientId, clientId),
       ),
     )
-    .orderBy(desc(schema.activity.at));
+    .orderBy(desc(schema.activity.seq));
 }
 
 export async function addNote(
