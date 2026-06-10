@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { createCallerFactory, createTRPCContext } from "../init";
+import { createCallerFactory, type TRPCContext } from "../init";
 import { appRouter } from "./_app";
 
-// Exercises the real router through a real caller and context, so a broken
-// context shape or router wiring fails here instead of at runtime.
+// Context is constructed literally: the real createTRPCContext resolves a
+// session against the database, which unit tests must not need.
+const anonymousContext: TRPCContext = {
+  headers: new Headers(),
+  session: null,
+};
+
 describe("health router", () => {
-  it("answers ping through the app router", async () => {
-    const caller = createCallerFactory(appRouter)(
-      await createTRPCContext({ headers: new Headers() }),
-    );
+  it("answers ping without a session - health stays public", async () => {
+    const caller = createCallerFactory(appRouter)(anonymousContext);
 
     const result = await caller.health.ping();
 

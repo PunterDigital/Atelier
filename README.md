@@ -6,13 +6,16 @@ tracking and invoicing in one connected flow.
 
 ## Status: pre-alpha, not usable yet
 
-This is day-one scaffolding. There is no usable feature yet - no auth, no
-clients, no projects, no time tracking, no invoicing. What exists today:
+This is day-one scaffolding. There is no usable feature yet - no clients,
+no projects, no time tracking, no invoicing. What exists today:
 
 - Next.js (App Router, TypeScript strict) + Tailwind + shadcn/ui
-- tRPC API wiring with a health endpoint
-- Postgres + Drizzle with the initial schema and checked-in migrations
-- One-command self-host via docker-compose (it boots, that is all)
+- The Atelier design system tokens (light + dark, self-hosted fonts)
+- Auth: email/password sign-up and sign-in (Better Auth), optional Google
+  SSO via env, business creation on first run, small-team memberships
+- tRPC API wiring with session-aware, business-scoped procedures
+- Postgres + Drizzle with checked-in migrations
+- One-command self-host via docker-compose
 
 The README will track honest feature status as things actually land.
 

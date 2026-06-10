@@ -39,6 +39,11 @@ services:
       - "${APP_PORT:-3000}:3000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-atelier}:${POSTGRES_PASSWORD:-atelier}@postgres:5432/${POSTGRES_DB:-atelier}
+      # Change this before exposing the instance anywhere - see .env.example
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-atelier-dev-secret-change-me}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     depends_on:
       migrate:
         condition: service_completed_successfully

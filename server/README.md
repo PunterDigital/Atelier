@@ -3,13 +3,18 @@
 tRPC routers and application services - the end-to-end typed API surface
 between the Next.js app and the domain modules in `/modules`.
 
-- `trpc/init.ts` - context and procedure helpers. There is no session in
-  the context yet: the auth design is human-gated (ESC-3 in
-  `ESCALATIONS.md`), so only `publicProcedure` exists. The protected,
-  `business_id`-scoped procedure helper lands with the agreed auth design.
+- `auth.ts` - Better Auth instance (lazy, created on first request):
+  email/password always on, Google SSO only when `GOOGLE_CLIENT_ID`/
+  `GOOGLE_CLIENT_SECRET` exist - self-hosting never requires a third
+  party. Database sessions via the Drizzle adapter; HTTP entry at
+  `app/api/auth/[...all]/route.ts`.
+- `membership.ts` - resolves a user's active business (oldest membership
+  until multi-entity switching lands in Phase 4).
+- `trpc/init.ts` - context (resolves the Better Auth session) and the
+  procedure ladder: `publicProcedure` -> `authedProcedure` (session
+  required) -> `businessProcedure` (adds `ctx.businessId` derived from
+  membership, never from client input - this is the tenancy boundary).
 - `trpc/routers/` - one router per domain area, composed in `_app.ts`.
 - `trpc/server.ts` - direct caller for React Server Components.
 - `trpc/client.tsx` - `TRPCReactProvider` + `useTRPC` for client
   components (TanStack React Query, superjson over `/api/trpc`).
-
-The HTTP entry point is `app/api/trpc/[trpc]/route.ts` (fetch adapter).

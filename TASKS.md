@@ -24,10 +24,11 @@ file in the same commit as the work it tracks.
       design (ESC-3).
 - [x] One-command self-host: docker-compose (app + Postgres), `.env.example`,
       documented in README.
-- [ ] Auth (per resolved ESC-3): Better Auth, email/password + optional
+- [x] Auth (per resolved ESC-3): Better Auth, email/password + optional
       Google SSO via env config, server-side DB sessions, small teams from
       day one, protected tRPC procedure deriving `business_id` from the
-      session.
+      session. Sign-in/sign-up/onboarding screens pending human design
+      review (built from tokens, structure verified).
 - [ ] Seed script with demo business, clients, projects, tasks, time entries.
       Must always work (CLAUDE.md Section 10). Note: deferred until the
       Phase 1 schema exists - a demo without projects/tasks/time is not a
@@ -89,6 +90,13 @@ off. [BLOCKED: ESC-2]
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Auth: Better Auth (email/password + env-gated Google SSO, DB
+  sessions), business_member join replaces user.business_id for small
+  teams, authedProcedure/businessProcedure tenancy ladder, sign-in/up +
+  onboarding screens, clean initial migration. Verified end-to-end on a
+  local stack: sign-up, session, onboarding redirect, business creation,
+  scoped query, 401 without session; on `feat/auth`.
 
 - 2026-06-10 Design tokens: implemented the Atelier Design System bundle
   (Claude Design) with Soft Teal locked as primary (Shay's pick); full
