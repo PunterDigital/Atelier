@@ -1,0 +1,65 @@
+{
+  "description": "Invoice totals per treatment (BILLING-SPEC.md Section 4): tax on the subtotal of rounded lines, one treatment per invoice, mandatory notes verbatim. The spec's worked-example table appears row by row. Hand-verified.",
+  "expected": {
+    "invoices": [
+      {
+        "case": "spec table: UK domestic, GBP 558.00 at standard 20%",
+        "lineTotalsMinor": [25317, 30483],
+        "treatment": "standard",
+        "standardRatePercent": "20",
+        "subtotalMinor": 55800,
+        "taxMinor": 11160,
+        "totalMinor": 66960,
+        "taxNote": null
+      },
+      {
+        "case": "spec table: CZ domestic, CZK 48,000.00 at standard 21%",
+        "lineTotalsMinor": [4800000],
+        "treatment": "standard",
+        "standardRatePercent": "21",
+        "subtotalMinor": 4800000,
+        "taxMinor": 1008000,
+        "totalMinor": 5808000,
+        "taxNote": null
+      },
+      {
+        "case": "spec table: CZ -> UK B2B, EUR 1,240.00 reverse charge",
+        "lineTotalsMinor": [124000],
+        "treatment": "reverse_charge",
+        "subtotalMinor": 124000,
+        "taxMinor": 0,
+        "totalMinor": 124000,
+        "taxNote": "VAT reverse charged to the recipient under Article 196 of Council Directive 2006/112/EC"
+      },
+      {
+        "case": "spec table: rounding edge, EUR 33.33 at standard 21%",
+        "lineTotalsMinor": [3333],
+        "treatment": "standard",
+        "standardRatePercent": "21",
+        "subtotalMinor": 3333,
+        "taxMinor": 700,
+        "totalMinor": 4033,
+        "taxNote": null
+      },
+      {
+        "case": "zero-rated export",
+        "lineTotalsMinor": [55800],
+        "treatment": "zero_rated",
+        "subtotalMinor": 55800,
+        "taxMinor": 0,
+        "totalMinor": 55800,
+        "taxNote": "Zero-rated for VAT purposes"
+      },
+      {
+        "case": "empty draft invoice",
+        "lineTotalsMinor": [],
+        "treatment": "standard",
+        "standardRatePercent": "20",
+        "subtotalMinor": 0,
+        "taxMinor": 0,
+        "totalMinor": 0,
+        "taxNote": null
+      }
+    ]
+  }
+}

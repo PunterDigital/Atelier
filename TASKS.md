@@ -67,7 +67,7 @@ fixture-first against it; a case the spec misses gets escalated.
       half-up rounding at the three spec-defined points, fixture-covered.
 - [ ] Currency conversion: Frankfurter rates fixed on invoice date, manual
       rate fallback, stored rate + source on the invoice, fixture-covered.
-- [ ] Tax/VAT engine per spec: standard rate from tax_config, zero-rated,
+- [x] Tax/VAT engine per spec: standard rate from tax_config, zero-rated,
       EU reverse charge with mandatory notes, subtotal-based, one
       treatment per invoice, fixture-covered.
 - [ ] Invoice numbering: `YYYY-NNNN` per business per year, allocated at
@@ -96,6 +96,11 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Tax engine: the three spec treatments with their mandatory
+  notes verbatim, tax once on the subtotal, fail-loud when a standard
+  rate is not configured (never defaulted). The spec's worked-example
+  table is fixture-encoded row by row; on `feat/billing-tax`.
 
 - 2026-06-10 Money core complete: bigint half-up rounding at exactly the
   three spec points (time-based line totals, subtotal tax, currency
