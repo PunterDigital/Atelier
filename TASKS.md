@@ -10,7 +10,7 @@ file in the same commit as the work it tracks.
 
 ## Phase 0 - skeleton
 
-- [ ] Scaffold the app: Next.js (App Router) + TypeScript strict + Tailwind +
+- [x] Scaffold the app: Next.js (App Router) + TypeScript strict + Tailwind +
       shadcn/ui, ESLint, Vitest, and the full gate wired as pnpm scripts
       (`typecheck`, `lint`, `test`, `test:billing` (empty suite to start),
       `build`). Repo layout per CLAUDE.md Section 11.
@@ -18,6 +18,8 @@ file in the same commit as the work it tracks.
 - [ ] Wire Postgres + Drizzle: connection, initial schema for `business`,
       `user`, `client`, checked-in migrations, everything scoped by
       `business_id`.
+- [ ] Wire tRPC: server context carrying the authenticated user and
+      `business_id`, base router, app integration, end-to-end typed.
 - [ ] One-command self-host: docker-compose (app + Postgres), `.env.example`,
       documented in README.
 - [ ] Auth: self-hostable email/password sessions, no hosted-only provider.
@@ -78,4 +80,7 @@ All billing implementation is blocked until the billing spec exists.
 
 ## Shipped
 
-(nothing yet)
+- 2026-06-10 Scaffold: Next.js 16 (App Router, TS strict) + Tailwind 4 +
+  shadcn/ui (radix-nova, neutral, provisional per ESC-4) + Vitest; full gate
+  (`typecheck`/`lint`/`test`/`test:billing`/`build`) wired and green on
+  `feat/scaffold-app`.

@@ -1,0 +1,18 @@
+# Modules
+
+Atelier is a modular monolith: each domain module lives here, cleanly
+separated in code, shipped as one deployable. Modules own their domain
+logic and expose it to `/server` (tRPC routers); they do not import from
+each other's internals.
+
+| Module      | Owns                                          | Status          |
+| ----------- | --------------------------------------------- | --------------- |
+| `clients`   | clients, companies, activity history           | not started     |
+| `projects`  | projects and tasks                             | not started     |
+| `time`      | time tracking, timesheets                      | not started     |
+| `billing`   | invoices, currency, tax, numbering             | blocked (ESC-2) |
+| `proposals` | proposals (later phase)                        | not started     |
+
+Every piece of data access is scoped by `business_id`. The billing module
+is the provably-correct core: it is built test-first against
+`/fixtures/billing` and nothing in it ships without a fixture.
