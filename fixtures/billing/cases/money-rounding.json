@@ -1,0 +1,34 @@
+{
+  "description": "Half-up rounding at the three spec-defined points (BILLING-SPEC.md Sections 3, 4, 5, 7). Every case is hand-verified; the worked examples from the approved spec appear verbatim.",
+  "expected": {
+    "lineTotalsFromSeconds": [
+      { "case": "spec S5: 1h10m at EUR 31.00/h", "durationSeconds": 4200, "rateMinorPerHour": 3100, "totalMinor": 3617 },
+      { "case": "spec S7: 2h15m + 1h50m at GBP 62.00/h as one 4h05m line", "durationSeconds": 14700, "rateMinorPerHour": 6200, "totalMinor": 25317 },
+      { "case": "exact hour, no rounding needed", "durationSeconds": 3600, "rateMinorPerHour": 6200, "totalMinor": 6200 },
+      { "case": "half lands exactly on .5, rounds up: 30m at 0.01/h", "durationSeconds": 1800, "rateMinorPerHour": 1, "totalMinor": 1 },
+      { "case": "one second at EUR 36.00/h", "durationSeconds": 1, "rateMinorPerHour": 3600, "totalMinor": 1 },
+      { "case": "zero duration", "durationSeconds": 0, "rateMinorPerHour": 6200, "totalMinor": 0 }
+    ],
+    "tax": [
+      { "case": "spec S4: GBP 558.00 at 20%", "subtotalMinor": 55800, "ratePercent": "20", "taxMinor": 11160 },
+      { "case": "spec S4: CZK 48,000.00 at 21%", "subtotalMinor": 4800000, "ratePercent": "21", "taxMinor": 1008000 },
+      { "case": "spec S4 rounding edge: EUR 33.33 at 21% (6.9993 rounds to 7.00)", "subtotalMinor": 3333, "ratePercent": "21", "taxMinor": 700 },
+      { "case": "zero-rated / reverse charge are 0%", "subtotalMinor": 124000, "ratePercent": "0", "taxMinor": 0 },
+      { "case": "decimal percentage 12.5%", "subtotalMinor": 10000, "ratePercent": "12.5", "taxMinor": 1250 },
+      { "case": "half-up boundary: 13 minor at 12.5% = 1.625 minor rounds to 2", "subtotalMinor": 13, "ratePercent": "12.5", "taxMinor": 2 }
+    ],
+    "conversions": [
+      { "case": "spec S3: GBP 465.00 to EUR at 1.1734 (545.631 rounds down)", "amountMinor": 46500, "rate": "1.1734", "from": "GBP", "to": "EUR", "convertedMinor": 54563 },
+      { "case": "EUR 100.00 to CZK at 24.715", "amountMinor": 10000, "rate": "24.715", "from": "EUR", "to": "CZK", "convertedMinor": 247150 },
+      { "case": "EUR 10.00 to JPY at 169.42 (2dp to 0dp)", "amountMinor": 1000, "rate": "169.42", "from": "EUR", "to": "JPY", "convertedMinor": 1694 },
+      { "case": "JPY 5000 to EUR at 0.0059 (0dp to 2dp)", "amountMinor": 5000, "rate": "0.0059", "from": "JPY", "to": "EUR", "convertedMinor": 2950 },
+      { "case": "EUR 1.00 to BHD at 0.512345 (2dp to 3dp, 512.345 thousandths rounds down)", "amountMinor": 100, "rate": "0.512345", "from": "EUR", "to": "BHD", "convertedMinor": 512 },
+      { "case": "identity rate", "amountMinor": 12345, "rate": "1", "from": "EUR", "to": "EUR", "convertedMinor": 12345 },
+      { "case": "half-up boundary: GBP 0.01 to EUR at 1.5 (1.5 minor rounds up)", "amountMinor": 1, "rate": "1.5", "from": "GBP", "to": "EUR", "convertedMinor": 2 }
+    ],
+    "subtotals": [
+      { "case": "sums of rounded lines are never re-rounded", "lineTotals": [3617, 25317, 6200], "subtotalMinor": 35134 },
+      { "case": "empty invoice", "lineTotals": [], "subtotalMinor": 0 }
+    ]
+  }
+}

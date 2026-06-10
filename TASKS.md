@@ -63,7 +63,7 @@ file in the same commit as the work it tracks.
 Spec approved 2026-06-10 (`BILLING-SPEC.md`). Everything below is built
 fixture-first against it; a case the spec misses gets escalated.
 
-- [ ] Money core: minor-unit integer arithmetic, ISO 4217 minor units,
+- [x] Money core: minor-unit integer arithmetic, ISO 4217 minor units,
       half-up rounding at the three spec-defined points, fixture-covered.
 - [ ] Currency conversion: Frankfurter rates fixed on invoice date, manual
       rate fallback, stored rate + source on the invoice, fixture-covered.
@@ -96,6 +96,13 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Money core complete: bigint half-up rounding at exactly the
+  three spec points (time-based line totals, subtotal tax, currency
+  conversion incl. differing minor-unit digits), decimal-string parsing
+  so floats never touch money, sum-without-re-rounding. Every worked
+  example from the approved spec is a fixture and passes verbatim; on
+  `feat/billing-money-core`.
 
 - 2026-06-10 Seed: pnpm db:seed builds a demo business (clients, projects,
   kanban tasks, a believable current week of time entries) through the
