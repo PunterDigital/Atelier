@@ -1,0 +1,40 @@
+{
+  "description": "ISO 4217 minor-unit conversion: major-unit input strings to exact integer minor units and back (billing spec Section 2). Hand-verified.",
+  "expected": {
+    "majorToMinor": [
+      { "major": "62.50", "currency": "GBP", "minor": 6250 },
+      { "major": "62.5", "currency": "GBP", "minor": 6250 },
+      { "major": "62", "currency": "EUR", "minor": 6200 },
+      { "major": "0.01", "currency": "EUR", "minor": 1 },
+      { "major": "310", "currency": "EUR", "minor": 31000 },
+      { "major": "48000", "currency": "CZK", "minor": 4800000 },
+      { "major": "5000", "currency": "JPY", "minor": 5000 },
+      { "major": "12.345", "currency": "BHD", "minor": 12345 },
+      { "major": "1.2345", "currency": "CLF", "minor": 12345 }
+    ],
+    "majorToMinorRejected": [
+      { "major": "62.505", "currency": "GBP" },
+      { "major": "5000.5", "currency": "JPY" },
+      { "major": "12.3456", "currency": "BHD" },
+      { "major": "1,50", "currency": "EUR" },
+      { "major": "abc", "currency": "EUR" },
+      { "major": "-5", "currency": "EUR" }
+    ],
+    "minorToMajor": [
+      { "minor": 6250, "currency": "GBP", "major": "62.50" },
+      { "minor": 1, "currency": "EUR", "major": "0.01" },
+      { "minor": 5000, "currency": "JPY", "major": "5000" },
+      { "minor": 12345, "currency": "BHD", "major": "12.345" },
+      { "minor": 4800000, "currency": "CZK", "major": "48000.00" }
+    ],
+    "minorUnitDigits": [
+      { "currency": "GBP", "digits": 2 },
+      { "currency": "EUR", "digits": 2 },
+      { "currency": "CZK", "digits": 2 },
+      { "currency": "JPY", "digits": 0 },
+      { "currency": "ISK", "digits": 0 },
+      { "currency": "KWD", "digits": 3 },
+      { "currency": "BHD", "digits": 3 }
+    ]
+  }
+}
