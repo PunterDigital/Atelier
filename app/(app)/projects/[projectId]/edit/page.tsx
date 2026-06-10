@@ -26,6 +26,8 @@ export default async function EditProjectPage({
       clientId: project.clientId,
       status: project.status,
       dueDate: project.dueDate,
+      defaultRateMinor: project.defaultRateMinor,
+      defaultRateCurrency: project.defaultRateCurrency,
     };
   } catch (error) {
     if (error instanceof TRPCError && error.code === "NOT_FOUND") {

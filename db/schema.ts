@@ -1,5 +1,6 @@
 import {
   bigserial,
+  boolean,
   index,
   integer,
   jsonb,
@@ -79,6 +80,10 @@ export const client = pgTable(
     company: text("company"),
     contacts: jsonb("contacts").notNull().default([]),
     notes: text("notes"),
+    // Default hourly rate in the currency's minor unit (integer, per the
+    // billing spec). Stored as data; resolution happens in modules/time.
+    defaultRateMinor: integer("default_rate_minor"),
+    defaultRateCurrency: text("default_rate_currency"),
     // Soft archive: archived clients keep their history and stay linkable
     // from old projects/invoices, they just leave the default lists.
     archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -106,11 +111,48 @@ export const project = pgTable(
       .notNull()
       .default("active"),
     dueDate: timestamp("due_date", { withTimezone: true }),
+    // Overrides the client default when set (billing spec rate precedence).
+    defaultRateMinor: integer("default_rate_minor"),
+    defaultRateCurrency: text("default_rate_currency"),
     ...timestamps,
   },
   (table) => [
     index("project_business_id_idx").on(table.businessId),
     index("project_client_id_idx").on(table.clientId),
+  ],
+);
+
+// Time entries: a running timer is an entry with ended_at and duration
+// still null. Durations are exact seconds (billing spec Section 7). The
+// rate is resolved at creation (entry > project default > client default)
+// and stored here with its currency so later default changes never
+// reprice old work. invoice_id arrives with the billing module.
+export const timeEntry = pgTable(
+  "time_entry",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => business.id),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => task.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    durationSeconds: integer("duration_seconds"),
+    billable: boolean("billable").notNull().default(true),
+    rateMinor: integer("rate_minor"),
+    rateCurrency: text("rate_currency"),
+    note: text("note"),
+    ...timestamps,
+  },
+  (table) => [
+    index("time_entry_business_id_idx").on(table.businessId),
+    index("time_entry_task_id_idx").on(table.taskId),
+    index("time_entry_user_id_idx").on(table.userId),
   ],
 );
 

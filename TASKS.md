@@ -52,7 +52,7 @@ file in the same commit as the work it tracks.
 - [x] Projects module: projects linked to clients, statuses, due dates.
 - [x] Tasks: CRUD within a project, statuses, estimates, board view + list
       view.
-- [ ] Time tracking: start/stop timer + manual entry against a task,
+- [x] Time tracking: start/stop timer + manual entry against a task,
       billable flag and rate.
 - [ ] Weekly timesheet view: entries by day/task, week navigation, totals.
 
@@ -97,6 +97,17 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Time tracking: time_entry schema (exact seconds, stored
+  rate + currency per the spec's precedence, proven by tests), default
+  rate fields on clients/projects with form UI, timer start/stop with
+  switch-stops-previous semantics, ticking topbar chip, per-card timer
+  buttons, manual logging + entry list in the task dialog. First real
+  billing fixtures landed (ISO 4217 minor units in modules/billing).
+  ESC-5 raised: rate currency vs invoice currency needs a spec call
+  before invoice-from-time. Browser-verified (and the verification
+  caught a native step-validation bug in the hours input); on
+  `feat/time-tracking`.
 
 - 2026-06-10 Tasks: task schema (todo/in_progress/in_review/done, estimate
   in minutes), scoped services with PGlite isolation suite, tasks router,

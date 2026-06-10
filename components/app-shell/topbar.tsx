@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { SignOutButton } from "./sign-out-button";
+import { TimerChip } from "./timer-chip";
 
 // Spec: design system Topbar - 60px, translucent blurred surface,
 // hairline bottom border. The only fixed chrome besides the sidebar.
@@ -41,7 +42,10 @@ export function Topbar({
       </nav>
       <div className="flex-1" />
       <div className="flex items-center gap-2.5">
-        <span className="text-sm text-muted-foreground">{userName}</span>
+        <TimerChip />
+        <span className="hidden text-sm text-muted-foreground sm:inline">
+          {userName}
+        </span>
         <SignOutButton />
       </div>
     </header>

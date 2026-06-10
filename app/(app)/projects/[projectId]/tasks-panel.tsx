@@ -1,8 +1,9 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Play, Square, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { TaskStatusPill, type TaskStatus } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatMinutes } from "@/lib/format";
+import { formatClock, formatDate, formatMinutes, formatRate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/server/trpc/client";
 
@@ -60,7 +61,21 @@ export function TasksPanel({
   const [editing, setEditing] = useState<TaskRow | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
 
+  const queryClient = useQueryClient();
   const refresh = () => router.refresh();
+  const refreshTimer = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: trpc.time.running.queryKey(),
+    });
+    refresh();
+  };
+  const running = useQuery(trpc.time.running.queryOptions());
+  const startTimer = useMutation(
+    trpc.time.start.mutationOptions({ onSuccess: refreshTimer }),
+  );
+  const stopTimer = useMutation(
+    trpc.time.stop.mutationOptions({ onSuccess: refreshTimer }),
+  );
   const create = useMutation(
     trpc.tasks.create.mutationOptions({ onSuccess: refresh }),
   );
@@ -134,23 +149,62 @@ export function TasksPanel({
                     {columnTasks.length}
                   </span>
                 </div>
-                {columnTasks.map((task) => (
-                  <button
-                    key={task.id}
-                    type="button"
-                    draggable
-                    onDragStart={() => setDragId(task.id)}
-                    onClick={() => setEditing(task)}
-                    className="flex cursor-grab flex-col gap-1.5 rounded-md border bg-card p-3 text-left shadow-xs transition-shadow hover:shadow-sm"
-                  >
-                    <span className="text-sm font-medium">{task.title}</span>
-                    {task.estimateMinutes ? (
-                      <span className="text-xs text-muted-foreground tabular">
-                        {formatMinutes(task.estimateMinutes)}
-                      </span>
-                    ) : null}
-                  </button>
-                ))}
+                {columnTasks.map((task) => {
+                  const isRunning = running.data?.taskId === task.id;
+                  return (
+                    <div
+                      key={task.id}
+                      draggable
+                      onDragStart={() => setDragId(task.id)}
+                      className={cn(
+                        "flex cursor-grab flex-col gap-1.5 rounded-md border bg-card p-3 shadow-xs transition-shadow hover:shadow-sm",
+                        isRunning && "border-[var(--primary-border)]",
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setEditing(task)}
+                        className="text-left text-sm font-medium"
+                      >
+                        {task.title}
+                      </button>
+                      <div className="flex items-center gap-2">
+                        {task.estimateMinutes ? (
+                          <span className="text-xs text-muted-foreground tabular">
+                            {formatMinutes(task.estimateMinutes)}
+                          </span>
+                        ) : null}
+                        <span className="flex-1" />
+                        {isRunning && running.data ? (
+                          <RunningClock startedAt={running.data.startedAt} />
+                        ) : null}
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label={
+                            isRunning ? "Stop timer" : "Start timer on this task"
+                          }
+                          disabled={startTimer.isPending || stopTimer.isPending}
+                          onClick={() =>
+                            isRunning
+                              ? stopTimer.mutate()
+                              : startTimer.mutate({ taskId: task.id })
+                          }
+                          className={cn(
+                            "size-6 rounded-full",
+                            isRunning && "text-[var(--primary-subtle-fg)]",
+                          )}
+                        >
+                          {isRunning ? (
+                            <Square className="size-3 fill-current" aria-hidden />
+                          ) : (
+                            <Play className="size-3.5" aria-hidden />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
                 <QuickAdd
                   pending={create.isPending}
                   onAdd={(title) =>
@@ -205,6 +259,23 @@ export function TasksPanel({
         />
       ) : null}
     </div>
+  );
+}
+
+function RunningClock({ startedAt }: { startedAt: Date | string }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const elapsed = Math.max(
+    0,
+    Math.floor((now - new Date(startedAt).getTime()) / 1000),
+  );
+  return (
+    <span className="font-mono text-xs font-semibold text-[var(--primary-subtle-fg)] tabular">
+      {formatClock(elapsed)}
+    </span>
   );
 }
 
@@ -340,7 +411,151 @@ function EditTaskDialog({
             </Button>
           </DialogFooter>
         </form>
+        <TimeSection taskId={task.id} />
       </DialogContent>
     </Dialog>
+  );
+}
+
+function TimeSection({ taskId }: { taskId: string }) {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+  const entries = useQuery(trpc.time.listForTask.queryOptions({ taskId }));
+  const invalidate = () =>
+    queryClient.invalidateQueries({
+      queryKey: trpc.time.listForTask.queryKey({ taskId }),
+    });
+  const log = useMutation(
+    trpc.time.logManual.mutationOptions({ onSuccess: invalidate }),
+  );
+  const remove = useMutation(
+    trpc.time.deleteEntry.mutationOptions({ onSuccess: invalidate }),
+  );
+
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [hours, setHours] = useState("");
+  const [billable, setBillable] = useState(true);
+
+  const closed = (entries.data ?? []).filter((e) => e.durationSeconds !== null);
+  const totalSeconds = closed.reduce(
+    (sum, e) => sum + (e.durationSeconds ?? 0),
+    0,
+  );
+
+  return (
+    <div className="flex flex-col gap-3 border-t pt-4">
+      <div className="flex items-baseline gap-2">
+        <h3 className="text-sm font-semibold">Tracked time</h3>
+        {totalSeconds > 0 ? (
+          <span className="text-xs text-muted-foreground tabular">
+            {formatMinutes(Math.round(totalSeconds / 60))} total
+          </span>
+        ) : null}
+      </div>
+
+      {closed.length > 0 ? (
+        <ul className="flex max-h-40 flex-col overflow-y-auto">
+          {closed.map((entry) => (
+            <li
+              key={entry.id}
+              className="flex items-center gap-2 border-b py-1.5 text-sm last:border-b-0"
+            >
+              <span className="text-muted-foreground">
+                {formatDate(new Date(entry.startedAt))}
+              </span>
+              <span className="font-medium tabular">
+                {formatMinutes(Math.round((entry.durationSeconds ?? 0) / 60))}
+              </span>
+              {entry.rateMinor != null && entry.rateCurrency ? (
+                <span className="text-xs text-muted-foreground tabular">
+                  {formatRate(entry.rateMinor, entry.rateCurrency)}
+                </span>
+              ) : null}
+              {!entry.billable ? (
+                <span className="rounded-full bg-[var(--status-draft-bg)] px-1.5 text-xs font-semibold text-[var(--status-draft-fg)]">
+                  Non-billable
+                </span>
+              ) : null}
+              <span className="flex-1" />
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Delete entry"
+                disabled={remove.isPending}
+                onClick={() => remove.mutate({ entryId: entry.id })}
+                className="size-6"
+              >
+                <Trash2 className="size-3.5" aria-hidden />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">No time tracked yet</p>
+      )}
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const h = Number(hours);
+          if (Number.isFinite(h) && h > 0) {
+            log.mutate({
+              taskId,
+              startedAt: new Date(`${date}T09:00:00.000Z`),
+              durationSeconds: Math.round(h * 3600),
+              billable,
+            });
+            setHours("");
+          }
+        }}
+        className="flex items-end gap-2"
+      >
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="log-date" className="text-xs">
+            Date
+          </Label>
+          <Input
+            id="log-date"
+            type="date"
+            required
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="h-8"
+          />
+        </div>
+        <div className="flex w-20 flex-col gap-1.5">
+          <Label htmlFor="log-hours" className="text-xs">
+            Hours
+          </Label>
+          <Input
+            id="log-hours"
+            type="number"
+            min="0"
+            step="any"
+            required
+            placeholder="1.5"
+            value={hours}
+            onChange={(e) => setHours(e.target.value)}
+            className="h-8"
+          />
+        </div>
+        <label className="flex h-8 items-center gap-1.5 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={billable}
+            onChange={(e) => setBillable(e.target.checked)}
+          />
+          Billable
+        </label>
+        <Button type="submit" size="sm" disabled={log.isPending}>
+          {log.isPending ? "Logging..." : "Log time"}
+        </Button>
+      </form>
+      {log.error ? (
+        <p role="alert" className="text-sm text-destructive">
+          {log.error.message}
+        </p>
+      ) : null}
+    </div>
   );
 }

@@ -14,6 +14,15 @@ export const projectInputSchema = z.object({
   clientId: z.string().uuid(),
   status: projectStatusSchema.default("active"),
   dueDate: z.date().nullable().optional(),
+  // Overrides the client default for rate resolution (billing spec S7).
+  defaultRateMinor: z.number().int().nonnegative().nullable().optional(),
+  defaultRateCurrency: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{3}$/)
+    .nullable()
+    .optional(),
 });
 
 export type ProjectInput = z.infer<typeof projectInputSchema>;
@@ -68,6 +77,8 @@ export async function getProject(db: Db, businessId: string, projectId: string) 
       createdAt: schema.project.createdAt,
       clientId: schema.project.clientId,
       clientName: schema.client.name,
+      defaultRateMinor: schema.project.defaultRateMinor,
+      defaultRateCurrency: schema.project.defaultRateCurrency,
     })
     .from(schema.project)
     .innerJoin(schema.client, eq(schema.project.clientId, schema.client.id))
@@ -100,6 +111,8 @@ export async function createProject(
         name: input.name,
         status: input.status,
         dueDate: input.dueDate ?? null,
+        defaultRateMinor: input.defaultRateMinor ?? null,
+        defaultRateCurrency: input.defaultRateCurrency ?? null,
       })
       .returning();
     await tx.insert(schema.activity).values({
@@ -129,6 +142,8 @@ export async function updateProject(
       clientId: input.clientId,
       status: input.status,
       dueDate: input.dueDate ?? null,
+      defaultRateMinor: input.defaultRateMinor ?? null,
+      defaultRateCurrency: input.defaultRateCurrency ?? null,
       updatedAt: new Date(),
     })
     .where(

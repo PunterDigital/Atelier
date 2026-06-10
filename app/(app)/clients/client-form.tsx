@@ -5,10 +5,12 @@ import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { RateFields } from "@/components/rate-fields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { majorToMinor, minorToMajor } from "@/modules/billing/currency";
 import { useTRPC } from "@/server/trpc/client";
 
 type Contact = { name: string; email?: string; role?: string };
@@ -18,6 +20,8 @@ export type ClientFormValues = {
   company?: string;
   contacts: Contact[];
   notes?: string;
+  defaultRateMinor?: number | null;
+  defaultRateCurrency?: string | null;
 };
 
 export function ClientForm({
@@ -33,6 +37,15 @@ export function ClientForm({
   const [company, setCompany] = useState(initial?.company ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [contacts, setContacts] = useState<Contact[]>(initial?.contacts ?? []);
+  const [rate, setRate] = useState(
+    initial?.defaultRateMinor != null && initial.defaultRateCurrency
+      ? minorToMajor(initial.defaultRateMinor, initial.defaultRateCurrency)
+      : "",
+  );
+  const [rateCurrency, setRateCurrency] = useState(
+    initial?.defaultRateCurrency ?? "",
+  );
+  const [rateError, setRateError] = useState<string | null>(null);
 
   const create = useMutation(
     trpc.clients.create.mutationOptions({
@@ -60,10 +73,28 @@ export function ClientForm({
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
+    setRateError(null);
+    let defaultRateMinor: number | null = null;
+    let defaultRateCurrency: string | null = null;
+    if (rate.trim()) {
+      const code = rateCurrency.trim().toUpperCase();
+      if (!/^[A-Z]{3}$/.test(code)) {
+        setRateError("Use a three-letter currency code like EUR");
+        return;
+      }
+      defaultRateMinor = majorToMinor(rate, code);
+      if (defaultRateMinor === null) {
+        setRateError(`That rate has more decimal places than ${code} allows`);
+        return;
+      }
+      defaultRateCurrency = code;
+    }
     const data: ClientFormValues = {
       name,
       company: company || undefined,
       notes: notes || undefined,
+      defaultRateMinor,
+      defaultRateCurrency,
       contacts: contacts
         .filter((c) => c.name.trim().length > 0)
         .map((c) => ({
@@ -150,6 +181,18 @@ export function ClientForm({
               </Button>
             </div>
           </div>
+
+          <RateFields
+            rate={rate}
+            currency={rateCurrency}
+            onRateChange={setRate}
+            onCurrencyChange={setRateCurrency}
+          />
+          {rateError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {rateError}
+            </p>
+          ) : null}
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="notes">Notes</Label>

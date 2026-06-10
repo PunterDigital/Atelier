@@ -4,10 +4,12 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { RateFields } from "@/components/rate-fields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { majorToMinor, minorToMajor } from "@/modules/billing/currency";
 import { useTRPC } from "@/server/trpc/client";
 
 export type ProjectFormValues = {
@@ -15,6 +17,8 @@ export type ProjectFormValues = {
   clientId: string;
   status: "active" | "on_hold" | "completed";
   dueDate: Date | null;
+  defaultRateMinor?: number | null;
+  defaultRateCurrency?: string | null;
 };
 
 const selectClassName =
@@ -45,6 +49,15 @@ export function ProjectForm({
   const [dueDate, setDueDate] = useState(
     toDateInputValue(initial?.dueDate ?? null),
   );
+  const [rate, setRate] = useState(
+    initial?.defaultRateMinor != null && initial.defaultRateCurrency
+      ? minorToMajor(initial.defaultRateMinor, initial.defaultRateCurrency)
+      : "",
+  );
+  const [rateCurrency, setRateCurrency] = useState(
+    initial?.defaultRateCurrency ?? "",
+  );
+  const [rateError, setRateError] = useState<string | null>(null);
 
   const create = useMutation(
     trpc.projects.create.mutationOptions({
@@ -66,11 +79,29 @@ export function ProjectForm({
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
+    setRateError(null);
+    let defaultRateMinor: number | null = null;
+    let defaultRateCurrency: string | null = null;
+    if (rate.trim()) {
+      const code = rateCurrency.trim().toUpperCase();
+      if (!/^[A-Z]{3}$/.test(code)) {
+        setRateError("Use a three-letter currency code like EUR");
+        return;
+      }
+      defaultRateMinor = majorToMinor(rate, code);
+      if (defaultRateMinor === null) {
+        setRateError(`That rate has more decimal places than ${code} allows`);
+        return;
+      }
+      defaultRateCurrency = code;
+    }
     const data: ProjectFormValues = {
       name,
       clientId,
       status,
       dueDate: dueDate ? new Date(`${dueDate}T00:00:00.000Z`) : null,
+      defaultRateMinor,
+      defaultRateCurrency,
     };
     if (projectId) {
       update.mutate({ projectId, data });
@@ -135,6 +166,18 @@ export function ProjectForm({
               />
             </div>
           </div>
+
+          <RateFields
+            rate={rate}
+            currency={rateCurrency}
+            onRateChange={setRate}
+            onCurrencyChange={setRateCurrency}
+          />
+          {rateError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {rateError}
+            </p>
+          ) : null}
 
           {mutation.error ? (
             <p role="alert" className="text-sm text-destructive">

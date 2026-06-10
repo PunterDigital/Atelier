@@ -26,6 +26,8 @@ export default async function EditClientPage({
       company: client.company ?? undefined,
       contacts: client.contacts as ClientFormValues["contacts"],
       notes: client.notes ?? undefined,
+      defaultRateMinor: client.defaultRateMinor,
+      defaultRateCurrency: client.defaultRateCurrency,
     };
   } catch (error) {
     if (error instanceof TRPCError && error.code === "NOT_FOUND") {
