@@ -31,7 +31,7 @@ file in the same commit as the work it tracks.
       Phase 1 schema exists - a demo without projects/tasks/time is not a
       demo. Lands right after the time-tracking schema.
 - [x] CI: GitHub Actions workflow running the full gate on every push/PR.
-- [ ] Honest README (what it is, what it is not yet, self-host instructions)
+- [x] Honest README (what it is, what it is not yet, self-host instructions)
       and CONTRIBUTING (run locally, gate commands, commit convention,
       design-system rule).
 
@@ -83,6 +83,10 @@ All billing implementation is blocked until the billing spec exists.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Docs: honest pre-alpha README (landed with the self-host task)
+  and CONTRIBUTING covering setup, the gate, conventions, the design-system
+  rule, and the billing fixture rule; on `docs/contributing`.
 
 - 2026-06-10 CI: GitHub Actions gate (typecheck/lint/test/test:billing/build)
   verified green on the actual runner; on `chore/ci-gate`.
