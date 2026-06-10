@@ -1,0 +1,194 @@
+"use client";
+
+import { useMutation } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useTRPC } from "@/server/trpc/client";
+
+type Contact = { name: string; email?: string; role?: string };
+
+export type ClientFormValues = {
+  name: string;
+  company?: string;
+  contacts: Contact[];
+  notes?: string;
+};
+
+export function ClientForm({
+  clientId,
+  initial,
+}: {
+  clientId?: string;
+  initial?: ClientFormValues;
+}) {
+  const router = useRouter();
+  const trpc = useTRPC();
+  const [name, setName] = useState(initial?.name ?? "");
+  const [company, setCompany] = useState(initial?.company ?? "");
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [contacts, setContacts] = useState<Contact[]>(initial?.contacts ?? []);
+
+  const create = useMutation(
+    trpc.clients.create.mutationOptions({
+      onSuccess: (created) => {
+        router.push(`/clients/${created.id}`);
+        router.refresh();
+      },
+    }),
+  );
+  const update = useMutation(
+    trpc.clients.update.mutationOptions({
+      onSuccess: () => {
+        router.push(`/clients/${clientId}`);
+        router.refresh();
+      },
+    }),
+  );
+  const mutation = clientId ? update : create;
+
+  function setContact(index: number, patch: Partial<Contact>) {
+    setContacts((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, ...patch } : c)),
+    );
+  }
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    const data: ClientFormValues = {
+      name,
+      company: company || undefined,
+      notes: notes || undefined,
+      contacts: contacts
+        .filter((c) => c.name.trim().length > 0)
+        .map((c) => ({
+          name: c.name,
+          email: c.email || undefined,
+          role: c.role || undefined,
+        })),
+    };
+    if (clientId) {
+      update.mutate({ clientId, data });
+    } else {
+      create.mutate(data);
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent>
+        <form onSubmit={submit} className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              required
+              placeholder="Mara Novak"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="company">Company</Label>
+            <Input
+              id="company"
+              placeholder="Brightwood s.r.o."
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label>Contacts</Label>
+            {contacts.map((contact, index) => (
+              <div key={index} className="flex gap-2">
+                <Input
+                  aria-label="Contact name"
+                  placeholder="Name"
+                  value={contact.name}
+                  onChange={(e) => setContact(index, { name: e.target.value })}
+                />
+                <Input
+                  aria-label="Contact email"
+                  type="email"
+                  placeholder="Email"
+                  value={contact.email ?? ""}
+                  onChange={(e) => setContact(index, { email: e.target.value })}
+                />
+                <Input
+                  aria-label="Contact role"
+                  placeholder="Role"
+                  value={contact.role ?? ""}
+                  onChange={(e) => setContact(index, { role: e.target.value })}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Remove contact"
+                  onClick={() =>
+                    setContacts((prev) => prev.filter((_, i) => i !== index))
+                  }
+                >
+                  <Trash2 className="size-4" aria-hidden />
+                </Button>
+              </div>
+            ))}
+            <div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setContacts((prev) => [...prev, { name: "" }])}
+              >
+                Add contact
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="notes">Notes</Label>
+            <textarea
+              id="notes"
+              rows={4}
+              placeholder="Anything worth remembering"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40"
+            />
+          </div>
+
+          {mutation.error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {mutation.error.message}
+            </p>
+          ) : null}
+
+          <div className="flex gap-2">
+            <Button type="submit" disabled={mutation.isPending}>
+              {clientId
+                ? mutation.isPending
+                  ? "Saving..."
+                  : "Save changes"
+                : mutation.isPending
+                  ? "Adding..."
+                  : "Add client"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => router.back()}
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}

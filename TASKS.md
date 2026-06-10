@@ -46,9 +46,10 @@ file in the same commit as the work it tracks.
 - [x] Clients module, domain + API: schema (archive flag, activity table),
       module services, tRPC router behind `businessProcedure`, and a real
       cross-business isolation test against an actual Postgres (PGlite).
-- [ ] Clients UI: app shell (sidebar + topbar per design system), clients
-      list, create/edit, archive, activity thread. Pending human design
-      review when shipped.
+- [x] Clients UI: app shell (sidebar + topbar per design system), clients
+      list, create/edit, archive, activity thread. PENDING HUMAN DESIGN
+      REVIEW - structure and behaviour verified in the browser, final look
+      needs Shay's sign-off.
 - [ ] Projects module: projects linked to clients, statuses, due dates.
 - [ ] Tasks: CRUD within a project, statuses, estimates, board view + list
       view.
@@ -94,6 +95,14 @@ off. [BLOCKED: ESC-2]
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Clients UI: app shell (244px sidebar + translucent topbar per
+  the design system, compact topbar nav below md), clients list with
+  empty state and archived view, create/edit forms with contacts editor,
+  detail page with activity thread, note composer, archive/restore. Flow
+  verified end-to-end in the browser against local Postgres; activity got
+  a monotonic seq column after a timestamp-collision flake. Awaiting
+  human design review; on `feat/clients-ui`.
 
 - 2026-06-10 Clients domain + API: archive flag + activity table migration,
   modules/clients services (list/get/create/update/archive/notes, every
