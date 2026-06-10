@@ -37,3 +37,47 @@ jobs:
 
       - name: Production build
         run: pnpm build
+
+  # The seed is onboarding: if it breaks, the demo and every first-run
+  # instance break with it (CLAUDE.md Section 10), so CI proves it works
+  # against a real Postgres - twice, because it must also be idempotent.
+  seed:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: atelier
+          POSTGRES_PASSWORD: atelier
+          POSTGRES_DB: atelier
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U atelier -d atelier"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://atelier:atelier@localhost:5432/atelier
+      BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-real
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations
+        run: pnpm db:migrate
+
+      - name: Seed demo data
+        run: pnpm db:seed
+
+      - name: Seed is idempotent
+        run: pnpm db:seed

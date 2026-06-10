@@ -29,10 +29,9 @@ file in the same commit as the work it tracks.
       day one, protected tRPC procedure deriving `business_id` from the
       session. Sign-in/sign-up/onboarding screens pending human design
       review (built from tokens, structure verified).
-- [ ] Seed script with demo business, clients, projects, tasks, time entries.
-      Must always work (CLAUDE.md Section 10). Note: deferred until the
-      Phase 1 schema exists - a demo without projects/tasks/time is not a
-      demo. Lands right after the time-tracking schema.
+- [x] Seed script with demo business, clients, projects, tasks, time entries.
+      Must always work (CLAUDE.md Section 10) - enforced by a CI job that
+      migrates + seeds (twice, proving idempotency) on real Postgres.
 - [x] CI: GitHub Actions workflow running the full gate on every push/PR.
 - [x] Honest README (what it is, what it is not yet, self-host instructions)
       and CONTRIBUTING (run locally, gate commands, commit convention,
@@ -97,6 +96,13 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Seed: pnpm db:seed builds a demo business (clients, projects,
+  kanban tasks, a believable current week of time entries) through the
+  real module services and real Better Auth sign-up; idempotent; demo
+  credentials documented in README; guarded by its own CI job. Phase 0 is
+  now fully complete. Verified locally end to end (demo login sees only
+  demo data); on `feat/seed`.
 
 - 2026-06-10 Weekly timesheet: /time with Monday-start UTC weeks (tested
   week math), per-day sections with task/project/client context, day and

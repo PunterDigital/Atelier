@@ -43,6 +43,7 @@ Requires Node 24+, pnpm 10+, and a Postgres instance (or use
 pnpm install
 cp .env.example .env   # point DATABASE_URL at your Postgres
 pnpm db:migrate
+pnpm db:seed           # optional demo data (demo@atelier.local / atelier-demo)
 pnpm dev
 ```
 
