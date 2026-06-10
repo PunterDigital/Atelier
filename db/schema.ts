@@ -77,7 +77,36 @@ export const client = pgTable(
     company: text("company"),
     contacts: jsonb("contacts").notNull().default([]),
     notes: text("notes"),
+    // Soft archive: archived clients keep their history and stay linkable
+    // from old projects/invoices, they just leave the default lists.
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [index("client_business_id_idx").on(table.businessId)],
+);
+
+// The client activity thread: notes written by users plus automatic
+// lifecycle events. payload shape depends on type and is owned by
+// modules/clients.
+export const activity = pgTable(
+  "activity",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => business.id),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => client.id),
+    userId: text("user_id").references(() => user.id),
+    type: text("type", {
+      enum: ["note", "client_created", "client_updated", "client_archived", "client_unarchived"],
+    }).notNull(),
+    payload: jsonb("payload").notNull().default({}),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("activity_business_id_idx").on(table.businessId),
+    index("activity_client_id_idx").on(table.clientId),
+  ],
 );

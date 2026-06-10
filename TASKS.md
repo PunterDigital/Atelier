@@ -43,8 +43,12 @@ file in the same commit as the work it tracks.
 - [x] Design tokens in `/design` from the design file Shay supplied
       (resolved ESC-4): fetch it, read its readme, implement the relevant
       aspects. Screens still get human design review before final.
-- [ ] Clients module: list/create/edit/archive, company + contacts, activity
-      history thread. Cross-business isolation test required.
+- [x] Clients module, domain + API: schema (archive flag, activity table),
+      module services, tRPC router behind `businessProcedure`, and a real
+      cross-business isolation test against an actual Postgres (PGlite).
+- [ ] Clients UI: app shell (sidebar + topbar per design system), clients
+      list, create/edit, archive, activity thread. Pending human design
+      review when shipped.
 - [ ] Projects module: projects linked to clients, statuses, due dates.
 - [ ] Tasks: CRUD within a project, statuses, estimates, board view + list
       view.
@@ -90,6 +94,12 @@ off. [BLOCKED: ESC-2]
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Clients domain + API: archive flag + activity table migration,
+  modules/clients services (list/get/create/update/archive/notes, every
+  query business-scoped), clients tRPC router, and the PGlite integration
+  suite proving cross-business access is denied at the data layer; on
+  `feat/clients-domain`.
 
 - 2026-06-10 Auth: Better Auth (email/password + env-gated Google SSO, DB
   sessions), business_member join replaces user.business_id for small

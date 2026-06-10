@@ -1,10 +1,14 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 
 import * as schema from "./schema";
 
-export type Db = NodePgDatabase<typeof schema>;
+// Driver-agnostic database type: production uses node-postgres, the
+// integration test suite uses PGlite (real Postgres in-process). Module
+// services accept this so both satisfy them.
+export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
-let db: Db | undefined;
+let db: NodePgDatabase<typeof schema> | undefined;
 
 // Lazy on purpose: the production build and DB-free test suites must work
 // without a DATABASE_URL. Anything that actually touches the database goes
