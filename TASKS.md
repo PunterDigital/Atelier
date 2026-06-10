@@ -14,7 +14,7 @@ file in the same commit as the work it tracks.
       shadcn/ui, ESLint, Vitest, and the full gate wired as pnpm scripts
       (`typecheck`, `lint`, `test`, `test:billing` (empty suite to start),
       `build`). Repo layout per CLAUDE.md Section 11.
-- [ ] Add LICENSE file and licence metadata. [BLOCKED: ESC-1]
+- [ ] Add LICENSE file and licence metadata (AGPL-3.0, per resolved ESC-1).
 - [x] Wire Postgres + Drizzle: connection, initial schema for `business`,
       `user`, `client`, checked-in migrations, everything scoped by
       `business_id`.
@@ -24,8 +24,10 @@ file in the same commit as the work it tracks.
       design (ESC-3).
 - [x] One-command self-host: docker-compose (app + Postgres), `.env.example`,
       documented in README.
-- [ ] Auth: self-hostable email/password sessions, no hosted-only provider.
-      [BLOCKED: ESC-3]
+- [ ] Auth (per resolved ESC-3): Better Auth, email/password + optional
+      Google SSO via env config, server-side DB sessions, small teams from
+      day one, protected tRPC procedure deriving `business_id` from the
+      session.
 - [ ] Seed script with demo business, clients, projects, tasks, time entries.
       Must always work (CLAUDE.md Section 10). Note: deferred until the
       Phase 1 schema exists - a demo without projects/tasks/time is not a
@@ -37,8 +39,9 @@ file in the same commit as the work it tracks.
 
 ## Phase 1 - projects and time
 
-- [ ] Design tokens baseline in `/design` (provisional, pending human design
-      pass). [BLOCKED: ESC-4]
+- [ ] Design tokens in `/design` from the design file Shay supplied
+      (resolved ESC-4): fetch it, read its readme, implement the relevant
+      aspects. Screens still get human design review before final.
 - [ ] Clients module: list/create/edit/archive, company + contacts, activity
       history thread. Cross-business isolation test required.
 - [ ] Projects module: projects linked to clients, statuses, due dates.
@@ -50,8 +53,11 @@ file in the same commit as the work it tracks.
 
 ## Phase 2 - billing (the provably-correct core)
 
-All billing implementation is blocked until the billing spec exists.
-[BLOCKED: ESC-2]
+- [ ] Draft `BILLING-SPEC.md` from Shay's ESC-2 answers with worked
+      examples; goes back to Shay for sign-off before any implementation.
+
+All billing implementation stays blocked until the drafted spec is signed
+off. [BLOCKED: ESC-2]
 
 - [ ] Billing fixture harness: `fixtures/billing/` loader + `pnpm test:billing`
       running real fixtures. [BLOCKED: ESC-2]
