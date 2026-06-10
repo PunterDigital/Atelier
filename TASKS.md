@@ -14,7 +14,7 @@ file in the same commit as the work it tracks.
       shadcn/ui, ESLint, Vitest, and the full gate wired as pnpm scripts
       (`typecheck`, `lint`, `test`, `test:billing` (empty suite to start),
       `build`). Repo layout per CLAUDE.md Section 11.
-- [ ] Add LICENSE file and licence metadata (AGPL-3.0, per resolved ESC-1).
+- [x] Add LICENSE file and licence metadata (AGPL-3.0, per resolved ESC-1).
 - [x] Wire Postgres + Drizzle: connection, initial schema for `business`,
       `user`, `client`, checked-in migrations, everything scoped by
       `business_id`.
@@ -89,6 +89,9 @@ off. [BLOCKED: ESC-2]
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 Licence: canonical AGPL-3.0 text as LICENSE, SPDX field in
+  package.json, README licence section; on `chore/license`.
 
 - 2026-06-10 Docs: honest pre-alpha README (landed with the self-host task)
   and CONTRIBUTING covering setup, the gate, conventions, the design-system

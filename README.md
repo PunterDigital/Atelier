@@ -55,6 +55,6 @@ pnpm build
 
 ## Licence
 
-Not decided yet (tracked as ESC-1 in `ESCALATIONS.md`). Until a LICENSE
-file exists, all rights reserved - this will change before anything is
-promoted anywhere.
+[AGPL-3.0](LICENSE). You can self-host, modify, and redistribute freely;
+if you run a modified version as a network service, you must offer its
+source to your users. Chosen so the project stays genuinely open.
