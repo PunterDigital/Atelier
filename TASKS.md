@@ -27,8 +27,10 @@ file in the same commit as the work it tracks.
 - [ ] Auth: self-hostable email/password sessions, no hosted-only provider.
       [BLOCKED: ESC-3]
 - [ ] Seed script with demo business, clients, projects, tasks, time entries.
-      Must always work (CLAUDE.md Section 10).
-- [ ] CI: GitHub Actions workflow running the full gate on every push/PR.
+      Must always work (CLAUDE.md Section 10). Note: deferred until the
+      Phase 1 schema exists - a demo without projects/tasks/time is not a
+      demo. Lands right after the time-tracking schema.
+- [x] CI: GitHub Actions workflow running the full gate on every push/PR.
 - [ ] Honest README (what it is, what it is not yet, self-host instructions)
       and CONTRIBUTING (run locally, gate commands, commit convention,
       design-system rule).
@@ -81,6 +83,9 @@ All billing implementation is blocked until the billing spec exists.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-10 CI: GitHub Actions gate (typecheck/lint/test/test:billing/build)
+  verified green on the actual runner; on `chore/ci-gate`.
 
 - 2026-06-10 Self-host: multi-stage Dockerfile (standalone output), compose
   stack postgres -> one-shot migrate -> app with overridable env defaults,
