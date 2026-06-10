@@ -7,33 +7,25 @@ in `TASKS.md`.
 
 ## Open
 
-### ESC-2: Billing spec - answered in principle, draft pending sign-off
-
-**Blocks:** all Phase 2 implementation. Unblocks drafting `BILLING-SPEC.md`.
-
-**Shay's answers (2026-06-10):**
-
-1. Currencies: support all (raised as a question - the draft will propose
-   all ISO 4217 currencies with correct minor units, flagged for sign-off).
-2. FX: a no-account API if a wise one exists, otherwise Frankfurter.
-   Conversion is fixed on the invoice date.
-3. VAT at launch: standard rate, zero-rated, EU reverse charge. No
-   mixed-rate invoices for now.
-4. Numbering: `year-number` format.
-5. Time-to-line: user-configurable grouping (e.g. one line per person/rate
-   with a free-text work summary, as in "shay, day rate of 310 euros, did
-   this throughout the week" followed by a list).
-
-**Status (2026-06-10):** `BILLING-SPEC.md` is drafted - [agreed] items
-encode the answers above, [proposed] items fill the gaps (minor-unit
-integer math, half-up rounding at three defined points, Frankfurter with
-manual-rate fallback, per-business-per-year numbering allocated at issue
-time under a row lock, stored-rate precedence entry > project > client,
-exact-seconds billing). Worked examples are hand-verified. Implementation
-stays blocked until Shay ticks the sign-off box in the spec (or returns
-corrections).
+(none)
 
 ## Resolved
+
+### ESC-2: Billing spec -> BILLING-SPEC.md approved (2026-06-10)
+
+Shay answered the five spec questions, reviewed the drafted
+`BILLING-SPEC.md`, ticked the sign-off box, and added one requirement
+during review: the current year's invoice sequence position is
+configurable in settings so a migrating business can continue its
+existing numbering. Folded into spec Section 6. Phase 2 implementation
+is unblocked, fixture-first.
+
+### ESC-4 follow-up: clients UI design review -> approved (2026-06-10)
+
+Shay reviewed the running app (shell, clients screens, auth screens)
+and approved the design system implementation. The established screen
+pattern is the baseline for Phase 1 modules; new novel screen types
+still get review.
 
 ### ESC-1: Licence choice -> AGPL-3.0 (2026-06-10)
 

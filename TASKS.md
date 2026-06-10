@@ -47,9 +47,8 @@ file in the same commit as the work it tracks.
       module services, tRPC router behind `businessProcedure`, and a real
       cross-business isolation test against an actual Postgres (PGlite).
 - [x] Clients UI: app shell (sidebar + topbar per design system), clients
-      list, create/edit, archive, activity thread. PENDING HUMAN DESIGN
-      REVIEW - structure and behaviour verified in the browser, final look
-      needs Shay's sign-off.
+      list, create/edit, archive, activity thread. Design review: APPROVED
+      by Shay 2026-06-10; this screen pattern is the Phase 1 baseline.
 - [ ] Projects module: projects linked to clients, statuses, due dates.
 - [ ] Tasks: CRUD within a project, statuses, estimates, board view + list
       view.
@@ -62,22 +61,25 @@ file in the same commit as the work it tracks.
 - [x] Draft `BILLING-SPEC.md` from Shay's ESC-2 answers with worked
       examples; goes back to Shay for sign-off before any implementation.
 
-All billing implementation stays blocked until the drafted spec is signed
-off. [BLOCKED: ESC-2]
+Spec approved 2026-06-10 (`BILLING-SPEC.md`). Everything below is built
+fixture-first against it; a case the spec misses gets escalated.
 
-- [ ] Billing fixture harness: `fixtures/billing/` loader + `pnpm test:billing`
-      running real fixtures. [BLOCKED: ESC-2]
-- [ ] Currency handling: minor-unit arithmetic, conversion, per-currency
-      rounding, fixture-covered. [BLOCKED: ESC-2]
-- [ ] Tax/VAT engine per spec: standard, zero-rated, reverse-charge,
-      mixed-rate invoices, fixture-covered. [BLOCKED: ESC-2]
-- [ ] Sequential invoice numbering per business: no gaps, no duplicates,
-      concurrency-safe, fixture-covered. [BLOCKED: ESC-2]
-- [ ] Invoice-from-tracked-time: aggregate unbilled time into line items at
-      the right rate, fixture-covered. [BLOCKED: ESC-2]
+- [ ] Money core: minor-unit integer arithmetic, ISO 4217 minor units,
+      half-up rounding at the three spec-defined points, fixture-covered.
+- [ ] Currency conversion: Frankfurter rates fixed on invoice date, manual
+      rate fallback, stored rate + source on the invoice, fixture-covered.
+- [ ] Tax/VAT engine per spec: standard rate from tax_config, zero-rated,
+      EU reverse charge with mandatory notes, subtotal-based, one
+      treatment per invoice, fixture-covered.
+- [ ] Invoice numbering: `YYYY-NNNN` per business per year, allocated at
+      issue under a row lock, configurable next-number in settings (spec
+      Section 6 feedback), concurrency fixture-covered.
+- [ ] Invoice-from-tracked-time: grouping modes (person+rate, per task,
+      single line), stored-rate billing, exact-seconds durations,
+      fixture-covered.
 - [ ] Invoice lifecycle: draft/sent/paid/overdue, marking time entries as
-      billed. [BLOCKED: ESC-2]
-- [ ] Branded PDF export. [BLOCKED: ESC-2, ESC-4]
+      billed, removed lines return entries to the unbilled pool.
+- [ ] Branded PDF export.
 
 ## Phase 3 - polish and launch (human-heavy)
 

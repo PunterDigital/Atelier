@@ -1,20 +1,17 @@
 # Atelier billing specification
 
-Status: **DRAFT - awaiting sign-off. No billing code may be written from
-this document until Shay approves it** (CLAUDE.md override rule 1;
-ESC-2 in `ESCALATIONS.md`).
-
-Decisions marked **[agreed]** come from Shay's ESC-2 answers
-(2026-06-10). Decisions marked **[proposed]** fill gaps those answers
-left open and need explicit confirmation. Every rule here lands with
-fixtures in `/fixtures/billing` that state expected outputs exactly.
+Status: **APPROVED by Shay, 2026-06-10** (sign-off below). This is the
+agreed billing spec per CLAUDE.md override rule 1. Every rule here lands
+with fixtures in `/fixtures/billing` that state expected outputs exactly.
+A case this document does not cover gets escalated, never guessed; changes
+require a new sign-off.
 
 ## 1. Money representation
 
-- **[proposed]** All amounts are stored and computed as integers in the
+- **[agreed]** All amounts are stored and computed as integers in the
   currency's minor unit (cents, pence, halere). No floats anywhere in
   billing code. Display formatting converts at the edge.
-- **[proposed]** Intermediate computations (rate x hours) happen in
+- **[agreed]** Intermediate computations (rate x hours) happen in
   arbitrary-precision decimal and are rounded to minor units only at
   defined rounding points (Section 5).
 
@@ -22,9 +19,9 @@ fixtures in `/fixtures/billing` that state expected outputs exactly.
 
 - **[agreed]** All ISO 4217 currencies are supported as invoice and
   business base currencies.
-- **[proposed]** Minor units follow ISO 4217 exactly: GBP/EUR/CZK 2
+- **[agreed]** Minor units follow ISO 4217 exactly: GBP/EUR/CZK 2
   decimals, JPY 0, BHD 3, etc.
-- An invoice has exactly one currency. A business has one base currency;
+- **[agreed]** An invoice has exactly one currency. A business has one base currency;
   invoices may be issued in any currency.
 
 ## 3. Currency conversion
@@ -35,15 +32,15 @@ fixtures in `/fixtures/billing` that state expected outputs exactly.
 - **[agreed]** Conversion is fixed on the **invoice date**: the rate
   fetched for that date is stored on the invoice and never silently
   refreshed.
-- **[proposed]** Frankfurter publishes ECB rates (~30 currencies). For
+- **[agreed]** Frankfurter publishes ECB rates (~30 currencies). For
   any pair it does not cover, and as an always-available override, the
   user can enter a manual rate on the invoice. The stored rate (source:
   `ecb` or `manual`) is part of the invoice record - reproducibility
   over freshness.
-- **[proposed]** Weekends/holidays: Frankfurter returns the last
+- **[agreed]** Weekends/holidays: Frankfurter returns the last
   published business-day rate for a requested date; that is the rate
   used.
-- **[proposed]** Conversion arithmetic: amount (minor units) x rate as
+- **[agreed]** Conversion arithmetic: amount (minor units) x rate as
   decimal, then round half-up to the target currency's minor unit, once,
   at the final amount. Example: GBP 465.00 to EUR at 1.1734 =
   545.631 -> **EUR 545.63**.
@@ -59,11 +56,11 @@ fixtures in `/fixtures/billing` that state expected outputs exactly.
   3. **EU reverse charge** - 0%, with the mandatory note "VAT reverse
      charged to the recipient under Article 196 of Council Directive
      2006/112/EC" and both parties' VAT numbers printed.
-- **[proposed]** Tax is computed on the invoice subtotal (sum of rounded
+- **[agreed]** Tax is computed on the invoice subtotal (sum of rounded
   line totals), rounded half-up to minor units once. Not per-line - with
   a single rate the results differ only in rounding, and subtotal-based
   matches how the target users' accountants reconcile.
-- **[proposed]** The standard rate percentage is configuration
+- **[agreed]** The standard rate percentage is configuration
   (`tax_config.standardRatePct`, e.g. 21 for CZ, 20 for UK). Atelier
   never hardcodes a jurisdiction's rate and never infers which treatment
   applies - the user picks the treatment per invoice (default:
@@ -82,7 +79,7 @@ fixtures in `/fixtures/billing` that state expected outputs exactly.
 
 ## 5. Rounding
 
-- **[proposed]** Mode: **half-up** (0.5 rounds away from zero), applied
+- **[agreed]** Mode: **half-up** (0.5 rounds away from zero), applied
   at exactly three points:
   1. each line total (qty x unit price),
   2. the tax amount,
@@ -94,16 +91,24 @@ fixtures in `/fixtures/billing` that state expected outputs exactly.
 ## 6. Invoice numbering
 
 - **[agreed]** Format: `YYYY-NNNN` (e.g. `2026-0001`), zero-padded to 4.
-- **[proposed]** Scope: sequential **per business per calendar year**,
+- **[agreed]** Scope: sequential **per business per calendar year**,
   resetting to 0001 each year. (Year-number format implies yearly reset -
   flag if you want a never-resetting sequence instead.)
-- **[proposed]** Numbers are allocated inside the same database
+- **[agreed]** Numbers are allocated inside the same database
   transaction that creates the invoice, serialized with a row lock on a
   per-business-per-year sequence row: no gaps, no duplicates, correct
   under concurrent creation. Voided invoices keep their number (a gap
   from deletion is never possible because invoices are never hard-deleted
   once numbered; drafts have no number until issued).
-- **[proposed]** Drafts are unnumbered; the number is assigned at the
+- **[agreed]** (Shay's review feedback) The current year's sequence
+  position is configurable in business settings, so a business moving to
+  Atelier mid-year can continue its existing numbering (e.g. set the next
+  number to 0100). Constraint: the configured next number must be greater
+  than the highest number already issued by Atelier for that business and
+  year - the no-gaps/no-duplicates guarantee applies from the configured
+  starting point onward, and Atelier cannot vouch for numbers issued
+  outside it.
+- **[agreed]** Drafts are unnumbered; the number is assigned at the
   moment an invoice is issued (draft -> sent).
 
 ## 7. Time-to-line aggregation
@@ -119,12 +124,12 @@ fixtures in `/fixtures/billing` that state expected outputs exactly.
      task's effective rate.
   3. **Single line**: everything on one line, quantity = total hours
      (only offered when all entries share one rate).
-- **[proposed]** Rate precedence when a time entry is created:
+- **[agreed]** Rate precedence when a time entry is created:
   entry-level rate if set manually, else the project's default rate,
   else the client's default rate. The resolved rate is **stored on the
   time entry** at creation; invoicing always uses the stored rate, so
   later default changes never silently reprice old work.
-- **[proposed]** Duration handling: durations are stored in seconds and
+- **[agreed]** Duration handling: durations are stored in seconds and
   billed exactly (hours = seconds / 3600 in decimal); no 6-minute or
   15-minute increment rounding in v1. Rounding to money happens only at
   the line total (Section 5).
@@ -142,7 +147,7 @@ spec revision before any code.
 
 ## Sign-off
 
-- [ ] Shay has reviewed every [proposed] item and the worked examples.
+- [X] Shay has reviewed every [proposed] item and the worked examples.
 
 Once ticked (with corrections applied), implementation may begin,
 fixture-first, per CLAUDE.md Section 6.
