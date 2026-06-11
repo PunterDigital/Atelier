@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { CurrencySelect } from "@/components/currency-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -76,15 +77,13 @@ export function NewInvoiceForm({
           </div>
 
           <div className="flex gap-4">
-            <div className="flex w-28 flex-col gap-2">
+            <div className="flex w-56 flex-col gap-2">
               <Label htmlFor="currency">Currency</Label>
-              <Input
+              <CurrencySelect
                 id="currency"
                 required
-                maxLength={3}
-                className="uppercase"
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
+                onChange={setCurrency}
               />
             </div>
             <div className="flex flex-1 flex-col gap-2">

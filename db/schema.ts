@@ -36,6 +36,8 @@ const timestamps = {
 export const business = pgTable("business", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
+  // Postal address as entered, newline-separated; printed on invoices.
+  address: text("address"),
   // ISO 4217 code for the business's base currency. Stored as data only -
   // all interpretation (conversion, rounding) belongs to the billing module.
   currency: text("currency").notNull(),

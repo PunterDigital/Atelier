@@ -29,7 +29,11 @@ const baseInvoice = {
   ],
 };
 
-const business = { name: "Studio Demo", vatNumber: "GB123456789" };
+const business = {
+  name: "Studio Demo",
+  address: "12 Harbour Street\nBristol BS1 4QA",
+  vatNumber: "GB123456789",
+};
 const client = {
   name: "Northwind Studio",
   company: "Northwind Studio s.r.o.",
@@ -42,6 +46,10 @@ describe("invoice PDF view model", () => {
     expect(data.title).toBe("Invoice 2026-0100");
     expect(data.isDraft).toBe(false);
     expect(data.businessVatNumber).toBe("GB123456789");
+    expect(data.businessAddressLines).toEqual([
+      "12 Harbour Street",
+      "Bristol BS1 4QA",
+    ]);
     expect(data.clientVatNumber).toBe("CZ12345678");
     expect(data.issueDateLabel).toBe("11 Jun 2026");
     expect(data.dueDateLabel).toBe("11 Jul 2026");

@@ -34,6 +34,7 @@ export type InvoicePdfData = {
   isDraft: boolean;
   isPaid: boolean;
   businessName: string;
+  businessAddressLines: string[];
   businessVatNumber: string | null;
   clientName: string;
   clientCompany: string | null;
@@ -56,7 +57,7 @@ export type InvoicePdfData = {
 
 export function buildInvoicePdfData(input: {
   invoice: InvoiceRecord;
-  business: { name: string; vatNumber: string | null };
+  business: { name: string; address: string | null; vatNumber: string | null };
   client: { name: string; company: string | null; vatNumber: string | null };
 }): InvoicePdfData {
   const { invoice, business, client } = input;
@@ -67,6 +68,12 @@ export function buildInvoicePdfData(input: {
     isDraft,
     isPaid: invoice.status === "paid",
     businessName: business.name,
+    businessAddressLines: business.address
+      ? business.address
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+      : [],
     businessVatNumber: business.vatNumber,
     clientName: client.name,
     clientCompany: client.company,

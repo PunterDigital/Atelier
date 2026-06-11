@@ -124,6 +124,11 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
         <View style={styles.header}>
           <View>
             <Text style={styles.businessName}>{data.businessName}</Text>
+            {data.businessAddressLines.map((line, index) => (
+              <Text key={index} style={styles.metaMuted}>
+                {line}
+              </Text>
+            ))}
             {data.businessVatNumber ? (
               <Text style={styles.metaMuted}>VAT {data.businessVatNumber}</Text>
             ) : null}

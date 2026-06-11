@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { CurrencySelect } from "@/components/currency-select";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,6 +24,7 @@ export function SettingsForm({
 }: {
   initial: {
     name: string;
+    address: string | null;
     currency: string;
     standardRatePct: string | null;
     vatNumber: string | null;
@@ -32,6 +34,7 @@ export function SettingsForm({
   const router = useRouter();
   const trpc = useTRPC();
   const [name, setName] = useState(initial.name);
+  const [address, setAddress] = useState(initial.address ?? "");
   const [currency, setCurrency] = useState(initial.currency);
   const [standardRatePct, setStandardRatePct] = useState(
     initial.standardRatePct ?? "",
@@ -68,7 +71,8 @@ export function SettingsForm({
               event.preventDefault();
               update.mutate({
                 name,
-                currency: currency.trim().toUpperCase(),
+                address: address.trim() || null,
+                currency,
                 standardRatePct: standardRatePct.trim() || null,
                 vatNumber: vatNumber.trim() || null,
               });
@@ -84,16 +88,28 @@ export function SettingsForm({
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="address">Address</Label>
+              <textarea
+                id="address"
+                rows={3}
+                placeholder={"12 Harbour Street\nBristol BS1 4QA\nUnited Kingdom"}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40"
+              />
+              <p className="text-sm text-muted-foreground">
+                Printed on your invoices, exactly as written here
+              </p>
+            </div>
             <div className="flex gap-4">
-              <div className="flex w-32 flex-col gap-2">
+              <div className="flex w-64 flex-col gap-2">
                 <Label htmlFor="currency">Base currency</Label>
-                <Input
+                <CurrencySelect
                   id="currency"
                   required
-                  maxLength={3}
-                  className="uppercase"
                   value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
+                  onChange={setCurrency}
                 />
               </div>
               <div className="flex flex-1 flex-col gap-2">

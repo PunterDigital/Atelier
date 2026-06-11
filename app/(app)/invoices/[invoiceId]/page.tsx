@@ -64,15 +64,14 @@ export default async function InvoiceDetailPage({
           </p>
         </div>
         <div className="flex items-start gap-2">
-          <Button variant="outline" asChild>
-            <a
-              href={`/api/invoices/${invoice.id}/pdf`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Download PDF
-            </a>
-          </Button>
+          {/* The document exists once issued; drafts are edited, not sent */}
+          {invoice.status !== "draft" ? (
+            <Button variant="outline" asChild>
+              <a href={`/api/invoices/${invoice.id}/pdf`} download>
+                Download PDF
+              </a>
+            </Button>
+          ) : null}
           <InvoiceActions
             invoiceId={invoice.id}
             status={invoice.status}

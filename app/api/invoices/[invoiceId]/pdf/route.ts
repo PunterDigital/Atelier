@@ -28,7 +28,11 @@ export async function GET(
   }
 
   const [businessRow] = await db
-    .select({ name: schema.business.name, taxConfig: schema.business.taxConfig })
+    .select({
+      name: schema.business.name,
+      address: schema.business.address,
+      taxConfig: schema.business.taxConfig,
+    })
     .from(schema.business)
     .where(eq(schema.business.id, membership.businessId));
   const [clientRow] = await db
@@ -44,6 +48,7 @@ export async function GET(
     invoice,
     business: {
       name: businessRow.name,
+      address: businessRow.address,
       vatNumber:
         ((businessRow.taxConfig ?? {}) as { vatNumber?: string }).vatNumber ??
         null,
@@ -55,10 +60,12 @@ export async function GET(
   const filename = invoice.number
     ? `invoice-${invoice.number}.pdf`
     : "draft-invoice.pdf";
+  // attachment, not inline: the button says download, and some browser
+  // PDF-viewer configurations render an inline response as a blank tab.
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${filename}"`,
+      "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
 }

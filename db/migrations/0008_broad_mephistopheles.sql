@@ -1,0 +1,1 @@
+ALTER TABLE "business" ADD COLUMN "address" text;

@@ -56,6 +56,7 @@ export const businessRouter = createTRPCRouter({
     const [row] = await getDb()
       .select({
         name: schema.business.name,
+        address: schema.business.address,
         currency: schema.business.currency,
         taxConfig: schema.business.taxConfig,
       })
@@ -67,6 +68,7 @@ export const businessRouter = createTRPCRouter({
     };
     return {
       name: row.name,
+      address: row.address,
       currency: row.currency,
       standardRatePct: taxConfig.standardRatePct ?? null,
       vatNumber: taxConfig.vatNumber ?? null,
@@ -90,6 +92,7 @@ export const businessRouter = createTRPCRouter({
           .regex(/^\d+(\.\d+)?$/, "Use a plain number like 21 or 12.5")
           .nullable(),
         vatNumber: z.string().trim().max(30).nullable(),
+        address: z.string().trim().max(500).nullable(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -103,6 +106,7 @@ export const businessRouter = createTRPCRouter({
         .update(schema.business)
         .set({
           name: input.name,
+          address: input.address,
           currency: input.currency,
           taxConfig: {
             ...(input.standardRatePct

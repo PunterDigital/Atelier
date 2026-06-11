@@ -46,7 +46,11 @@ describe("invoice PDF rendering", () => {
           },
         ],
       },
-      business: { name: "Studio Demo", vatNumber: "GB123456789" },
+      business: {
+        name: "Studio Demo",
+        address: "12 Harbour Street\nBristol BS1 4QA",
+        vatNumber: "GB123456789",
+      },
       client: {
         name: "Lumen Labs",
         company: "Lumen Labs Ltd",
