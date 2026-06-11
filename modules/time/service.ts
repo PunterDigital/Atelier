@@ -263,6 +263,27 @@ export async function listEntriesBetween(
     .orderBy(asc(schema.timeEntry.startedAt));
 }
 
+// Notes on entries ("during this time I did X") - editable after the
+// fact, on timer entries and manual ones alike.
+export async function updateEntryNote(
+  db: Db,
+  businessId: string,
+  entryId: string,
+  note: string | null,
+) {
+  const [updated] = await db
+    .update(schema.timeEntry)
+    .set({ note, updatedAt: new Date() })
+    .where(
+      and(
+        eq(schema.timeEntry.businessId, businessId),
+        eq(schema.timeEntry.id, entryId),
+      ),
+    )
+    .returning();
+  return updated ?? null;
+}
+
 export async function deleteEntry(db: Db, businessId: string, entryId: string) {
   const [deleted] = await db
     .delete(schema.timeEntry)

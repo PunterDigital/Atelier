@@ -16,7 +16,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatClock, formatDate, formatMinutes, formatRate } from "@/lib/format";
+import {
+  formatClock,
+  formatDate,
+  formatHoursClock,
+  formatMinutes,
+  formatRate,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useTRPC } from "@/server/trpc/client";
 
@@ -25,6 +31,7 @@ export type TaskRow = {
   title: string;
   status: TaskStatus;
   estimateMinutes: number | null;
+  trackedSeconds: number;
 };
 
 const COLUMNS: { id: TaskStatus; title: string }[] = [
@@ -60,6 +67,7 @@ export function TasksPanel({
   const [view, setView] = useState<"board" | "list">("board");
   const [editing, setEditing] = useState<TaskRow | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<TaskStatus | null>(null);
 
   const queryClient = useQueryClient();
   const refresh = () => router.refresh();
@@ -105,9 +113,12 @@ export function TasksPanel({
       if (current && current.status !== status) {
         move.mutate({ taskId: dragId, status });
       }
-      setDragId(null);
     }
+    setDragId(null);
+    setDropTarget(null);
   }
+
+  const dragged = dragId ? tasks.find((t) => t.id === dragId) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -134,12 +145,28 @@ export function TasksPanel({
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {COLUMNS.map((column) => {
             const columnTasks = tasks.filter((t) => t.status === column.id);
+            const isDropTarget =
+              dropTarget === column.id && dragged && dragged.status !== column.id;
             return (
               <div
                 key={column.id}
-                onDragOver={(e) => e.preventDefault()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDropTarget(column.id);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setDropTarget((prev) =>
+                      prev === column.id ? null : prev,
+                    );
+                  }
+                }}
                 onDrop={() => onDrop(column.id)}
-                className="flex min-h-[120px] flex-col gap-2.5 rounded-lg bg-[var(--surface-sunken)] p-2.5"
+                className={cn(
+                  "flex min-h-[120px] flex-col gap-2.5 rounded-lg bg-[var(--surface-sunken)] p-2.5 transition-colors",
+                  isDropTarget &&
+                    "bg-[var(--primary-subtle)] ring-2 ring-inset ring-[var(--primary-border)]",
+                )}
               >
                 <div className="flex items-center gap-2 px-1 pt-0.5">
                   <span className="text-xs font-semibold uppercase tracking-[0.04em] text-muted-foreground">
@@ -155,23 +182,39 @@ export function TasksPanel({
                     <div
                       key={task.id}
                       draggable
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setEditing(task)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setEditing(task);
+                        }
+                      }}
                       onDragStart={() => setDragId(task.id)}
+                      onDragEnd={() => {
+                        setDragId(null);
+                        setDropTarget(null);
+                      }}
                       className={cn(
-                        "flex cursor-grab flex-col gap-1.5 rounded-md border bg-card p-3 shadow-xs transition-shadow hover:shadow-sm",
+                        "flex cursor-pointer flex-col gap-1.5 rounded-md border bg-card p-3 shadow-xs transition-shadow hover:shadow-sm active:cursor-grabbing",
                         isRunning && "border-[var(--primary-border)]",
+                        dragId === task.id && "opacity-50",
                       )}
                     >
-                      <button
-                        type="button"
-                        onClick={() => setEditing(task)}
-                        className="text-left text-sm font-medium"
-                      >
+                      <span className="text-left text-sm font-medium">
                         {task.title}
-                      </button>
+                      </span>
                       <div className="flex items-center gap-2">
+                        <span
+                          className="text-xs text-muted-foreground tabular"
+                          title="Tracked time"
+                        >
+                          {formatHoursClock(task.trackedSeconds)}
+                        </span>
                         {task.estimateMinutes ? (
-                          <span className="text-xs text-muted-foreground tabular">
-                            {formatMinutes(task.estimateMinutes)}
+                          <span className="text-xs text-muted-foreground/70 tabular">
+                            of {formatMinutes(task.estimateMinutes)}
                           </span>
                         ) : null}
                         <span className="flex-1" />
@@ -185,11 +228,14 @@ export function TasksPanel({
                             isRunning ? "Stop timer" : "Start timer on this task"
                           }
                           disabled={startTimer.isPending || stopTimer.isPending}
-                          onClick={() =>
-                            isRunning
-                              ? stopTimer.mutate()
-                              : startTimer.mutate({ taskId: task.id })
-                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isRunning) {
+                              stopTimer.mutate();
+                            } else {
+                              startTimer.mutate({ taskId: task.id });
+                            }
+                          }}
                           className={cn(
                             "size-6 rounded-full",
                             isRunning && "text-[var(--primary-subtle-fg)]",
@@ -205,6 +251,13 @@ export function TasksPanel({
                     </div>
                   );
                 })}
+                {isDropTarget && dragged ? (
+                  <div className="flex flex-col gap-1.5 rounded-md border border-dashed border-[var(--primary-border)] bg-card/60 p-3">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {dragged.title}
+                    </span>
+                  </div>
+                ) : null}
                 <QuickAdd
                   pending={create.isPending}
                   onAdd={(title) =>
@@ -235,9 +288,15 @@ export function TasksPanel({
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">
                   {task.title}
                 </span>
+                <span
+                  className="shrink-0 text-sm text-muted-foreground tabular"
+                  title="Tracked time"
+                >
+                  {formatHoursClock(task.trackedSeconds)}
+                </span>
                 {task.estimateMinutes ? (
-                  <span className="shrink-0 text-sm text-muted-foreground tabular">
-                    {formatMinutes(task.estimateMinutes)}
+                  <span className="shrink-0 text-sm text-muted-foreground/70 tabular">
+                    of {formatMinutes(task.estimateMinutes)}
                   </span>
                 ) : null}
                 <TaskStatusPill status={task.status} />
@@ -299,11 +358,11 @@ function QuickAdd({
     >
       <Input
         aria-label="Add a task"
-        placeholder="Add a task"
+        placeholder="+ Add a task"
         disabled={pending}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="h-8 border-transparent bg-transparent shadow-none placeholder:text-muted-foreground/70 focus-visible:border-ring focus-visible:bg-card"
+        className="h-8 cursor-pointer border-transparent bg-transparent shadow-none transition-colors placeholder:text-muted-foreground/70 hover:border-border hover:bg-card hover:placeholder:text-muted-foreground focus-visible:cursor-text focus-visible:border-ring focus-visible:bg-card"
       />
     </form>
   );
@@ -338,7 +397,9 @@ function EditTaskDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      {/* Wider than the dialog default (sm:max-w-sm) - the editor has
+          side-by-side fields and the time log row, which overflowed */}
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Edit task</DialogTitle>
         </DialogHeader>
@@ -431,10 +492,23 @@ function TimeSection({ taskId }: { taskId: string }) {
   const remove = useMutation(
     trpc.time.deleteEntry.mutationOptions({ onSuccess: invalidate }),
   );
+  const saveNote = useMutation(
+    trpc.time.updateNote.mutationOptions({
+      onSuccess: () => {
+        setNoteDraft(null);
+        invalidate();
+      },
+    }),
+  );
 
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [hours, setHours] = useState("");
   const [billable, setBillable] = useState(true);
+  const [note, setNote] = useState("");
+  const [noteDraft, setNoteDraft] = useState<{
+    entryId: string;
+    text: string;
+  } | null>(null);
 
   const closed = (entries.data ?? []).filter((e) => e.durationSeconds !== null);
   const totalSeconds = closed.reduce(
@@ -454,39 +528,89 @@ function TimeSection({ taskId }: { taskId: string }) {
       </div>
 
       {closed.length > 0 ? (
-        <ul className="flex max-h-40 flex-col overflow-y-auto">
+        <ul className="flex max-h-48 flex-col overflow-y-auto">
           {closed.map((entry) => (
             <li
               key={entry.id}
-              className="flex items-center gap-2 border-b py-1.5 text-sm last:border-b-0"
+              className="flex flex-col gap-1 border-b py-1.5 text-sm last:border-b-0"
             >
-              <span className="text-muted-foreground">
-                {formatDate(new Date(entry.startedAt))}
-              </span>
-              <span className="font-medium tabular">
-                {formatMinutes(Math.round((entry.durationSeconds ?? 0) / 60))}
-              </span>
-              {entry.rateMinor != null && entry.rateCurrency ? (
-                <span className="text-xs text-muted-foreground tabular">
-                  {formatRate(entry.rateMinor, entry.rateCurrency)}
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">
+                  {formatDate(new Date(entry.startedAt))}
                 </span>
-              ) : null}
-              {!entry.billable ? (
-                <span className="rounded-full bg-[var(--status-draft-bg)] px-1.5 text-xs font-semibold text-[var(--status-draft-fg)]">
-                  Non-billable
+                <span className="font-medium tabular">
+                  {formatMinutes(Math.round((entry.durationSeconds ?? 0) / 60))}
                 </span>
+                {entry.rateMinor != null && entry.rateCurrency ? (
+                  <span className="text-xs text-muted-foreground tabular">
+                    {formatRate(entry.rateMinor, entry.rateCurrency)}
+                  </span>
+                ) : null}
+                {!entry.billable ? (
+                  <span className="rounded-full bg-[var(--status-draft-bg)] px-1.5 text-xs font-semibold text-[var(--status-draft-fg)]">
+                    Non-billable
+                  </span>
+                ) : null}
+                <span className="flex-1" />
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={saveNote.isPending}
+                  onClick={() =>
+                    setNoteDraft(
+                      noteDraft?.entryId === entry.id
+                        ? null
+                        : { entryId: entry.id, text: entry.note ?? "" },
+                    )
+                  }
+                  className="h-6 px-2 text-xs"
+                >
+                  {entry.note ? "Edit note" : "Add note"}
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="Delete entry"
+                  disabled={remove.isPending}
+                  onClick={() => remove.mutate({ entryId: entry.id })}
+                  className="size-6"
+                >
+                  <Trash2 className="size-3.5" aria-hidden />
+                </Button>
+              </div>
+              {noteDraft?.entryId === entry.id ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    saveNote.mutate({
+                      entryId: entry.id,
+                      note: noteDraft.text.trim() || null,
+                    });
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Input
+                    aria-label="Entry note"
+                    autoFocus
+                    placeholder="What happened during this time"
+                    value={noteDraft.text}
+                    onChange={(e) =>
+                      setNoteDraft({ entryId: entry.id, text: e.target.value })
+                    }
+                    className="h-7 text-sm"
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={saveNote.isPending}
+                    className="h-7"
+                  >
+                    Save
+                  </Button>
+                </form>
+              ) : entry.note ? (
+                <p className="text-xs text-muted-foreground">{entry.note}</p>
               ) : null}
-              <span className="flex-1" />
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Delete entry"
-                disabled={remove.isPending}
-                onClick={() => remove.mutate({ entryId: entry.id })}
-                className="size-6"
-              >
-                <Trash2 className="size-3.5" aria-hidden />
-              </Button>
             </li>
           ))}
         </ul>
@@ -504,52 +628,63 @@ function TimeSection({ taskId }: { taskId: string }) {
               startedAt: new Date(`${date}T09:00:00.000Z`),
               durationSeconds: Math.round(h * 3600),
               billable,
+              note: note.trim() || undefined,
             });
             setHours("");
+            setNote("");
           }
         }}
-        className="flex items-end gap-2"
+        className="flex flex-col gap-2"
       >
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="log-date" className="text-xs">
-            Date
-          </Label>
-          <Input
-            id="log-date"
-            type="date"
-            required
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="h-8"
-          />
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="log-date" className="text-xs">
+              Date
+            </Label>
+            <Input
+              id="log-date"
+              type="date"
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="h-8"
+            />
+          </div>
+          <div className="flex w-20 flex-col gap-1.5">
+            <Label htmlFor="log-hours" className="text-xs">
+              Hours
+            </Label>
+            <Input
+              id="log-hours"
+              type="number"
+              min="0"
+              step="any"
+              required
+              placeholder="1.5"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+              className="h-8"
+            />
+          </div>
+          <label className="flex h-8 items-center gap-1.5 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={billable}
+              onChange={(e) => setBillable(e.target.checked)}
+            />
+            Billable
+          </label>
+          <Button type="submit" size="sm" disabled={log.isPending}>
+            {log.isPending ? "Logging..." : "Log time"}
+          </Button>
         </div>
-        <div className="flex w-20 flex-col gap-1.5">
-          <Label htmlFor="log-hours" className="text-xs">
-            Hours
-          </Label>
-          <Input
-            id="log-hours"
-            type="number"
-            min="0"
-            step="any"
-            required
-            placeholder="1.5"
-            value={hours}
-            onChange={(e) => setHours(e.target.value)}
-            className="h-8"
-          />
-        </div>
-        <label className="flex h-8 items-center gap-1.5 text-sm text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={billable}
-            onChange={(e) => setBillable(e.target.checked)}
-          />
-          Billable
-        </label>
-        <Button type="submit" size="sm" disabled={log.isPending}>
-          {log.isPending ? "Logging..." : "Log time"}
-        </Button>
+        <Input
+          aria-label="Note for this entry"
+          placeholder="Optional note - what this time covered"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          className="h-8"
+        />
       </form>
       {log.error ? (
         <p role="alert" className="text-sm text-destructive">

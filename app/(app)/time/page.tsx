@@ -78,7 +78,9 @@ export default async function TimesheetPage({
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {dayNames.map((dayName, index) => {
+          {/* Latest day first - the most recent work is what you came for */}
+          {[...dayNames.keys()].reverse().map((index) => {
+            const dayName = dayNames[index];
             const date = addDays(weekStart, index);
             const dayEntries = byDay.get(toDateKey(date)) ?? [];
             if (dayEntries.length === 0) {

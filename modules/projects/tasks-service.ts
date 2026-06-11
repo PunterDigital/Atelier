@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Db } from "@/db";
@@ -43,16 +43,33 @@ async function projectInBusiness(
 }
 
 export async function listTasks(db: Db, businessId: string, projectId: string) {
-  return db
-    .select()
+  // trackedSeconds sums the task's closed entries (running timers join in
+  // once stopped); pg returns the aggregate as a string, hence Number().
+  const rows = await db
+    .select({
+      ...getTableColumns(schema.task),
+      trackedSeconds: sql<string>`coalesce(sum(${schema.timeEntry.durationSeconds}), 0)`,
+    })
     .from(schema.task)
+    .leftJoin(
+      schema.timeEntry,
+      and(
+        eq(schema.timeEntry.taskId, schema.task.id),
+        isNotNull(schema.timeEntry.endedAt),
+      ),
+    )
     .where(
       and(
         eq(schema.task.businessId, businessId),
         eq(schema.task.projectId, projectId),
       ),
     )
+    .groupBy(schema.task.id)
     .orderBy(asc(schema.task.createdAt));
+  return rows.map((row) => ({
+    ...row,
+    trackedSeconds: Number(row.trackedSeconds),
+  }));
 }
 
 export async function createTask(

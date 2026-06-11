@@ -66,6 +66,7 @@ export default async function ProjectDetailPage({
           title: t.title,
           status: t.status,
           estimateMinutes: t.estimateMinutes,
+          trackedSeconds: t.trackedSeconds,
         }))}
       />
     </div>

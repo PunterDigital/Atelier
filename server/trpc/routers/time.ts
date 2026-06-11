@@ -11,6 +11,7 @@ import {
   manualEntrySchema,
   startTimer,
   stopTimer,
+  updateEntryNote,
 } from "@/modules/time/service";
 
 import { businessProcedure, createTRPCRouter } from "../init";
@@ -65,6 +66,19 @@ export const timeRouter = createTRPCRouter({
         ctx.session.user.id,
         input.from,
         input.to,
+      ),
+    ),
+
+  updateNote: businessProcedure
+    .input(
+      z.object({
+        entryId: z.string().uuid(),
+        note: z.string().trim().max(1000).nullable(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) =>
+      found(
+        await updateEntryNote(getDb(), ctx.businessId, input.entryId, input.note),
       ),
     ),
 

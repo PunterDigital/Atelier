@@ -59,6 +59,14 @@ export function formatMoney(minor: number, currency: string): string {
   }).format(major);
 }
 
+// Compact h:mm for task cards ("0:00", "2:30") - always visible even at
+// zero so a fresh task reads as trackable.
+export function formatHoursClock(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  return `${h}:${String(m).padStart(2, "0")}`;
+}
+
 // Durations render as "2h 30m" in prose per the design system.
 export function formatMinutes(minutes: number): string {
   const h = Math.floor(minutes / 60);
