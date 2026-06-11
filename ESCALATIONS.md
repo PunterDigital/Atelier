@@ -7,25 +7,23 @@ in `TASKS.md`.
 
 ## Open
 
-### ESC-7: Phase 3 needs human inputs
-
-Phases 0-2 are complete (every MVP feature from the plan's Section 4,
-gate-green, fixture-proven billing). The remaining Phase 3 items each
-need something only Shay can provide:
-
-1. **AndCo CSV importer** - needs a real AndCo/Fiverr Workspace export
-   (or its documented format). Building against a guessed CSV layout
-   would be fabrication. Shay was an AndCo user - a sample export (with
-   real client data redacted) unblocks this.
-2. **Public demo instance** - needs a hosting decision (where, domain,
-   who pays). The compose stack is demo-ready; the seed provides the
-   data.
-3. **Design pass** - human-led by definition. Two artifacts currently
-   await first review: the invoice editor screen and the invoice PDF.
-4. **Launch material** - human-led (the README is honest and current as
-   a base).
-
 ## Resolved
+
+### ESC-7: Phase 3 inputs -> answered (2026-06-11)
+
+1. **AndCo importer**: Shay asked whether the format is public. Researched:
+   it is not - migration guides confirm clients/time CSVs and invoice PDFs
+   existed but no column-level documentation or open-source parser exists
+   anywhere. Decision (no fabrication): build a generic CSV importer with
+   interactive column mapping (serves every source tool); an AndCo
+   auto-detect preset can be added later if a real export file surfaces.
+2. **Public demo**: superseded - Shay will offer free hosted instances in
+   his cloud alongside self-hosting. No demo task for the agent.
+3. **Design pass**: Shay reviewing now (invoice editor screen + PDF are
+   the open items).
+4. **Launch material**: Shay unsure - the agent drafts an announcement
+   for sign-off (same pattern as the billing spec), human edits and owns
+   the launch.
 
 ### ESC-6: FX fixing moment for drafts -> at generation, never refreshed (2026-06-11)
 

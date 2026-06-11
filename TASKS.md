@@ -95,10 +95,16 @@ fixture-first against it; a case the spec misses gets escalated.
 
 ## Phase 3 - polish and launch (human-heavy)
 
-- [ ] Importers: AndCo CSV first, then Invoice Ninja / FreshBooks.
-- [ ] Public read-only demo instance.
+- [ ] Generic CSV importer with interactive column mapping, clients
+      first (the AndCo format is not publicly documented - see resolved
+      ESC-7; a mapping importer serves every source tool without
+      guessing). Time-entries import as a second slice.
+- [ ] AndCo auto-detect preset for the importer - blocked until a real
+      export file surfaces.
+- [ ] Draft launch announcement (HN / r/selfhosted framing per plan
+      Section 10) for Shay's sign-off.
 - [ ] Full design pass (human-led; agent applies the resulting system).
-- [ ] Launch docs and announcement material (human-led).
+      In progress: Shay reviewing invoice editor + PDF.
 
 ## Phase 4 - expand (not started)
 
