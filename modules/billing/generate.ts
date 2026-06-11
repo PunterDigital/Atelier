@@ -8,7 +8,7 @@ import { and, eq, inArray, isNotNull, isNull, max } from "drizzle-orm";
 import type { Db } from "@/db";
 import { schema } from "@/db";
 
-import { minorToMajor } from "./currency";
+import { majorToMinor, minorToMajor } from "./currency";
 import {
   convertMinor,
   lineTotalMinorFromSeconds,
@@ -366,6 +366,60 @@ export async function generateLinesFromUnbilledTime(
       lineCount: result.lines.length,
       unpricedEntryIds: result.unpricedEntryIds,
     };
+  });
+}
+
+// Manual fixed-amount line: invoices are dual-purpose, not only
+// time-based. The amount arrives as a major-unit string in the invoice
+// currency and is converted exactly (rejected, never rounded, when it has
+// more decimals than the currency allows). No new rounding point: what
+// the user typed is the line total.
+export async function addManualLine(
+  db: Db,
+  businessId: string,
+  input: { invoiceId: string; description: string; amountMajor: string },
+) {
+  return db.transaction(async (tx) => {
+    const [inv] = await tx
+      .select({
+        id: schema.invoice.id,
+        status: schema.invoice.status,
+        currency: schema.invoice.currency,
+      })
+      .from(schema.invoice)
+      .where(
+        and(
+          eq(schema.invoice.businessId, businessId),
+          eq(schema.invoice.id, input.invoiceId),
+        ),
+      )
+      .for("update");
+    if (!inv || inv.status !== "draft") {
+      return { ok: false as const, reason: "no_draft" as const };
+    }
+
+    const totalMinor = majorToMinor(input.amountMajor, inv.currency);
+    if (totalMinor === null) {
+      return { ok: false as const, reason: "bad_amount" as const };
+    }
+
+    const [{ maxPosition }] = await tx
+      .select({ maxPosition: max(schema.invoiceLine.position) })
+      .from(schema.invoiceLine)
+      .where(eq(schema.invoiceLine.invoiceId, inv.id));
+
+    await tx.insert(schema.invoiceLine).values({
+      businessId,
+      invoiceId: inv.id,
+      position: Number(maxPosition ?? 0) + 1,
+      description: input.description,
+      quantity: null,
+      unitPriceMinor: null,
+      totalMinor,
+    });
+
+    const updated = await recomputeInvoiceTotals(tx, businessId, inv.id);
+    return { ok: true as const, invoice: updated };
   });
 }
 

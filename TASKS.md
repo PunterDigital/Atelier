@@ -106,6 +106,13 @@ fixture-first against it; a case the spec misses gets escalated.
 
 ## Shipped
 
+- 2026-06-11 Dual-purpose invoices (Shay's review request): fixed-amount
+  manual lines alongside generated time lines - exact minor-unit input
+  (over-precise amounts rejected, never rounded), one totals pipeline
+  through the tax engine, drafts only. ESC-6 confirmed and resolved.
+  Browser-verified incl. mixed manual+converted totals; on
+  `feat/manual-invoice-lines`.
+
 - 2026-06-11 Invoices UI + settings: invoices list with lifecycle pills,
   new-draft form (standard treatment gated on a configured VAT rate),
   draft editor with generate-from-time (grouping modes, FX confirmation

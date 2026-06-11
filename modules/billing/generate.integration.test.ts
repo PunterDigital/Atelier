@@ -12,7 +12,11 @@ import { createProject } from "@/modules/projects/service";
 import { createTask } from "@/modules/projects/tasks-service";
 import { logManualEntry } from "@/modules/time/service";
 
-import { deleteInvoiceLine, generateLinesFromUnbilledTime } from "./generate";
+import {
+  addManualLine,
+  deleteInvoiceLine,
+  generateLinesFromUnbilledTime,
+} from "./generate";
 import { createDraftInvoice, issueInvoice } from "./invoices";
 
 const migrationsFolder = fileURLToPath(
@@ -151,6 +155,59 @@ describe("generate lines from unbilled time (integration)", () => {
         ),
       );
     expect(released).toHaveLength(3);
+  });
+
+  it("supports fixed-amount manual lines alongside generated ones", async () => {
+    const draft = await createDraftInvoice(db, business.id, {
+      clientId: client.id,
+      currency: "EUR",
+      taxTreatment: "standard",
+      standardRatePercent: "21",
+    });
+    const invoiceId = (draft as { id: string }).id;
+
+    // Exact amount in: EUR 1,500.00 -> 150000 minor, taxed on the subtotal.
+    const added = await addManualLine(db, business.id, {
+      invoiceId,
+      description: "Discovery workshop (fixed fee)",
+      amountMajor: "1500",
+    });
+    expect(added).toMatchObject({ ok: true });
+    if (added.ok) {
+      expect(added.invoice?.subtotalMinor).toBe(150000);
+      expect(added.invoice?.taxMinor).toBe(31500);
+      expect(added.invoice?.totalMinor).toBe(181500);
+    }
+
+    // More decimals than the currency allows is rejected, never rounded.
+    const rejected = await addManualLine(db, business.id, {
+      invoiceId,
+      description: "Bad amount",
+      amountMajor: "10.005",
+    });
+    expect(rejected).toMatchObject({ ok: false, reason: "bad_amount" });
+
+    // Manual lines coexist with generated ones; totals stay one pipeline.
+    const generated = await generateLinesFromUnbilledTime(db, business.id, {
+      invoiceId,
+      grouping: "person_rate",
+    });
+    if (generated.ok) {
+      const [inv] = await db
+        .select()
+        .from(schema.invoice)
+        .where(eq(schema.invoice.id, invoiceId));
+      expect(inv.subtotalMinor).toBe(150000 + 25317);
+    }
+
+    // Cleanup: release entries for the later tests in this file.
+    const lines = await db
+      .select({ id: schema.invoiceLine.id })
+      .from(schema.invoiceLine)
+      .where(eq(schema.invoiceLine.invoiceId, invoiceId));
+    for (const line of lines) {
+      await deleteInvoiceLine(db, business.id, line.id);
+    }
   });
 
   it("refuses to add generated lines to an issued invoice", async () => {

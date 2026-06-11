@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatMoney } from "@/lib/format";
 import { caller } from "@/server/trpc/server";
 
+import { AddLineForm } from "./add-line-form";
 import { GeneratePanel } from "./generate-panel";
 import { InvoiceActions, RemoveLineButton } from "./invoice-actions";
 
@@ -122,11 +123,14 @@ export default async function InvoiceDetailPage({
           </Card>
 
           {isDraft ? (
-            <GeneratePanel
-              invoiceId={invoice.id}
-              invoiceCurrency={invoice.currency}
-              projects={projects.map((p) => ({ id: p.id, name: p.name }))}
-            />
+            <>
+              <AddLineForm invoiceId={invoice.id} currency={invoice.currency} />
+              <GeneratePanel
+                invoiceId={invoice.id}
+                invoiceCurrency={invoice.currency}
+                projects={projects.map((p) => ({ id: p.id, name: p.name }))}
+              />
+            </>
           ) : null}
         </div>
 

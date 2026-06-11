@@ -5,6 +5,7 @@ import { z } from "zod";
 import { getDb, schema } from "@/db";
 import { fetchEcbRate } from "@/modules/billing/fx";
 import {
+  addManualLine,
   deleteInvoiceLine,
   generateLinesFromUnbilledTime,
 } from "@/modules/billing/generate";
@@ -125,6 +126,30 @@ export const invoicesRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) =>
       found(await deleteInvoiceLine(getDb(), ctx.businessId, input.lineId)),
     ),
+
+  // Fixed-amount manual line - invoices are dual-purpose, not only
+  // generated from time.
+  addLine: businessProcedure
+    .input(
+      z.object({
+        invoiceId: z.string().uuid(),
+        description: z.string().trim().min(1).max(1000),
+        amountMajor: z.string().trim().regex(/^\d+(\.\d+)?$/, "Enter a plain amount like 1500 or 1500.00"),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const result = await addManualLine(getDb(), ctx.businessId, input);
+      if (!result.ok) {
+        throw new TRPCError({
+          code: result.reason === "bad_amount" ? "BAD_REQUEST" : "NOT_FOUND",
+          message:
+            result.reason === "bad_amount"
+              ? "That amount has more decimal places than the invoice currency allows"
+              : "Only draft invoices can be edited",
+        });
+      }
+      return result.invoice;
+    }),
 
   issue: businessProcedure
     .input(z.object({ invoiceId: z.string().uuid() }))
