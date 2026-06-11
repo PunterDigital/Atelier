@@ -77,9 +77,10 @@ fixture-first against it; a case the spec misses gets escalated.
       issue under a row lock, configurable next-number (spec Section 6
       feedback; settings UI lands with the invoices UI), concurrency
       proven by a parallel-issue check in the Postgres CI job.
-- [ ] Invoice-from-tracked-time: grouping modes (person+rate, per task,
+- [x] Invoice-from-tracked-time: grouping modes (person+rate, per task,
       single line), stored-rate billing, exact-seconds durations,
-      fixture-covered.
+      per-line FX per ESC-5, fixture-covered + PGlite integration
+      (linking, release on line removal, totals through the tax engine).
 - [ ] Invoice lifecycle: draft/sent/paid/overdue, marking time entries as
       billed, removed lines return entries to the unbilled pool.
 - [ ] Branded PDF export.
@@ -100,6 +101,14 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-11 Invoice-from-time: pure grouping core (person+rate / task /
+  single, ESC-5 per-line conversion with originals recorded, unpriced
+  entries surfaced, missing FX rates reported never guessed) with both
+  spec worked examples passing verbatim as fixtures; transactional
+  generation links entries to lines, recomputes totals through the tax
+  engine, refuses non-drafts, and releases entries when a draft line is
+  removed; on `feat/invoice-from-time`.
 
 - 2026-06-11 FX client: Frankfurter v1 (the ECB-only endpoint - verified
   live that v2 blends other central banks and disagrees), rate extracted

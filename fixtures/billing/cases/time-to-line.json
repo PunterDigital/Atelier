@@ -1,0 +1,110 @@
+{
+  "description": "Time-to-line aggregation (BILLING-SPEC.md Section 7 + ESC-5): grouping modes, per-line FX conversion with the original recorded, unpriced entries surfaced, single-line mode refused on mixed rates. Hand-verified; spec worked examples verbatim.",
+  "expected": {
+    "cases": [
+      {
+        "case": "spec S7: 2h15m + 1h50m at GBP 62.00/h, person_rate, GBP invoice -> one line GBP 253.17",
+        "grouping": "person_rate",
+        "invoiceCurrency": "GBP",
+        "entries": [
+          { "id": "e1", "userId": "u1", "userName": "Shay", "taskId": "t1", "taskTitle": "Homepage build", "durationSeconds": 8100, "rateMinor": 6200, "rateCurrency": "GBP" },
+          { "id": "e2", "userId": "u1", "userName": "Shay", "taskId": "t2", "taskTitle": "CMS migration", "durationSeconds": 6600, "rateMinor": 6200, "rateCurrency": "GBP" }
+        ],
+        "lines": [
+          { "description": "Shay - 62.00 GBP/h", "quantity": "4.083333", "unitPriceMinor": 6200, "totalMinor": 25317, "sourceCurrency": null, "sourceTotalMinor": null, "fxRate": null, "fxSource": null, "entryIds": ["e1", "e2"] }
+        ],
+        "unpricedEntryIds": []
+      },
+      {
+        "case": "spec S7 ESC-5 example: same hours at EUR 62.00/h, GBP invoice at 0.8542 -> GBP 216.26 with original recorded",
+        "grouping": "person_rate",
+        "invoiceCurrency": "GBP",
+        "fxRates": { "EUR": { "rate": "0.8542", "source": "ecb" } },
+        "entries": [
+          { "id": "e1", "userId": "u1", "userName": "Shay", "taskId": "t1", "taskTitle": "Homepage build", "durationSeconds": 8100, "rateMinor": 6200, "rateCurrency": "EUR" },
+          { "id": "e2", "userId": "u1", "userName": "Shay", "taskId": "t2", "taskTitle": "CMS migration", "durationSeconds": 6600, "rateMinor": 6200, "rateCurrency": "EUR" }
+        ],
+        "lines": [
+          { "description": "Shay - 62.00 EUR/h", "quantity": "4.083333", "unitPriceMinor": 5296, "totalMinor": 21626, "sourceCurrency": "EUR", "sourceTotalMinor": 25317, "fxRate": "0.8542", "fxSource": "ecb", "entryIds": ["e1", "e2"] }
+        ],
+        "unpricedEntryIds": []
+      },
+      {
+        "case": "person_rate splits by person and by rate; task list appended on request; unpriced surfaced",
+        "grouping": "person_rate",
+        "invoiceCurrency": "EUR",
+        "includeTaskList": true,
+        "entries": [
+          { "id": "e1", "userId": "u1", "userName": "Shay", "taskId": "t1", "taskTitle": "Webhook receiver", "durationSeconds": 7200, "rateMinor": 31000, "rateCurrency": "EUR" },
+          { "id": "e2", "userId": "u1", "userName": "Shay", "taskId": "t2", "taskTitle": "Rate limits", "durationSeconds": 3600, "rateMinor": 31000, "rateCurrency": "EUR" },
+          { "id": "e3", "userId": "u2", "userName": "Mara", "taskId": "t1", "taskTitle": "Webhook receiver", "durationSeconds": 5400, "rateMinor": 4500, "rateCurrency": "EUR" },
+          { "id": "e4", "userId": "u1", "userName": "Shay", "taskId": "t3", "taskTitle": "Pairing session", "durationSeconds": 1800, "rateMinor": null, "rateCurrency": null }
+        ],
+        "lines": [
+          { "description": "Shay - 310.00 EUR/h (Rate limits, Webhook receiver)", "quantity": "3.000000", "unitPriceMinor": 31000, "totalMinor": 93000, "sourceCurrency": null, "sourceTotalMinor": null, "fxRate": null, "fxSource": null, "entryIds": ["e1", "e2"] },
+          { "description": "Mara - 45.00 EUR/h (Webhook receiver)", "quantity": "1.500000", "unitPriceMinor": 4500, "totalMinor": 6750, "sourceCurrency": null, "sourceTotalMinor": null, "fxRate": null, "fxSource": null, "entryIds": ["e3"] }
+        ],
+        "unpricedEntryIds": ["e4"]
+      },
+      {
+        "case": "task grouping sub-splits a task whose entries carry different manual rates",
+        "grouping": "task",
+        "invoiceCurrency": "EUR",
+        "entries": [
+          { "id": "e1", "userId": "u1", "userName": "Shay", "taskId": "t1", "taskTitle": "Homepage build", "durationSeconds": 3600, "rateMinor": 6200, "rateCurrency": "EUR" },
+          { "id": "e2", "userId": "u1", "userName": "Shay", "taskId": "t1", "taskTitle": "Homepage build", "durationSeconds": 1800, "rateMinor": 9000, "rateCurrency": "EUR" }
+        ],
+        "lines": [
+          { "description": "Homepage build", "quantity": "1.000000", "unitPriceMinor": 6200, "totalMinor": 6200, "sourceCurrency": null, "sourceTotalMinor": null, "fxRate": null, "fxSource": null, "entryIds": ["e1"] },
+          { "description": "Homepage build", "quantity": "0.500000", "unitPriceMinor": 9000, "totalMinor": 4500, "sourceCurrency": null, "sourceTotalMinor": null, "fxRate": null, "fxSource": null, "entryIds": ["e2"] }
+        ],
+        "unpricedEntryIds": []
+      },
+      {
+        "case": "single line with one shared rate",
+        "grouping": "single",
+        "invoiceCurrency": "EUR",
+        "entries": [
+          { "id": "e1", "userId": "u1", "userName": "Shay", "taskId": "t1", "taskTitle": "A", "durationSeconds": 3600, "rateMinor": 31000, "rateCurrency": "EUR" },
+          { "id": "e2", "userId": "u2", "userName": "Mara", "taskId": "t2", "taskTitle": "B", "durationSeconds": 1800, "rateMinor": 31000, "rateCurrency": "EUR" }
+        ],
+        "lines": [
+          { "description": "Tracked time", "quantity": "1.500000", "unitPriceMinor": 31000, "totalMinor": 46500, "sourceCurrency": null, "sourceTotalMinor": null, "fxRate": null, "fxSource": null, "entryIds": ["e1", "e2"] }
+        ],
+        "unpricedEntryIds": []
+      }
+    ],
+    "errors": [
+      {
+        "case": "single-line mode refused when rates differ",
+        "grouping": "single",
+        "invoiceCurrency": "EUR",
+        "entries": [
+          { "id": "e1", "userId": "u1", "userName": "Shay", "taskId": "t1", "taskTitle": "A", "durationSeconds": 3600, "rateMinor": 31000, "rateCurrency": "EUR" },
+          { "id": "e2", "userId": "u1", "userName": "Shay", "taskId": "t2", "taskTitle": "B", "durationSeconds": 3600, "rateMinor": 6200, "rateCurrency": "EUR" }
+        ],
+        "reason": "mixed_rates_for_single_line"
+      },
+      {
+        "case": "foreign rate currencies without provided FX rates are reported, not guessed",
+        "grouping": "person_rate",
+        "invoiceCurrency": "GBP",
+        "entries": [
+          { "id": "e1", "userId": "u1", "userName": "Shay", "taskId": "t1", "taskTitle": "A", "durationSeconds": 3600, "rateMinor": 31000, "rateCurrency": "EUR" },
+          { "id": "e2", "userId": "u1", "userName": "Shay", "taskId": "t2", "taskTitle": "B", "durationSeconds": 3600, "rateMinor": 480000, "rateCurrency": "CZK" }
+        ],
+        "reason": "missing_fx_rates",
+        "currencies": ["EUR", "CZK"]
+      },
+      {
+        "case": "only unpriced entries means nothing to bill",
+        "grouping": "person_rate",
+        "invoiceCurrency": "EUR",
+        "entries": [
+          { "id": "e1", "userId": "u1", "userName": "Shay", "taskId": "t1", "taskTitle": "A", "durationSeconds": 3600, "rateMinor": null, "rateCurrency": null }
+        ],
+        "reason": "nothing_to_bill"
+      }
+    ]
+  }
+}
