@@ -65,8 +65,11 @@ fixture-first against it; a case the spec misses gets escalated.
 
 - [x] Money core: minor-unit integer arithmetic, ISO 4217 minor units,
       half-up rounding at the three spec-defined points, fixture-covered.
-- [ ] Currency conversion: Frankfurter rates fixed on invoice date, manual
+- [x] Currency conversion: Frankfurter rates fixed on invoice date, manual
       rate fallback, stored rate + source on the invoice, fixture-covered.
+      (Conversion arithmetic fixture-covered in money core; ECB v1 client
+      with float-free extraction; line storage fields exist and get wired
+      by invoice-from-time.)
 - [x] Tax/VAT engine per spec: standard rate from tax_config, zero-rated,
       EU reverse charge with mandatory notes, subtotal-based, one
       treatment per invoice, fixture-covered.
@@ -97,6 +100,14 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-11 FX client: Frankfurter v1 (the ECB-only endpoint - verified
+  live that v2 blends other central banks and disagrees), rate extracted
+  from raw text so the decimal never round-trips through a float,
+  effective business day reported for weekend requests, null for
+  uncovered pairs (manual fallback), fail-loud on errors and shape
+  drift. Stub-tested against verbatim live response shapes; on
+  `feat/billing-fx-client`.
 
 - 2026-06-11 Invoice schema + numbering: invoice/invoice_line/
   invoice_sequence tables (drafts unnumbered, one treatment per invoice,
