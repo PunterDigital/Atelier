@@ -20,7 +20,7 @@ import {
 } from "./service";
 
 // Integration suite on PGlite: real Postgres, real checked-in migrations.
-// This is the proof CLAUDE.md requires that cross-business access is
+// This is the required proof that cross-business access is
 // denied at the data layer, not just hidden by the UI.
 
 const migrationsFolder = fileURLToPath(

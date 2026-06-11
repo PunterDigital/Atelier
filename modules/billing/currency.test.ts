@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import { majorToMinor, minorToMajor, minorUnitDigits } from "./currency";
 
-// Fixture-driven per CLAUDE.md Section 6: the JSON states expected outputs
+// Fixture-driven: the JSON states expected outputs
 // exactly and the code must match them, not approximately.
 const fixture = JSON.parse(
   readFileSync(

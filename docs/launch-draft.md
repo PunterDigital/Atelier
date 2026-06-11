@@ -1,7 +1,6 @@
 # Launch announcement - DRAFT for Shay's sign-off
 
-Status: DRAFT. Not published anywhere. Per CLAUDE.md, launch material is
-human-led: edit freely, cut what reads wrong, publish under your own
+Status: DRAFT. Not published anywhere. Launch material is human-led: edit freely, cut what reads wrong, publish under your own
 voice when you decide the product is ready. Claims below are true as of
 2026-06-11; re-verify the feature list on launch day.
 

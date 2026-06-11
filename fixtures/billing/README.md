@@ -20,7 +20,7 @@ the spec, never from memory or guesswork.
 - `harness.test.ts` - loads and validates every case file. New fixture
   categories get their own test files alongside it.
 
-## Rules (from CLAUDE.md Section 6)
+## Rules
 
 - Each fixture states the expected output exactly.
 - Every new billing behaviour ships with new fixtures.

@@ -33,7 +33,7 @@ export function invoiceTotals(input: {
     const rate = input.standardRatePercent;
     if (rate === undefined) {
       // Fail loud: a missing configured rate is a setup problem, never a
-      // default we invent (CLAUDE.md override rule 1).
+      // default we invent.
       throw new Error(
         "Standard-rate invoice without a configured standard rate (tax_config.standardRatePct)",
       );

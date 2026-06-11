@@ -1,4 +1,4 @@
-# The gate, in the exact order CLAUDE.md defines it. Every step must pass;
+# The gate, in the exact order CONTRIBUTING.md defines it. Every step must pass;
 # nothing here may be weakened to get a green run.
 name: CI
 
@@ -39,7 +39,7 @@ jobs:
         run: pnpm build
 
   # The seed is onboarding: if it breaks, the demo and every first-run
-  # instance break with it (CLAUDE.md Section 10), so CI proves it works
+  # instance break with it, so CI proves it works
   # against a real Postgres - twice, because it must also be idempotent.
   seed:
     runs-on: ubuntu-latest

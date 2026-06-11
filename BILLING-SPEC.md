@@ -1,7 +1,8 @@
 # Atelier billing specification
 
 Status: **APPROVED by Shay, 2026-06-10** (sign-off below). This is the
-agreed billing spec per CLAUDE.md override rule 1. Every rule here lands
+agreed billing spec - money math is implemented only from this document.
+Every rule here lands
 with fixtures in `/fixtures/billing` that state expected outputs exactly.
 A case this document does not cover gets escalated, never guessed; changes
 require a new sign-off.
@@ -162,4 +163,4 @@ spec revision before any code.
 - [X] Shay has reviewed every [proposed] item and the worked examples.
 
 Once ticked (with corrections applied), implementation may begin,
-fixture-first, per CLAUDE.md Section 6.
+fixture-first, per the rules in fixtures/billing/README.md.

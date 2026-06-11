@@ -1,6 +1,6 @@
 # Atelier backlog
 
-Source of truth for the autonomous build loop (see CLAUDE.md Section 2).
+Source of truth for the build backlog.
 One task at a time, top unchecked item first. Tasks marked `[BLOCKED: ESC-n]`
 depend on an open escalation in `ESCALATIONS.md` and must be skipped until it
 is resolved.
@@ -13,7 +13,7 @@ file in the same commit as the work it tracks.
 - [x] Scaffold the app: Next.js (App Router) + TypeScript strict + Tailwind +
       shadcn/ui, ESLint, Vitest, and the full gate wired as pnpm scripts
       (`typecheck`, `lint`, `test`, `test:billing` (empty suite to start),
-      `build`). Repo layout per CLAUDE.md Section 11.
+      `build`). Repo layout per the map in CONTRIBUTING.md.
 - [x] Add LICENSE file and licence metadata (AGPL-3.0, per resolved ESC-1).
 - [x] Wire Postgres + Drizzle: connection, initial schema for `business`,
       `user`, `client`, checked-in migrations, everything scoped by
@@ -30,7 +30,7 @@ file in the same commit as the work it tracks.
       session. Sign-in/sign-up/onboarding screens pending human design
       review (built from tokens, structure verified).
 - [x] Seed script with demo business, clients, projects, tasks, time entries.
-      Must always work (CLAUDE.md Section 10) - enforced by a CI job that
+      Must always work - enforced by a CI job that
       migrates + seeds (twice, proving idempotency) on real Postgres.
 - [x] CI: GitHub Actions workflow running the full gate on every push/PR.
 - [x] Honest README (what it is, what it is not yet, self-host instructions)
@@ -265,7 +265,7 @@ fixture-first against it; a case the spec misses gets escalated.
   scoped query, 401 without session; on `feat/auth`.
 
 - 2026-06-10 Design tokens: implemented the Atelier Design System bundle
-  (Claude Design) with Soft Teal locked as primary (Shay's pick); full
+  with Soft Teal locked as primary (Shay's pick); full
   color/type/spacing/elevation token set in `/design/tokens`, mapped to
   the shadcn theme in globals.css, Figtree + JetBrains Mono self-hosted
   via next/font, brand SVGs in `public/brand`; on `feat/design-tokens`.

@@ -5,8 +5,8 @@
    Run with: pnpm db:seed (needs DATABASE_URL; docker compose provides it)
 
    It goes through the real module services and the real Better Auth
-   sign-up, so the seed breaks loudly if the product logic does - per
-   CLAUDE.md Section 10, a broken seed is broken onboarding. */
+   sign-up, so the seed breaks loudly if the product logic does - a
+   broken seed is broken onboarding. */
 
 import { eq } from "drizzle-orm";
 

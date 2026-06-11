@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import * as schema from "./schema";
 
-// The tenancy rule from CLAUDE.md: everything is scoped by business_id.
+// The tenancy rule: everything is scoped by business_id.
 // This test makes the convention structural - any new domain table added
 // to the schema without a business_id column fails the gate.
 //

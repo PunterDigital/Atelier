@@ -7,8 +7,8 @@ these tokens.
 
 ## Source
 
-Implemented from the Atelier Design System bundle (Claude Design,
-2026-06-10), supplied by Shay as the resolution of ESC-4. The bundle
+Implemented from the Atelier Design System bundle (2026-06-10),
+supplied by Shay as the resolution of ESC-4. The bundle
 (tokens, 16 component specs, dashboard/invoice/board UI kits, brand
 assets, full design brief) is the design reference; ask Shay for the
 archive. Key calls:
@@ -44,5 +44,4 @@ utilities.
 
 Agents implement this system, they do not invent taste. New screens are
 built from these tokens and shadcn/ui components, never ad-hoc styles,
-and final aesthetic sign-off on new screens is human (CLAUDE.md
-Section 1).
+and final aesthetic sign-off on new screens is human.

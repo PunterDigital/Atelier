@@ -1,6 +1,6 @@
 # Escalations
 
-Open questions for the human, per CLAUDE.md Section 7. Each entry has full
+Open questions for the human. Each entry has full
 context and a recommended option. Resolve by answering inline and moving the
 entry to the Resolved section; unblock the matching `[BLOCKED: ESC-n]` items
 in `TASKS.md`.
@@ -77,5 +77,6 @@ Shay supplied a design file to implement instead of the provisional stock
 shadcn baseline:
 `https://api.anthropic.com/v1/design/h/sQJmeJcjHhkn8Y40-0xELw`
 (instruction: fetch it, read its readme, implement the relevant aspects).
-Final aesthetic sign-off remains human per CLAUDE.md - screens built to
+Final aesthetic sign-off remains human per the design-system rule
+(CONTRIBUTING.md) - screens built to
 the new tokens still get a design review before they count as done.
