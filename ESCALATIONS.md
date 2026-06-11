@@ -7,7 +7,23 @@ in `TASKS.md`.
 
 ## Open
 
-(none)
+### ESC-7: Phase 3 needs human inputs
+
+Phases 0-2 are complete (every MVP feature from the plan's Section 4,
+gate-green, fixture-proven billing). The remaining Phase 3 items each
+need something only Shay can provide:
+
+1. **AndCo CSV importer** - needs a real AndCo/Fiverr Workspace export
+   (or its documented format). Building against a guessed CSV layout
+   would be fabrication. Shay was an AndCo user - a sample export (with
+   real client data redacted) unblocks this.
+2. **Public demo instance** - needs a hosting decision (where, domain,
+   who pays). The compose stack is demo-ready; the seed provides the
+   data.
+3. **Design pass** - human-led by definition. Two artifacts currently
+   await first review: the invoice editor screen and the invoice PDF.
+4. **Launch material** - human-led (the README is honest and current as
+   a base).
 
 ## Resolved
 
