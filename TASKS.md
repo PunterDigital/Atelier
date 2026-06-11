@@ -87,7 +87,11 @@ fixture-first against it; a case the spec misses gets escalated.
       flow (incl. FX fetch/manual fallback), issue/mark-paid actions,
       numbering settings. PENDING HUMAN DESIGN REVIEW (new screen type) -
       behaviour browser-verified against hand-computed figures.
-- [ ] Branded PDF export.
+- [x] Branded PDF export. PENDING HUMAN DESIGN REVIEW (new visual
+      artifact). Brought VAT-number fields (business settings + client)
+      and issue-time enforcement for reverse-charge invoices with it.
+      Brand font embedding (Figtree) deferred to the design pass -
+      Helvetica for now, no network or binary dependency.
 
 ## Phase 3 - polish and launch (human-heavy)
 
@@ -105,6 +109,15 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-11 Invoice PDF export: @react-pdf/renderer (MIT) document on
+  the design system's palette, unit-tested view model (always-dated,
+  conversion + tax notes verbatim), authenticated business-scoped route,
+  download button. VAT numbers landed on business settings and clients,
+  and reverse-charge invoices now refuse to issue until both exist (spec
+  Section 4, PGlite-tested). Rendered PDF visually inspected. Phase 2 -
+  the billing core - is COMPLETE: 38 fixture-driven money tests; on
+  `feat/invoice-pdf`.
 
 - 2026-06-11 Dual-purpose invoices (Shay's review request): fixed-amount
   manual lines alongside generated time lines - exact minor-unit input

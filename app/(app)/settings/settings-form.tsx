@@ -20,7 +20,12 @@ export function SettingsForm({
   initial,
   currentYear,
 }: {
-  initial: { name: string; currency: string; standardRatePct: string | null };
+  initial: {
+    name: string;
+    currency: string;
+    standardRatePct: string | null;
+    vatNumber: string | null;
+  };
   currentYear: number;
 }) {
   const router = useRouter();
@@ -30,6 +35,7 @@ export function SettingsForm({
   const [standardRatePct, setStandardRatePct] = useState(
     initial.standardRatePct ?? "",
   );
+  const [vatNumber, setVatNumber] = useState(initial.vatNumber ?? "");
   const [nextNumber, setNextNumber] = useState("");
 
   const update = useMutation(
@@ -63,6 +69,7 @@ export function SettingsForm({
                 name,
                 currency: currency.trim().toUpperCase(),
                 standardRatePct: standardRatePct.trim() || null,
+                vatNumber: vatNumber.trim() || null,
               });
             }}
             className="flex flex-col gap-4"
@@ -102,6 +109,19 @@ export function SettingsForm({
                   rate, never guessed for you
                 </p>
               </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="businessVat">VAT number</Label>
+              <Input
+                id="businessVat"
+                placeholder="GB123456789"
+                value={vatNumber}
+                onChange={(e) => setVatNumber(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Printed on invoices - required before issuing reverse-charge
+                invoices
+              </p>
             </div>
             {update.error ? (
               <p role="alert" className="text-sm text-destructive">

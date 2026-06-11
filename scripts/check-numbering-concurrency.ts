@@ -26,7 +26,7 @@ async function main() {
     const draft = await createDraftInvoice(db, business.id, {
       clientId: client.id,
       currency: "EUR",
-      taxTreatment: "reverse_charge",
+      taxTreatment: "zero_rated",
     });
     if (!draft) {
       throw new Error("draft creation failed");
@@ -40,7 +40,7 @@ async function main() {
   );
 
   const numbers = issued
-    .map((inv) => inv?.number)
+    .map((result) => (result.ok ? result.invoice.number : null))
     .filter((n): n is string => Boolean(n))
     .sort();
   const year = issueDate.getUTCFullYear();

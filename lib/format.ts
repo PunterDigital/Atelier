@@ -18,6 +18,11 @@ export function formatDate(date: Date, now: Date = new Date()): string {
     : otherYear.format(date);
 }
 
+// Documents (invoices, PDFs) always carry the year - they get archived.
+export function formatDateFull(date: Date): string {
+  return otherYear.format(date);
+}
+
 const timeFormat = new Intl.DateTimeFormat("en-GB", {
   hour: "2-digit",
   minute: "2-digit",

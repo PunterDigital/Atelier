@@ -61,11 +61,15 @@ export const businessRouter = createTRPCRouter({
       })
       .from(schema.business)
       .where(eq(schema.business.id, ctx.businessId));
-    const taxConfig = (row?.taxConfig ?? {}) as { standardRatePct?: string };
+    const taxConfig = (row?.taxConfig ?? {}) as {
+      standardRatePct?: string;
+      vatNumber?: string;
+    };
     return {
       name: row.name,
       currency: row.currency,
       standardRatePct: taxConfig.standardRatePct ?? null,
+      vatNumber: taxConfig.vatNumber ?? null,
     };
   }),
 
@@ -85,6 +89,7 @@ export const businessRouter = createTRPCRouter({
           .trim()
           .regex(/^\d+(\.\d+)?$/, "Use a plain number like 21 or 12.5")
           .nullable(),
+        vatNumber: z.string().trim().max(30).nullable(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -99,9 +104,12 @@ export const businessRouter = createTRPCRouter({
         .set({
           name: input.name,
           currency: input.currency,
-          taxConfig: input.standardRatePct
-            ? { standardRatePct: input.standardRatePct }
-            : {},
+          taxConfig: {
+            ...(input.standardRatePct
+              ? { standardRatePct: input.standardRatePct }
+              : {}),
+            ...(input.vatNumber ? { vatNumber: input.vatNumber } : {}),
+          },
           updatedAt: new Date(),
         })
         .where(eq(schema.business.id, ctx.businessId))

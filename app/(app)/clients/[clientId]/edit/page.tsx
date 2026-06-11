@@ -26,6 +26,7 @@ export default async function EditClientPage({
       company: client.company ?? undefined,
       contacts: client.contacts as ClientFormValues["contacts"],
       notes: client.notes ?? undefined,
+      vatNumber: client.vatNumber,
       defaultRateMinor: client.defaultRateMinor,
       defaultRateCurrency: client.defaultRateCurrency,
     };

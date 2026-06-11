@@ -4,18 +4,26 @@ An open-source, self-hostable business operating system for
 developer-freelancers and small dev studios: clients, projects, time
 tracking and invoicing in one connected flow.
 
-## Status: pre-alpha, not usable yet
+## Status: pre-alpha
 
-This is day-one scaffolding. There is no usable feature yet - no clients,
-no projects, no time tracking, no invoicing. What exists today:
+Early but real: the connected flow works end to end. What exists today:
 
-- Next.js (App Router, TypeScript strict) + Tailwind + shadcn/ui
-- The Atelier design system tokens (light + dark, self-hosted fonts)
-- Auth: email/password sign-up and sign-in (Better Auth), optional Google
-  SSO via env, business creation on first run, small-team memberships
-- tRPC API wiring with session-aware, business-scoped procedures
-- Postgres + Drizzle with checked-in migrations
-- One-command self-host via docker-compose
+- Clients with contacts, default rates, VAT numbers and an activity thread
+- Projects and tasks with a kanban board and list views
+- Time tracking: start/stop timers, manual entries, a weekly timesheet
+- Invoicing: generate lines from unbilled time (grouped your way) or add
+  fixed amounts, multi-currency with ECB conversion fixed per line,
+  standard/zero-rated/reverse-charge VAT, gapless per-year numbering,
+  draft/sent/paid/overdue lifecycle, PDF export
+- The money math is fixture-tested against a signed-off billing spec
+  (`BILLING-SPEC.md`) - every rule has a hand-verified expected output
+- Auth: email/password (Better Auth), optional Google SSO via env,
+  small-team memberships; everything scoped per business
+- One-command self-host via docker-compose, demo seed included
+
+Not yet: proposals, recurring invoices, payment collection, importers,
+a client portal. The design is mid-pass; screens are functional and
+consistent but still being refined.
 
 The README will track honest feature status as things actually land.
 

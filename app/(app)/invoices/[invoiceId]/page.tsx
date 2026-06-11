@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { InvoiceStatusPill } from "@/components/status-pill";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatMoney } from "@/lib/format";
 import { caller } from "@/server/trpc/server";
@@ -62,11 +63,22 @@ export default async function InvoiceDetailPage({
             {invoice.dueDate ? ` - due ${formatDate(invoice.dueDate)}` : null}
           </p>
         </div>
-        <InvoiceActions
-          invoiceId={invoice.id}
-          status={invoice.status}
-          hasLines={invoice.lines.length > 0}
-        />
+        <div className="flex items-start gap-2">
+          <Button variant="outline" asChild>
+            <a
+              href={`/api/invoices/${invoice.id}/pdf`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Download PDF
+            </a>
+          </Button>
+          <InvoiceActions
+            invoiceId={invoice.id}
+            status={invoice.status}
+            hasLines={invoice.lines.length > 0}
+          />
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">

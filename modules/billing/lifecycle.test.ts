@@ -30,16 +30,19 @@ async function issuedInvoice(
   const draft = await createDraftInvoice(db, businessId, {
     clientId,
     currency: "EUR",
-    taxTreatment: "reverse_charge",
+    taxTreatment: "zero_rated",
     dueDate,
   });
-  const issued = await issueInvoice(
+  const result = await issueInvoice(
     db,
     businessId,
     (draft as { id: string }).id,
     new Date("2026-06-01T12:00:00Z"),
   );
-  return issued as { id: string };
+  if (!result.ok) {
+    throw new Error("test setup: issue failed");
+  }
+  return result.invoice;
 }
 
 beforeAll(async () => {

@@ -153,9 +153,22 @@ export const invoicesRouter = createTRPCRouter({
 
   issue: businessProcedure
     .input(z.object({ invoiceId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) =>
-      found(await issueInvoice(getDb(), ctx.businessId, input.invoiceId)),
-    ),
+    .mutation(async ({ ctx, input }) => {
+      const result = await issueInvoice(getDb(), ctx.businessId, input.invoiceId);
+      if (!result.ok) {
+        if (result.reason === "missing_vat_numbers") {
+          const parts = (result.missing ?? []).map((m) =>
+            m === "business" ? "yours (in settings)" : "the client's (on their page)",
+          );
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: `Reverse-charge invoices need both VAT numbers printed - add ${parts.join(" and ")}`,
+          });
+        }
+        throw new TRPCError({ code: "NOT_FOUND", message: "No such invoice" });
+      }
+      return result.invoice;
+    }),
 
   markPaid: businessProcedure
     .input(z.object({ invoiceId: z.string().uuid() }))

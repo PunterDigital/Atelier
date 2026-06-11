@@ -1,0 +1,1 @@
+ALTER TABLE "client" ADD COLUMN "vat_number" text;

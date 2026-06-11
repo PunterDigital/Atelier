@@ -19,6 +19,9 @@ export const clientInputSchema = z.object({
   company: z.string().trim().max(200).optional(),
   contacts: z.array(contactSchema).max(50).default([]),
   notes: z.string().trim().max(10_000).optional(),
+  // Stored verbatim; validated only for shape. Required at issue time for
+  // reverse-charge invoices (spec Section 4).
+  vatNumber: z.string().trim().max(30).nullable().optional(),
   // Default hourly rate, minor units + ISO 4217 code. Data only - the
   // time module resolves it, the billing module interprets it.
   defaultRateMinor: z.number().int().nonnegative().nullable().optional(),
@@ -79,6 +82,7 @@ export async function createClient(
         company: input.company ?? null,
         contacts: input.contacts,
         notes: input.notes ?? null,
+        vatNumber: input.vatNumber || null,
         defaultRateMinor: input.defaultRateMinor ?? null,
         defaultRateCurrency: input.defaultRateCurrency ?? null,
       })
@@ -109,6 +113,7 @@ export async function updateClient(
         company: input.company ?? null,
         contacts: input.contacts,
         notes: input.notes ?? null,
+        vatNumber: input.vatNumber || null,
         defaultRateMinor: input.defaultRateMinor ?? null,
         defaultRateCurrency: input.defaultRateCurrency ?? null,
         updatedAt: new Date(),

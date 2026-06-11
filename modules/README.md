@@ -9,8 +9,8 @@ each other's internals.
 | ----------- | --------------------------------------------- | --------------- |
 | `clients`   | clients, companies, activity history           | domain + API shipped, UI pending |
 | `projects`  | projects and tasks                             | projects shipped, tasks pending |
-| `time`      | time tracking, timesheets                      | tracking shipped, timesheet pending |
-| `billing`   | invoices, currency, tax, numbering             | money core started (spec approved) |
+| `time`      | time tracking, timesheets                      | shipped         |
+| `billing`   | invoices, currency, tax, numbering             | shipped (fixture-proven against BILLING-SPEC.md) |
 | `proposals` | proposals (later phase)                        | not started     |
 
 Every piece of data access is scoped by `business_id`. The billing module

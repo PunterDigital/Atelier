@@ -223,7 +223,7 @@ describe("generate lines from unbilled time (integration)", () => {
       grouping: "person_rate",
     });
     const issued = await issueInvoice(db, business.id, invoiceId);
-    expect(issued?.number).toBeTruthy();
+    expect(issued.ok && issued.invoice.number).toBeTruthy();
 
     const blocked = await generateLinesFromUnbilledTime(db, business.id, {
       invoiceId,

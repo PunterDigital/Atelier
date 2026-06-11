@@ -80,6 +80,9 @@ export const client = pgTable(
     company: text("company"),
     contacts: jsonb("contacts").notNull().default([]),
     notes: text("notes"),
+    // Required on reverse-charge invoices: the spec mandates both
+    // parties' VAT numbers printed (Section 4).
+    vatNumber: text("vat_number"),
     // Default hourly rate in the currency's minor unit (integer, per the
     // billing spec). Stored as data; resolution happens in modules/time.
     defaultRateMinor: integer("default_rate_minor"),

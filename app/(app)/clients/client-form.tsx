@@ -20,6 +20,7 @@ export type ClientFormValues = {
   company?: string;
   contacts: Contact[];
   notes?: string;
+  vatNumber?: string | null;
   defaultRateMinor?: number | null;
   defaultRateCurrency?: string | null;
 };
@@ -46,6 +47,7 @@ export function ClientForm({
     initial?.defaultRateCurrency ?? "",
   );
   const [rateError, setRateError] = useState<string | null>(null);
+  const [vatNumber, setVatNumber] = useState(initial?.vatNumber ?? "");
 
   const create = useMutation(
     trpc.clients.create.mutationOptions({
@@ -93,6 +95,7 @@ export function ClientForm({
       name,
       company: company || undefined,
       notes: notes || undefined,
+      vatNumber: vatNumber.trim() || null,
       defaultRateMinor,
       defaultRateCurrency,
       contacts: contacts
@@ -124,14 +127,25 @@ export function ClientForm({
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="company">Company</Label>
-            <Input
-              id="company"
-              placeholder="Brightwood s.r.o."
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
-            />
+          <div className="flex gap-4">
+            <div className="flex flex-1 flex-col gap-2">
+              <Label htmlFor="company">Company</Label>
+              <Input
+                id="company"
+                placeholder="Brightwood s.r.o."
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+              />
+            </div>
+            <div className="flex w-44 flex-col gap-2">
+              <Label htmlFor="vatNumber">VAT number</Label>
+              <Input
+                id="vatNumber"
+                placeholder="CZ12345678"
+                value={vatNumber}
+                onChange={(e) => setVatNumber(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="flex flex-col gap-2">

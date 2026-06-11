@@ -50,6 +50,13 @@
       "when": 1781161773326,
       "tag": "0006_chunky_venus",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781178687576,
+      "tag": "0007_lazy_gateway",
+      "breakpoints": true
     }
   ]
 }

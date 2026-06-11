@@ -81,20 +81,35 @@ export async function createDraftInvoice(
   return created;
 }
 
+export type IssueResult =
+  | { ok: true; invoice: typeof schema.invoice.$inferSelect }
+  | {
+      ok: false;
+      reason: "not_found" | "missing_vat_numbers";
+      missing?: ("business" | "client")[];
+    };
+
 // Issues a draft: allocates the next number for (business, issue year)
 // under a row lock and stamps number, year, issue date and status in the
-// same transaction.
+// same transaction. Reverse-charge invoices cannot be issued unless both
+// parties' VAT numbers exist - the spec mandates them printed (Section 4)
+// and an EU reverse-charge invoice without them is not a valid document.
 export async function issueInvoice(
   db: Db,
   businessId: string,
   invoiceId: string,
   issueDate: Date = new Date(),
-) {
+): Promise<IssueResult> {
   const year = issueDate.getUTCFullYear();
 
   return db.transaction(async (tx) => {
     const [draft] = await tx
-      .select({ id: schema.invoice.id, status: schema.invoice.status })
+      .select({
+        id: schema.invoice.id,
+        status: schema.invoice.status,
+        taxTreatment: schema.invoice.taxTreatment,
+        clientId: schema.invoice.clientId,
+      })
       .from(schema.invoice)
       .where(
         and(
@@ -104,7 +119,35 @@ export async function issueInvoice(
       )
       .for("update");
     if (!draft || draft.status !== "draft") {
-      return null;
+      return { ok: false as const, reason: "not_found" as const };
+    }
+
+    if (draft.taxTreatment === "reverse_charge") {
+      const [businessRow] = await tx
+        .select({ taxConfig: schema.business.taxConfig })
+        .from(schema.business)
+        .where(eq(schema.business.id, businessId));
+      const [clientRow] = await tx
+        .select({ vatNumber: schema.client.vatNumber })
+        .from(schema.client)
+        .where(eq(schema.client.id, draft.clientId));
+      const businessVat = (
+        (businessRow?.taxConfig ?? {}) as { vatNumber?: string }
+      ).vatNumber;
+      const missing: ("business" | "client")[] = [];
+      if (!businessVat) {
+        missing.push("business");
+      }
+      if (!clientRow?.vatNumber) {
+        missing.push("client");
+      }
+      if (missing.length > 0) {
+        return {
+          ok: false as const,
+          reason: "missing_vat_numbers" as const,
+          missing,
+        };
+      }
     }
 
     // Ensure the sequence row exists, then lock it for this transaction.
@@ -140,7 +183,7 @@ export async function issueInvoice(
       })
       .where(eq(schema.invoice.id, invoiceId))
       .returning();
-    return issued;
+    return { ok: true as const, invoice: issued };
   });
 }
 
