@@ -208,6 +208,28 @@ export async function listActivity(
     .orderBy(desc(schema.activity.seq));
 }
 
+// Cross-client recent activity for the dashboard, newest first.
+export async function listRecentActivity(
+  db: Db,
+  businessId: string,
+  limit: number,
+) {
+  return db
+    .select({
+      id: schema.activity.id,
+      type: schema.activity.type,
+      payload: schema.activity.payload,
+      at: schema.activity.at,
+      clientId: schema.activity.clientId,
+      clientName: schema.client.name,
+    })
+    .from(schema.activity)
+    .innerJoin(schema.client, eq(schema.activity.clientId, schema.client.id))
+    .where(eq(schema.activity.businessId, businessId))
+    .orderBy(desc(schema.activity.seq))
+    .limit(limit);
+}
+
 // Bulk import for the CSV wizard. Names already present in the business
 // (case-insensitive) are skipped, not duplicated - re-running an import
 // is safe. Each created client goes through createClient so the activity
