@@ -147,12 +147,18 @@ export const timeEntry = pgTable(
     rateMinor: integer("rate_minor"),
     rateCurrency: text("rate_currency"),
     note: text("note"),
+    // Set when the entry is billed on an invoice line; removing that line
+    // nulls it, returning the entry to the unbilled pool (spec Section 7).
+    invoiceLineId: uuid("invoice_line_id").references(() => invoiceLine.id, {
+      onDelete: "set null",
+    }),
     ...timestamps,
   },
   (table) => [
     index("time_entry_business_id_idx").on(table.businessId),
     index("time_entry_task_id_idx").on(table.taskId),
     index("time_entry_user_id_idx").on(table.userId),
+    index("time_entry_invoice_line_id_idx").on(table.invoiceLineId),
   ],
 );
 
@@ -178,6 +184,104 @@ export const task = pgTable(
   (table) => [
     index("task_business_id_idx").on(table.businessId),
     index("task_project_id_idx").on(table.projectId),
+  ],
+);
+
+// Invoices (billing spec Sections 4-7). Drafts carry no number; number
+// and year are assigned at issue time from invoice_sequence under a row
+// lock. One tax treatment per invoice; all amounts are integers in the
+// invoice currency's minor unit. fx fields record a conversion applied
+// to the whole invoice display only when set per line (see invoiceLine).
+export const invoice = pgTable(
+  "invoice",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => business.id),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => client.id),
+    projectId: uuid("project_id").references(() => project.id),
+    status: text("status", {
+      enum: ["draft", "sent", "paid", "overdue"],
+    })
+      .notNull()
+      .default("draft"),
+    // "YYYY-NNNN", unique per business; null while draft.
+    number: text("number"),
+    year: integer("year"),
+    currency: text("currency").notNull(),
+    issueDate: timestamp("issue_date", { withTimezone: true }),
+    dueDate: timestamp("due_date", { withTimezone: true }),
+    taxTreatment: text("tax_treatment", {
+      enum: ["standard", "zero_rated", "reverse_charge"],
+    }).notNull(),
+    taxRatePercent: text("tax_rate_percent").notNull().default("0"),
+    taxNote: text("tax_note"),
+    subtotalMinor: integer("subtotal_minor").notNull().default(0),
+    taxMinor: integer("tax_minor").notNull().default(0),
+    totalMinor: integer("total_minor").notNull().default(0),
+    notes: text("notes"),
+    ...timestamps,
+  },
+  (table) => [
+    index("invoice_business_id_idx").on(table.businessId),
+    index("invoice_client_id_idx").on(table.clientId),
+    unique("invoice_business_number_unique").on(table.businessId, table.number),
+  ],
+);
+
+export const invoiceLine = pgTable(
+  "invoice_line",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => business.id),
+    invoiceId: uuid("invoice_id")
+      .notNull()
+      .references(() => invoice.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    description: text("description").notNull(),
+    // Hours as an exact decimal string ("4.083333" never floats); null
+    // for non-time lines (qty 1 fixed amounts).
+    quantity: text("quantity"),
+    unitPriceMinor: integer("unit_price_minor"),
+    totalMinor: integer("total_minor").notNull(),
+    // ESC-5: when the source rate currency differed, the original total
+    // and the conversion applied are recorded on the line.
+    sourceCurrency: text("source_currency"),
+    sourceTotalMinor: integer("source_total_minor"),
+    fxRate: text("fx_rate"),
+    fxSource: text("fx_source", { enum: ["ecb", "manual"] }),
+    ...timestamps,
+  },
+  (table) => [
+    index("invoice_line_business_id_idx").on(table.businessId),
+    index("invoice_line_invoice_id_idx").on(table.invoiceId),
+  ],
+);
+
+// One row per business per year; next_number is allocated under
+// SELECT ... FOR UPDATE inside the issuing transaction - no gaps, no
+// duplicates, correct under concurrency (spec Section 6).
+export const invoiceSequence = pgTable(
+  "invoice_sequence",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => business.id),
+    year: integer("year").notNull(),
+    nextNumber: integer("next_number").notNull().default(1),
+    ...timestamps,
+  },
+  (table) => [
+    unique("invoice_sequence_business_year_unique").on(
+      table.businessId,
+      table.year,
+    ),
   ],
 );
 

@@ -81,3 +81,6 @@ jobs:
 
       - name: Seed is idempotent
         run: pnpm db:seed
+
+      - name: Invoice numbering is concurrency-safe
+        run: pnpm exec tsx scripts/check-numbering-concurrency.ts

@@ -1,0 +1,23 @@
+{
+  "description": "Invoice numbering (BILLING-SPEC.md Section 6): YYYY-NNNN, sequential per business per calendar year, yearly reset, configurable continuation point that can never collide with issued numbers. Exercised against real Postgres by modules/billing/invoices.test.ts.",
+  "expected": {
+    "format": [
+      { "year": 2026, "n": 1, "number": "2026-0001" },
+      { "year": 2026, "n": 42, "number": "2026-0042" },
+      { "year": 2026, "n": 100, "number": "2026-0100" },
+      { "year": 2027, "n": 9999, "number": "2027-9999" }
+    ],
+    "sequence": {
+      "case": "two issues in 2026, one in 2027, then one more in 2026-business-B",
+      "businessA2026": ["2026-0001", "2026-0002"],
+      "businessA2027FirstNumber": "2027-0001",
+      "businessB2026FirstNumber": "2026-0001"
+    },
+    "configuredStart": {
+      "case": "migrating business sets next number to 100 before first issue",
+      "nextNumber": 100,
+      "firstIssued": "2026-0100",
+      "thenRejectsConfiguring": 50
+    }
+  }
+}

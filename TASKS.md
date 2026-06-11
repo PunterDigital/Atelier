@@ -70,9 +70,10 @@ fixture-first against it; a case the spec misses gets escalated.
 - [x] Tax/VAT engine per spec: standard rate from tax_config, zero-rated,
       EU reverse charge with mandatory notes, subtotal-based, one
       treatment per invoice, fixture-covered.
-- [ ] Invoice numbering: `YYYY-NNNN` per business per year, allocated at
-      issue under a row lock, configurable next-number in settings (spec
-      Section 6 feedback), concurrency fixture-covered.
+- [x] Invoice numbering: `YYYY-NNNN` per business per year, allocated at
+      issue under a row lock, configurable next-number (spec Section 6
+      feedback; settings UI lands with the invoices UI), concurrency
+      proven by a parallel-issue check in the Postgres CI job.
 - [ ] Invoice-from-tracked-time: grouping modes (person+rate, per task,
       single line), stored-rate billing, exact-seconds durations,
       fixture-covered.
@@ -96,6 +97,14 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-11 Invoice schema + numbering: invoice/invoice_line/
+  invoice_sequence tables (drafts unnumbered, one treatment per invoice,
+  ESC-5 conversion fields on lines, time entries link to lines and
+  release on line removal), issue-time allocation under a row lock with
+  yearly reset, configurable continuation point that refuses collisions
+  with issued numbers. Fixture-covered on PGlite; 10-way parallel issue
+  proof runs in the Postgres CI job; on `feat/invoice-numbering`.
 
 - 2026-06-10 Tax engine: the three spec treatments with their mandatory
   notes verbatim, tax once on the subtotal, fail-loud when a standard
