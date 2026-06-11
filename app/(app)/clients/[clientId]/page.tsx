@@ -79,6 +79,14 @@ export default async function ClientDetailPage({
         />
       </div>
 
+      {client.archivedAt ? (
+        <div className="rounded-md border border-[var(--warning-subtle-fg)]/25 bg-[var(--warning-subtle)] px-4 py-3 text-sm text-[var(--warning-subtle-fg)]">
+          This client is archived - they no longer appear in the clients
+          list and cannot be picked for new projects or invoices. Restore
+          them to work together again.
+        </div>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-6">
           <Card>

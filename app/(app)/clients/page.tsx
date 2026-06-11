@@ -57,7 +57,9 @@ export default async function ClientsPage({
             <Link
               key={client.id}
               href={`/clients/${client.id}`}
-              className="flex items-center gap-4 border-b px-4 py-[13px] transition-colors last:border-b-0 hover:bg-muted"
+              className={`flex items-center gap-4 border-b px-4 py-[13px] transition-colors last:border-b-0 hover:bg-muted ${
+                client.archivedAt ? "opacity-60" : ""
+              }`}
             >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
