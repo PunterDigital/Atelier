@@ -81,8 +81,11 @@ fixture-first against it; a case the spec misses gets escalated.
       single line), stored-rate billing, exact-seconds durations,
       per-line FX per ESC-5, fixture-covered + PGlite integration
       (linking, release on line removal, totals through the tax engine).
-- [ ] Invoice lifecycle: draft/sent/paid/overdue, marking time entries as
+- [x] Invoice lifecycle: draft/sent/paid/overdue, marking time entries as
       billed, removed lines return entries to the unbilled pool.
+- [ ] Invoices router + UI: list, draft editor with generate-from-time
+      flow (incl. FX fetch/manual fallback), issue/mark-paid actions,
+      numbering settings. New screen - human design review when shipped.
 - [ ] Branded PDF export.
 
 ## Phase 3 - polish and launch (human-heavy)
@@ -101,6 +104,12 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-11 Invoice lifecycle: sent past-due flips to overdue on read
+  (business-scoped, no stale statuses, no job needed yet), paid is a
+  terminal SQL-guarded transition from sent/overdue only, drafts and
+  foreign invoices can never be paid. PGlite-tested; on
+  `feat/invoice-lifecycle`.
 
 - 2026-06-11 Invoice-from-time: pure grouping core (person+rate / task /
   single, ESC-5 per-line conversion with originals recorded, unpriced
