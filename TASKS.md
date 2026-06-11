@@ -95,10 +95,10 @@ fixture-first against it; a case the spec misses gets escalated.
 
 ## Phase 3 - polish and launch (human-heavy)
 
-- [ ] Generic CSV importer with interactive column mapping, clients
+- [x] Generic CSV importer with interactive column mapping, clients
       first (the AndCo format is not publicly documented - see resolved
       ESC-7; a mapping importer serves every source tool without
-      guessing). Time-entries import as a second slice.
+      guessing). Time-entries import as a second slice (still open).
 - [ ] AndCo auto-detect preset for the importer - blocked until a real
       export file surfaces.
 - [ ] Draft launch announcement (HN / r/selfhosted framing per plan
@@ -115,6 +115,14 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-11 CSV client importer: tested RFC 4180 parser (quotes, BOM,
+  CRLF), three-step wizard (file or paste, auto-guessed column mapping,
+  preview) at /settings/import, chunked imports through a duplicate-
+  skipping service (re-running is safe, PGlite-tested). Browser-verified
+  incl. quoted commas, mapping guesses, duplicate skip - which also
+  caught and fixed a swallowed-error bug in the wizard's mutation
+  wiring; on `feat/csv-import`.
 
 - 2026-06-11 Invoice PDF export: @react-pdf/renderer (MIT) document on
   the design system's palette, unit-tested view model (always-dated,

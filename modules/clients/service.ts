@@ -208,6 +208,37 @@ export async function listActivity(
     .orderBy(desc(schema.activity.seq));
 }
 
+// Bulk import for the CSV wizard. Names already present in the business
+// (case-insensitive) are skipped, not duplicated - re-running an import
+// is safe. Each created client goes through createClient so the activity
+// thread and tenancy behaviour are identical to manual creation.
+export async function importClients(
+  db: Db,
+  businessId: string,
+  userId: string,
+  rows: ClientInput[],
+) {
+  const existing = await db
+    .select({ name: schema.client.name })
+    .from(schema.client)
+    .where(eq(schema.client.businessId, businessId));
+  const taken = new Set(existing.map((c) => c.name.trim().toLowerCase()));
+
+  let created = 0;
+  const skipped: string[] = [];
+  for (const row of rows) {
+    const key = row.name.trim().toLowerCase();
+    if (taken.has(key)) {
+      skipped.push(row.name);
+      continue;
+    }
+    await createClient(db, businessId, userId, row);
+    taken.add(key);
+    created += 1;
+  }
+  return { created, skipped };
+}
+
 export async function addNote(
   db: Db,
   businessId: string,

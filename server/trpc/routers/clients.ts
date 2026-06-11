@@ -8,6 +8,7 @@ import {
   clientInputSchema,
   createClient,
   getClient,
+  importClients,
   listActivity,
   listClients,
   unarchiveClient,
@@ -95,6 +96,17 @@ export const clientsRouter = createTRPCRouter({
       found(await getClient(getDb(), ctx.businessId, input.clientId));
       return listActivity(getDb(), ctx.businessId, input.clientId);
     }),
+
+  importMany: businessProcedure
+    .input(
+      z.object({
+        // One wizard batch; bigger files import in chunks client-side.
+        rows: z.array(clientInputSchema).min(1).max(500),
+      }),
+    )
+    .mutation(({ ctx, input }) =>
+      importClients(getDb(), ctx.businessId, ctx.session.user.id, input.rows),
+    ),
 
   addNote: businessProcedure
     .input(clientIdInput.extend({ text: z.string().trim().min(1).max(10_000) }))

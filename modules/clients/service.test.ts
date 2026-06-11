@@ -12,6 +12,7 @@ import {
   archiveClient,
   createClient,
   getClient,
+  importClients,
   listActivity,
   listClients,
   unarchiveClient,
@@ -106,6 +107,47 @@ describe("clients service - cross-business isolation", () => {
     expect(forA.some((c) => c.name === "Beta's client")).toBe(false);
   });
 });
+
+describe("clients service - bulk import", () => {
+  it("creates new clients, skips existing names case-insensitively, and is re-runnable", async () => {
+    await createClient(db, businessA.id, userA, {
+      name: "Harbor & Co",
+      contacts: [],
+    });
+
+    const first = await importClients(db, businessA.id, userA, [
+      { name: "HARBOR & CO", contacts: [] },
+      {
+        name: "Brightfern",
+        company: "Brightfern Ltd",
+        contacts: [{ name: "Iris", email: "iris@brightfern.test" }],
+        vatNumber: "GB987654321",
+      },
+      { name: "Brightfern", contacts: [] },
+    ]);
+    expect(first.created).toBe(1);
+    expect(first.skipped).toEqual(["HARBOR & CO", "Brightfern"]);
+
+    const imported = await getClientByName(businessA.id, "Brightfern");
+    expect(imported?.company).toBe("Brightfern Ltd");
+    expect(imported?.vatNumber).toBe("GB987654321");
+
+    // Re-running the same import creates nothing.
+    const second = await importClients(db, businessA.id, userA, [
+      { name: "Brightfern", contacts: [] },
+    ]);
+    expect(second.created).toBe(0);
+
+    // The other business is untouched and could import the same names.
+    const forB = await listClients(db, businessB.id);
+    expect(forB.some((c) => c.name === "Brightfern")).toBe(false);
+  });
+});
+
+async function getClientByName(businessId: string, name: string) {
+  const all = await listClients(db, businessId);
+  return all.find((c) => c.name === name) ?? null;
+}
 
 describe("clients service - lifecycle", () => {
   it("creates, updates, archives and records the activity thread", async () => {
