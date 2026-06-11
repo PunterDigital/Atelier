@@ -117,6 +117,14 @@ fixture-first against it; a case the spec misses gets escalated.
 
 ## Shipped
 
+- 2026-06-11 Design review round 1 (Shay's full walkthrough): real
+  dashboard (stats, recent invoices, activity), board UX (tracked time
+  on cards incl. 0:00, click-anywhere cards, drag drop-preview, quick-add
+  affordance, dialog width fix), entry notes + newest-first timesheet,
+  archived-client banner, business address on letterhead, ISO currency
+  dropdowns, PDF as attachment shown post-issue. All browser-verified;
+  on `fix/design-review-1`.
+
 - 2026-06-11 Launch draft: docs/launch-draft.md with Show HN and
   r/selfhosted posts (AndCo narrative, honest pre-alpha status, launch-day
   checklist). DRAFT - nothing published; on `docs/launch-draft`.
