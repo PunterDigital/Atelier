@@ -101,8 +101,9 @@ fixture-first against it; a case the spec misses gets escalated.
       guessing). Time-entries import as a second slice (still open).
 - [ ] AndCo auto-detect preset for the importer - blocked until a real
       export file surfaces.
-- [ ] Draft launch announcement (HN / r/selfhosted framing per plan
-      Section 10) for Shay's sign-off.
+- [x] Draft launch announcement (HN / r/selfhosted framing per plan
+      Section 10) - docs/launch-draft.md, awaiting Shay's edit/sign-off.
+      Publishing is his call and his act.
 - [ ] Full design pass (human-led; agent applies the resulting system).
       In progress: Shay reviewing invoice editor + PDF.
 
@@ -115,6 +116,10 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-11 Launch draft: docs/launch-draft.md with Show HN and
+  r/selfhosted posts (AndCo narrative, honest pre-alpha status, launch-day
+  checklist). DRAFT - nothing published; on `docs/launch-draft`.
 
 - 2026-06-11 CSV client importer: tested RFC 4180 parser (quotes, BOM,
   CRLF), three-step wizard (file or paste, auto-guessed column mapping,
