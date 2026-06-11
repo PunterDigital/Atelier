@@ -59,3 +59,33 @@ export function TaskStatusPill({ status }: { status: TaskStatus }) {
     </span>
   );
 }
+
+// The invoice lifecycle pills these tokens were designed for.
+const invoiceStyles = {
+  draft: "bg-[var(--status-draft-bg)] text-[var(--status-draft-fg)]",
+  sent: "bg-[var(--status-sent-bg)] text-[var(--status-sent-fg)]",
+  paid: "bg-[var(--status-paid-bg)] text-[var(--status-paid-fg)]",
+  overdue: "bg-[var(--status-overdue-bg)] text-[var(--status-overdue-fg)]",
+} as const;
+
+const invoiceLabels = {
+  draft: "Draft",
+  sent: "Sent",
+  paid: "Paid",
+  overdue: "Overdue",
+} as const;
+
+export type InvoiceStatus = keyof typeof invoiceStyles;
+
+export function InvoiceStatusPill({ status }: { status: InvoiceStatus }) {
+  return (
+    <span
+      className={cn(
+        "rounded-full px-2 py-px text-xs font-semibold",
+        invoiceStyles[status],
+      )}
+    >
+      {invoiceLabels[status]}
+    </span>
+  );
+}

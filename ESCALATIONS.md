@@ -7,7 +7,22 @@ in `TASKS.md`.
 
 ## Open
 
-(none)
+### ESC-6 (non-blocking, interpretation note): FX fixing moment for drafts
+
+Implemented per what I read as the spec's intent - flag if you disagree
+and I will change it with a spec amendment.
+
+**The question:** Section 3 fixes conversion "on the invoice date", but
+generate-from-time runs while the invoice is still a draft (no issue
+date yet). If a draft is generated Monday and issued Wednesday, which
+day's ECB rate applies?
+
+**Implemented reading:** the rate is fetched when lines are generated,
+stored on each line with its effective business day, and never touched
+again - including at issue. Re-pricing at issue would silently change
+totals the user already reviewed, which the "never silently refreshed"
+clause forbids. To re-price, delete the lines and regenerate (an
+explicit, visible act).
 
 ## Resolved
 

@@ -83,9 +83,10 @@ fixture-first against it; a case the spec misses gets escalated.
       (linking, release on line removal, totals through the tax engine).
 - [x] Invoice lifecycle: draft/sent/paid/overdue, marking time entries as
       billed, removed lines return entries to the unbilled pool.
-- [ ] Invoices router + UI: list, draft editor with generate-from-time
+- [x] Invoices router + UI: list, draft editor with generate-from-time
       flow (incl. FX fetch/manual fallback), issue/mark-paid actions,
-      numbering settings. New screen - human design review when shipped.
+      numbering settings. PENDING HUMAN DESIGN REVIEW (new screen type) -
+      behaviour browser-verified against hand-computed figures.
 - [ ] Branded PDF export.
 
 ## Phase 3 - polish and launch (human-heavy)
@@ -104,6 +105,17 @@ fixture-first against it; a case the spec misses gets escalated.
 - [ ] Export-everything (anti-lock-in, testable).
 
 ## Shipped
+
+- 2026-06-11 Invoices UI + settings: invoices list with lifecycle pills,
+  new-draft form (standard treatment gated on a configured VAT rate),
+  draft editor with generate-from-time (grouping modes, FX confirmation
+  panel fetching live ECB rates with manual override, conversion noted
+  per line), issue and mark-paid actions, line removal, and a settings
+  page (business + VAT rate + numbering continuation). Whole flow
+  browser-verified against hand-computed figures incl. a live ECB
+  conversion and the 2026-0100 configured number. ESC-6 interpretation
+  note logged (FX fixes at generation, never refreshed). Awaiting design
+  review; on `feat/invoices-ui`.
 
 - 2026-06-11 Invoice lifecycle: sent past-due flips to overdue on read
   (business-scoped, no stale statuses, no job needed yet), paid is a

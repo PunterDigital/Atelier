@@ -42,6 +42,18 @@ export function formatRate(rateMinor: number, currency: string): string {
   return `${minorToMajor(rateMinor, currency)} ${currency}/h`;
 }
 
+// Money display: symbol + grouped + the currency's minor digits
+// (GBP 3,799.00 style per the design system). Display only - the Number
+// round-trip is exact far beyond any realistic invoice total, and money
+// math never goes through here.
+export function formatMoney(minor: number, currency: string): string {
+  const major = Number(minorToMajor(minor, currency));
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency,
+  }).format(major);
+}
+
 // Durations render as "2h 30m" in prose per the design system.
 export function formatMinutes(minutes: number): string {
   const h = Math.floor(minutes / 60);

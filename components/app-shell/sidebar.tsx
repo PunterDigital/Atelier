@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, FolderKanban, Home, Users } from "lucide-react";
+import { Clock, FolderKanban, Home, ReceiptText, Settings, Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -12,6 +12,7 @@ const navItems = [
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/time", label: "Timesheet", icon: Clock },
+  { href: "/invoices", label: "Invoices", icon: ReceiptText },
 ];
 
 // Spec: design system Sidebar - 244px rail, surface bg, hairline right
@@ -58,6 +59,21 @@ export function Sidebar() {
             </Link>
           );
         })}
+      </div>
+      <div className="border-t pt-2.5">
+        <Link
+          href="/settings"
+          aria-current={pathname.startsWith("/settings") ? "page" : undefined}
+          className={cn(
+            "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors",
+            "hover:bg-muted hover:text-foreground",
+            pathname.startsWith("/settings") &&
+              "bg-[var(--primary-subtle)] font-semibold text-[var(--primary-subtle-fg)] hover:bg-[var(--primary-subtle)] hover:text-[var(--primary-subtle-fg)]",
+          )}
+        >
+          <Settings className="size-[18px] shrink-0" aria-hidden />
+          <span className="truncate">Settings</span>
+        </Link>
       </div>
     </nav>
   );
