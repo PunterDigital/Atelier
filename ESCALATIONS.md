@@ -7,33 +7,17 @@ in `TASKS.md`.
 
 ## Open
 
-### ESC-5: Rate currency vs invoice currency at invoice-from-time
-
-**Blocks:** the Phase 2 invoice-from-time task only. Time tracking itself
-is unaffected (it stores rate + currency verbatim).
-
-**Context:** The billing spec fixes rate precedence (entry > project >
-client, stored at entry creation) and fixes FX conversion on the invoice
-date, but does not say what happens when stored entry rates are
-denominated in a currency different from the invoice currency - e.g.
-entries at EUR 62.00/h pulled into a GBP invoice. Mixed-rate-currency
-entry sets are also possible (project rate EUR, manual entry GBP).
-
-**Options:**
-1. Convert each entry's rate into the invoice currency at the invoice-date
-   rate (spec Section 3 mechanics), so one invoice can absorb any entries.
-2. Require all selected entries to share the invoice currency and make
-   mismatches a validation error the user resolves by editing rates.
-3. Group strictly by rate currency: the generate flow only offers entries
-   whose rate currency matches the invoice currency.
-
-**Recommendation:** Option 1, because it preserves "invoice in any
-currency" with the already-agreed conversion mechanics, with the
-conversion noted per line. But this is money behaviour - it needs your
-call and a spec amendment (Section 7) plus fixtures before
-implementation.
+(none)
 
 ## Resolved
+
+### ESC-5: Rate currency vs invoice currency -> Option 1, per-line conversion (2026-06-10)
+
+Shay chose Option 1: entries whose stored rate currency differs from the
+invoice currency are converted at the invoice-date rate, so one invoice
+absorbs any entries. Encoded in spec Section 7 with the exact order of
+operations (line total in rate currency first, converted once) and a
+worked example. Unblocks invoice-from-time; fixtures land with it.
 
 ### ESC-2: Billing spec -> BILLING-SPEC.md approved (2026-06-10)
 

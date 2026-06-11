@@ -133,6 +133,18 @@ require a new sign-off.
   billed exactly (hours = seconds / 3600 in decimal); no 6-minute or
   15-minute increment rounding in v1. Rounding to money happens only at
   the line total (Section 5).
+- **[agreed]** (ESC-5 resolution, 2026-06-10) When an entry's stored rate
+  currency differs from the invoice currency, the line is converted at
+  the invoice-date rate so one invoice can absorb any entries. Order of
+  operations, so rounding stays at the defined points: the line total is
+  first computed in the rate's own currency (rounding point 1), then that
+  total is converted to the invoice currency (rounding point 3, Section 3
+  mechanics - stored rate and source included on the invoice). The
+  original amount, currency and FX rate are noted on the line. Worked
+  example: 4h 05m at EUR 62.00/h = EUR 253.17 (25317 minor); invoiced in
+  GBP at 0.8542 = 25317 x 0.8542 = 21625.7814 -> **GBP 216.26**. A
+  grouping mode that merges entries (per person+rate, single line) only
+  merges entries sharing both rate and rate currency.
 - Generated lines are fully editable before issuing; editing breaks the
   link to tracked time only for removed lines (covered entries return to
   the unbilled pool).
