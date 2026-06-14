@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { mcp } from "better-auth/plugins";
 
 import { getDb, schema } from "@/db";
 
@@ -12,6 +13,22 @@ function createAuth() {
     emailAndPassword: {
       enabled: true,
     },
+    plugins: [
+      // Turns this instance into an OAuth 2.1 authorization server for the
+      // MCP integration: discovery, dynamic client registration, the consent
+      // screen, and bearer-token issue/validation all come from this plugin.
+      // The MCP route (app/api/mcp) is the protected resource it guards.
+      mcp({
+        loginPage: "/sign-in",
+        oidcConfig: {
+          loginPage: "/sign-in",
+          // Where an authenticated user approves a connecting MCP client.
+          consentPage: "/oauth/consent",
+          // MCP clients (Claude, etc.) self-register dynamically.
+          allowDynamicClientRegistration: true,
+        },
+      }),
+    ],
     // Google SSO is strictly optional (ESC-3): self-hosting must never
     // require a third-party account. It exists only when both env values
     // are present.

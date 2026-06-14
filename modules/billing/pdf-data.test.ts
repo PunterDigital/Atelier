@@ -87,6 +87,31 @@ describe("invoice PDF view model", () => {
     expect(data.lines[0].totalLabel).toBe("€1,500.00");
   });
 
+  it("defaults to the house teal when the business has no brand colour", () => {
+    const data = buildInvoicePdfData({ invoice: baseInvoice, business, client });
+    expect(data.brandColor).toBe("#228E80");
+    expect(data.logoDataUrl).toBeNull();
+    expect(data.footerNote).toBeNull();
+  });
+
+  it("carries the business's logo, brand colour and footer note through", () => {
+    const data = buildInvoicePdfData({
+      invoice: baseInvoice,
+      business: {
+        ...business,
+        brandColor: "#7C3AED",
+        logoDataUrl: "data:image/png;base64,AAAA",
+        footerNote: "Thank you - payment within 30 days to GB00 BANK 1234.",
+      },
+      client,
+    });
+    expect(data.brandColor).toBe("#7C3AED");
+    expect(data.logoDataUrl).toBe("data:image/png;base64,AAAA");
+    expect(data.footerNote).toBe(
+      "Thank you - payment within 30 days to GB00 BANK 1234.",
+    );
+  });
+
   it("carries conversion notes and the reverse-charge tax note", () => {
     const data = buildInvoicePdfData({
       invoice: {

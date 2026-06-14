@@ -89,3 +89,30 @@ export function InvoiceStatusPill({ status }: { status: InvoiceStatus }) {
     </span>
   );
 }
+
+// Expenses: paid reuses the settled (green) token; unpaid uses the warning
+// tint so an outstanding cost reads as actionable, not merely neutral.
+const expenseStyles = {
+  unpaid: "bg-[var(--warning-subtle)] text-[var(--warning-subtle-fg)]",
+  paid: "bg-[var(--status-paid-bg)] text-[var(--status-paid-fg)]",
+} as const;
+
+const expenseLabels = {
+  unpaid: "Unpaid",
+  paid: "Paid",
+} as const;
+
+export type ExpenseStatus = keyof typeof expenseStyles;
+
+export function ExpenseStatusPill({ status }: { status: ExpenseStatus }) {
+  return (
+    <span
+      className={cn(
+        "rounded-full px-2 py-px text-xs font-semibold",
+        expenseStyles[status],
+      )}
+    >
+      {expenseLabels[status]}
+    </span>
+  );
+}

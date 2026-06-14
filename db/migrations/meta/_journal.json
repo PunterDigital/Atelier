@@ -64,6 +64,20 @@
       "when": 1781181703783,
       "tag": "0008_broad_mephistopheles",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1781215194004,
+      "tag": "0009_tiny_thaddeus_ross",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1781465424866,
+      "tag": "0010_plain_leper_queen",
+      "breakpoints": true
     }
   ]
 }

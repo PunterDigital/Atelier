@@ -23,6 +23,7 @@ import { user } from "./auth-schema";
 // nothing reads them yet.
 
 export * from "./auth-schema";
+export * from "./mcp-schema";
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -190,6 +191,41 @@ export const task = pgTable(
     index("task_business_id_idx").on(table.businessId),
     index("task_project_id_idx").on(table.projectId),
   ],
+);
+
+// Business expenses: a cost the business incurred, tracked as paid or
+// unpaid. Amounts are integers in the currency's minor unit, consistent
+// with the rest of the money model. A receipt is stored inline as a base64
+// data URL (PNG/JPEG/PDF), mirroring the branding logo - no blob store to
+// run when self-hosting. The data URL is deliberately excluded from list
+// queries (it can be ~MBs); only the single-expense read returns it.
+export const expense = pgTable(
+  "expense",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => business.id),
+    description: text("description").notNull(),
+    amountMinor: integer("amount_minor").notNull(),
+    currency: text("currency").notNull(),
+    vendor: text("vendor"),
+    category: text("category"),
+    status: text("status", { enum: ["unpaid", "paid"] })
+      .notNull()
+      .default("unpaid"),
+    // The date the cost was incurred (what the user reports on), distinct
+    // from created_at (when the row was entered).
+    incurredAt: timestamp("incurred_at", { withTimezone: true }).notNull(),
+    // Set when marked paid, cleared when marked unpaid - the audit point.
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+    notes: text("notes"),
+    receiptDataUrl: text("receipt_data_url"),
+    receiptFilename: text("receipt_filename"),
+    receiptMimeType: text("receipt_mime_type"),
+    ...timestamps,
+  },
+  (table) => [index("expense_business_id_idx").on(table.businessId)],
 );
 
 // Invoices (billing spec Sections 4-7). Drafts carry no number; number

@@ -6,6 +6,7 @@
 
 import {
   Document,
+  Image,
   Page,
   renderToBuffer,
   StyleSheet,
@@ -15,6 +16,8 @@ import {
 
 import type { InvoicePdfData } from "@/modules/billing/pdf-data";
 
+// primary is the default; per-invoice it is overridden inline by the
+// business's chosen brand colour (data.brandColor).
 const colors = {
   primary: "#228E80",
   textStrong: "#2A241F",
@@ -40,6 +43,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Helvetica-Bold",
     color: colors.primary,
+    marginBottom: 5,
   },
   title: { fontSize: 22, fontFamily: "Helvetica-Bold", textAlign: "right" },
   paidBadge: {
@@ -110,6 +114,18 @@ const styles = StyleSheet.create({
   },
   taxNote: { marginTop: 18, fontSize: 9, color: colors.textMuted },
   notes: { marginTop: 10, fontSize: 9, color: colors.textMuted },
+  logo: { maxWidth: 180, height: 48, objectFit: "contain", marginBottom: 10 },
+  footer: {
+    position: "absolute",
+    bottom: 36,
+    left: 48,
+    right: 48,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: 8,
+    fontSize: 8,
+    color: colors.textMuted,
+  },
 });
 
 export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
@@ -123,7 +139,13 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.businessName}>{data.businessName}</Text>
+            {data.logoDataUrl ? (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <Image src={data.logoDataUrl} style={styles.logo} />
+            ) : null}
+            <Text style={[styles.businessName, { color: data.brandColor }]}>
+              {data.businessName}
+            </Text>
             {data.businessAddressLines.map((line, index) => (
               <Text key={index} style={styles.metaMuted}>
                 {line}
@@ -135,7 +157,11 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
           </View>
           <View>
             <Text style={styles.title}>{data.title}</Text>
-            {data.isPaid ? <Text style={styles.paidBadge}>Paid</Text> : null}
+            {data.isPaid ? (
+              <Text style={[styles.paidBadge, { color: data.brandColor }]}>
+                Paid
+              </Text>
+            ) : null}
           </View>
         </View>
 
@@ -202,6 +228,12 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
 
         {data.taxNote ? <Text style={styles.taxNote}>{data.taxNote}</Text> : null}
         {data.notes ? <Text style={styles.notes}>{data.notes}</Text> : null}
+
+        {data.footerNote ? (
+          <Text style={styles.footer} fixed>
+            {data.footerNote}
+          </Text>
+        ) : null}
       </Page>
     </Document>
   );

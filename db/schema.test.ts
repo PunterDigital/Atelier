@@ -12,7 +12,19 @@ import * as schema from "./schema";
 // - business is the tenancy root itself
 // - user/session/account/verification are Better Auth's tables; users
 //   reach business data only through business_member, which is scoped
-const exemptTables = ["business", "user", "session", "account", "verification"];
+// - oauth_* are the Better Auth MCP plugin's OAuth tables; an access token
+//   carries a user_id, and that user reaches business data only through the
+//   business-scoped procedures, never directly
+const exemptTables = [
+  "business",
+  "user",
+  "session",
+  "account",
+  "verification",
+  "oauth_application",
+  "oauth_access_token",
+  "oauth_consent",
+];
 
 const tables = Object.values(schema).filter((value) => is(value, PgTable));
 

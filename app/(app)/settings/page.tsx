@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { caller } from "@/server/trpc/server";
 
+import { BrandingForm } from "./branding-form";
 import { SettingsForm } from "./settings-form";
 
 export const metadata: Metadata = {
@@ -20,6 +21,14 @@ export default async function SettingsPage() {
       <SettingsForm
         initial={settings}
         currentYear={currentYear}
+      />
+      <BrandingForm
+        businessName={settings.name}
+        initial={{
+          logoDataUrl: settings.logoDataUrl,
+          brandColor: settings.brandColor,
+          footerNote: settings.footerNote,
+        }}
       />
     </div>
   );

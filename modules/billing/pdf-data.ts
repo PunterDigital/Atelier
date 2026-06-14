@@ -29,10 +29,17 @@ type InvoiceRecord = {
   }[];
 };
 
+// The teal the invoice has always used; the brand colour falls back to it
+// so an un-branded business looks exactly as before.
+export const DEFAULT_BRAND_COLOR = "#228E80";
+
 export type InvoicePdfData = {
   title: string;
   isDraft: boolean;
   isPaid: boolean;
+  brandColor: string;
+  logoDataUrl: string | null;
+  footerNote: string | null;
   businessName: string;
   businessAddressLines: string[];
   businessVatNumber: string | null;
@@ -57,7 +64,14 @@ export type InvoicePdfData = {
 
 export function buildInvoicePdfData(input: {
   invoice: InvoiceRecord;
-  business: { name: string; address: string | null; vatNumber: string | null };
+  business: {
+    name: string;
+    address: string | null;
+    vatNumber: string | null;
+    brandColor?: string | null;
+    logoDataUrl?: string | null;
+    footerNote?: string | null;
+  };
   client: { name: string; company: string | null; vatNumber: string | null };
 }): InvoicePdfData {
   const { invoice, business, client } = input;
@@ -67,6 +81,9 @@ export function buildInvoicePdfData(input: {
     title: isDraft ? "Draft invoice" : `Invoice ${invoice.number}`,
     isDraft,
     isPaid: invoice.status === "paid",
+    brandColor: business.brandColor || DEFAULT_BRAND_COLOR,
+    logoDataUrl: business.logoDataUrl ?? null,
+    footerNote: business.footerNote ?? null,
     businessName: business.name,
     businessAddressLines: business.address
       ? business.address

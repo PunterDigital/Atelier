@@ -1,0 +1,717 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+
+import type { AtelierCaller } from "./caller";
+import { signInvoicePdfToken } from "./pdf-link";
+import { runTool, toolJson } from "./result";
+
+// Reused description fragments. The model gets money and dates wrong unless
+// the units are spelled out at every field, so these are not optional polish.
+const MINOR =
+  "Amount in minor currency units (e.g. cents): 1250 means 12.50. Integer only.";
+const CURRENCY = "ISO 4217 currency code, e.g. EUR or USD.";
+const ISO = "ISO 8601 timestamp, e.g. 2026-06-12T09:00:00Z.";
+
+const currencyField = z
+  .string()
+  .regex(/^[A-Za-z]{3}$/, "Three-letter ISO 4217 code")
+  .describe(CURRENCY);
+
+const contactField = z.object({
+  name: z.string().describe("Contact's full name."),
+  email: z.string().email().optional(),
+  role: z.string().optional().describe("e.g. Billing, Primary, Technical."),
+});
+
+// Shared shape for create/update client. Mirrors clientInputSchema; the caller
+// re-validates, so this is the model-facing surface, not the source of truth.
+const clientFields = {
+  name: z.string().describe("Client display name."),
+  company: z.string().optional(),
+  contacts: z.array(contactField).optional().describe("People at the client."),
+  notes: z.string().optional().describe("Freeform notes about the client."),
+  vatNumber: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("VAT number; required at issue time for reverse-charge invoices."),
+  defaultRateMinor: z
+    .number()
+    .int()
+    .nonnegative()
+    .nullable()
+    .optional()
+    .describe(`Default hourly rate. ${MINOR}`),
+  defaultRateCurrency: currencyField.nullable().optional(),
+};
+
+const taskStatus = z
+  .enum(["todo", "in_progress", "in_review", "done"])
+  .describe("Task status.");
+
+export type AtelierMcpOptions = {
+  caller: AtelierCaller;
+  /** Active business of the authenticated user; used to sign PDF links. */
+  businessId: string;
+  /** Absolute origin of this deployment, e.g. https://app.example.com. */
+  baseUrl: string;
+};
+
+// Builds the Atelier MCP server for one authenticated request. Every tool is a
+// thin adapter: validate the model's args, call the matching tRPC procedure,
+// hand the result back as JSON. Errors become readable isError results via
+// runTool rather than throwing.
+export function createAtelierMcpServer(opts: AtelierMcpOptions): McpServer {
+  const { caller, businessId, baseUrl } = opts;
+  const server = new McpServer({ name: "atelier", version: "1.0.0" });
+
+  // --- Connectivity -------------------------------------------------------
+  server.registerTool(
+    "whoami",
+    {
+      title: "Who am I",
+      description:
+        "Return the authenticated user's active business (id, name, currency). Use to confirm the connection works.",
+    },
+    () => runTool(async () => toolJson(await caller.business.current())),
+  );
+
+  // --- Clients ------------------------------------------------------------
+  server.registerTool(
+    "list_clients",
+    {
+      title: "List clients",
+      description: "List clients for the active business.",
+      inputSchema: {
+        includeArchived: z
+          .boolean()
+          .optional()
+          .describe("Include archived clients (default false)."),
+      },
+    },
+    ({ includeArchived }) =>
+      runTool(async () =>
+        toolJson(await caller.clients.list({ includeArchived })),
+      ),
+  );
+
+  server.registerTool(
+    "get_client",
+    {
+      title: "Get client",
+      description: "Fetch a single client by id.",
+      inputSchema: { clientId: z.string().uuid() },
+    },
+    ({ clientId }) =>
+      runTool(async () => toolJson(await caller.clients.get({ clientId }))),
+  );
+
+  server.registerTool(
+    "create_client",
+    {
+      title: "Create client",
+      description: "Create a new client.",
+      inputSchema: clientFields,
+    },
+    (args) =>
+      runTool(async () => toolJson(await caller.clients.create(args))),
+  );
+
+  server.registerTool(
+    "update_client",
+    {
+      title: "Update client",
+      description:
+        "Replace a client's details. All fields are overwritten, so pass the full intended state.",
+      inputSchema: { clientId: z.string().uuid(), ...clientFields },
+    },
+    ({ clientId, ...data }) =>
+      runTool(async () =>
+        toolJson(await caller.clients.update({ clientId, data })),
+      ),
+  );
+
+  server.registerTool(
+    "set_client_contacts",
+    {
+      title: "Set client contacts",
+      description:
+        "Replace the contact list on a client without touching its other fields.",
+      inputSchema: {
+        clientId: z.string().uuid(),
+        contacts: z.array(contactField),
+      },
+    },
+    ({ clientId, contacts }) =>
+      runTool(async () => {
+        const existing = await caller.clients.get({ clientId });
+        const updated = await caller.clients.update({
+          clientId,
+          data: {
+            name: existing.name,
+            company: existing.company ?? undefined,
+            contacts,
+            notes: existing.notes ?? undefined,
+            vatNumber: existing.vatNumber,
+            defaultRateMinor: existing.defaultRateMinor,
+            defaultRateCurrency: existing.defaultRateCurrency,
+          },
+        });
+        return toolJson(updated);
+      }),
+  );
+
+  server.registerTool(
+    "add_client_note",
+    {
+      title: "Add client note",
+      description:
+        "Append a timestamped note to a client's activity thread. Does not replace existing notes.",
+      inputSchema: {
+        clientId: z.string().uuid(),
+        text: z.string().min(1).describe("Note body."),
+      },
+    },
+    ({ clientId, text }) =>
+      runTool(async () =>
+        toolJson(await caller.clients.addNote({ clientId, text })),
+      ),
+  );
+
+  server.registerTool(
+    "get_client_activity",
+    {
+      title: "Get client activity",
+      description: "List the activity thread (notes and lifecycle events) for a client.",
+      inputSchema: { clientId: z.string().uuid() },
+    },
+    ({ clientId }) =>
+      runTool(async () => toolJson(await caller.clients.activity({ clientId }))),
+  );
+
+  server.registerTool(
+    "archive_client",
+    {
+      title: "Archive client",
+      description: "Archive a client (soft; reversible with unarchive_client).",
+      inputSchema: { clientId: z.string().uuid() },
+    },
+    ({ clientId }) =>
+      runTool(async () => toolJson(await caller.clients.archive({ clientId }))),
+  );
+
+  server.registerTool(
+    "unarchive_client",
+    {
+      title: "Unarchive client",
+      description: "Restore a previously archived client.",
+      inputSchema: { clientId: z.string().uuid() },
+    },
+    ({ clientId }) =>
+      runTool(async () =>
+        toolJson(await caller.clients.unarchive({ clientId })),
+      ),
+  );
+
+  // --- Projects -----------------------------------------------------------
+  server.registerTool(
+    "list_projects",
+    {
+      title: "List projects",
+      description: "List projects, optionally filtered to one client.",
+      inputSchema: {
+        clientId: z.string().uuid().optional().describe("Filter to this client."),
+      },
+    },
+    ({ clientId }) =>
+      runTool(async () => toolJson(await caller.projects.list({ clientId }))),
+  );
+
+  server.registerTool(
+    "get_project",
+    {
+      title: "Get project",
+      description: "Fetch a single project by id.",
+      inputSchema: { projectId: z.string().uuid() },
+    },
+    ({ projectId }) =>
+      runTool(async () => toolJson(await caller.projects.get({ projectId }))),
+  );
+
+  server.registerTool(
+    "create_project",
+    {
+      title: "Create project",
+      description: "Create a project for a client.",
+      inputSchema: {
+        name: z.string().describe("Project name."),
+        clientId: z.string().uuid().describe("Owning client."),
+        status: z
+          .enum(["active", "on_hold", "completed"])
+          .optional()
+          .describe("Defaults to active."),
+        dueDate: z.string().datetime().nullable().optional().describe(ISO),
+        defaultRateMinor: z
+          .number()
+          .int()
+          .nonnegative()
+          .nullable()
+          .optional()
+          .describe(`Overrides the client rate. ${MINOR}`),
+        defaultRateCurrency: currencyField.nullable().optional(),
+      },
+    },
+    ({ dueDate, ...rest }) =>
+      runTool(async () =>
+        toolJson(
+          await caller.projects.create({
+            ...rest,
+            dueDate: dueDate ? new Date(dueDate) : null,
+          }),
+        ),
+      ),
+  );
+
+  server.registerTool(
+    "update_project",
+    {
+      title: "Update project",
+      description:
+        "Replace a project's details. All fields are overwritten, so pass the full intended state.",
+      inputSchema: {
+        projectId: z.string().uuid(),
+        name: z.string(),
+        clientId: z.string().uuid(),
+        status: z.enum(["active", "on_hold", "completed"]).optional(),
+        dueDate: z.string().datetime().nullable().optional().describe(ISO),
+        defaultRateMinor: z.number().int().nonnegative().nullable().optional(),
+        defaultRateCurrency: currencyField.nullable().optional(),
+      },
+    },
+    ({ projectId, dueDate, ...rest }) =>
+      runTool(async () =>
+        toolJson(
+          await caller.projects.update({
+            projectId,
+            data: { ...rest, dueDate: dueDate ? new Date(dueDate) : null },
+          }),
+        ),
+      ),
+  );
+
+  // --- Tasks --------------------------------------------------------------
+  server.registerTool(
+    "list_tasks",
+    {
+      title: "List tasks",
+      description: "List tasks for a project, including tracked seconds per task.",
+      inputSchema: { projectId: z.string().uuid() },
+    },
+    ({ projectId }) =>
+      runTool(async () => toolJson(await caller.tasks.list({ projectId }))),
+  );
+
+  server.registerTool(
+    "create_task",
+    {
+      title: "Create task",
+      description: "Add a task to a project.",
+      inputSchema: {
+        projectId: z.string().uuid(),
+        title: z.string().describe("Task title."),
+        status: taskStatus.optional().describe("Defaults to todo."),
+        estimateMinutes: z
+          .number()
+          .int()
+          .positive()
+          .max(60_000)
+          .nullable()
+          .optional()
+          .describe("Estimate in minutes."),
+      },
+    },
+    ({ projectId, ...data }) =>
+      runTool(async () =>
+        toolJson(await caller.tasks.create({ projectId, data })),
+      ),
+  );
+
+  server.registerTool(
+    "update_task",
+    {
+      title: "Update task",
+      description: "Replace a task's title, status and estimate.",
+      inputSchema: {
+        taskId: z.string().uuid(),
+        title: z.string(),
+        status: taskStatus.optional(),
+        estimateMinutes: z.number().int().positive().max(60_000).nullable().optional(),
+      },
+    },
+    ({ taskId, ...data }) =>
+      runTool(async () => toolJson(await caller.tasks.update({ taskId, data }))),
+  );
+
+  server.registerTool(
+    "set_task_status",
+    {
+      title: "Set task status",
+      description: "Move a task to a new status.",
+      inputSchema: { taskId: z.string().uuid(), status: taskStatus },
+    },
+    ({ taskId, status }) =>
+      runTool(async () =>
+        toolJson(await caller.tasks.setStatus({ taskId, status })),
+      ),
+  );
+
+  server.registerTool(
+    "delete_task",
+    {
+      title: "Delete task",
+      description: "Delete a task. This is permanent.",
+      inputSchema: { taskId: z.string().uuid() },
+    },
+    ({ taskId }) =>
+      runTool(async () => toolJson(await caller.tasks.delete({ taskId }))),
+  );
+
+  // --- Time tracking ------------------------------------------------------
+  server.registerTool(
+    "get_running_timer",
+    {
+      title: "Get running timer",
+      description: "Return the caller's currently running timer, or null if none.",
+    },
+    () => runTool(async () => toolJson(await caller.time.running())),
+  );
+
+  server.registerTool(
+    "start_timer",
+    {
+      title: "Start timer",
+      description:
+        "Start a timer on a task for the authenticated user. Stops any timer already running.",
+      inputSchema: { taskId: z.string().uuid() },
+    },
+    ({ taskId }) =>
+      runTool(async () => toolJson(await caller.time.start({ taskId }))),
+  );
+
+  server.registerTool(
+    "stop_timer",
+    {
+      title: "Stop timer",
+      description:
+        "Stop the caller's running timer. No-op (returns null) if nothing is running.",
+    },
+    () => runTool(async () => toolJson(await caller.time.stop())),
+  );
+
+  server.registerTool(
+    "log_time",
+    {
+      title: "Log time manually",
+      description: "Log a completed time entry on a task.",
+      inputSchema: {
+        taskId: z.string().uuid(),
+        startedAt: z.string().datetime().describe(`When the work started. ${ISO}`),
+        durationSeconds: z
+          .number()
+          .int()
+          .positive()
+          .max(7 * 24 * 3600)
+          .describe("Duration in seconds (max 7 days)."),
+        billable: z.boolean().optional().describe("Defaults to true."),
+        note: z.string().optional(),
+        rateMinor: z
+          .number()
+          .int()
+          .nonnegative()
+          .nullable()
+          .optional()
+          .describe(`Override the resolved rate. ${MINOR}`),
+        rateCurrency: currencyField.nullable().optional(),
+      },
+    },
+    ({ startedAt, ...rest }) =>
+      runTool(async () =>
+        toolJson(
+          await caller.time.logManual({
+            ...rest,
+            startedAt: new Date(startedAt),
+          }),
+        ),
+      ),
+  );
+
+  server.registerTool(
+    "list_task_time",
+    {
+      title: "List task time entries",
+      description: "List all time entries logged against a task.",
+      inputSchema: { taskId: z.string().uuid() },
+    },
+    ({ taskId }) =>
+      runTool(async () => toolJson(await caller.time.listForTask({ taskId }))),
+  );
+
+  server.registerTool(
+    "update_time_note",
+    {
+      title: "Update time entry note",
+      description: "Set or clear the note on a time entry (pass null to clear).",
+      inputSchema: {
+        entryId: z.string().uuid(),
+        note: z.string().nullable(),
+      },
+    },
+    ({ entryId, note }) =>
+      runTool(async () =>
+        toolJson(await caller.time.updateNote({ entryId, note })),
+      ),
+  );
+
+  // --- Invoices -----------------------------------------------------------
+  server.registerTool(
+    "list_invoices",
+    {
+      title: "List invoices",
+      description: "List invoices for the active business with client names.",
+    },
+    () => runTool(async () => toolJson(await caller.invoices.list())),
+  );
+
+  server.registerTool(
+    "get_invoice",
+    {
+      title: "Get invoice",
+      description: "Fetch an invoice with its line items.",
+      inputSchema: { invoiceId: z.string().uuid() },
+    },
+    ({ invoiceId }) =>
+      runTool(async () => toolJson(await caller.invoices.get({ invoiceId }))),
+  );
+
+  server.registerTool(
+    "create_draft_invoice",
+    {
+      title: "Create draft invoice",
+      description:
+        "Create a draft invoice for a client. Standard tax treatment requires a standard VAT rate set in settings.",
+      inputSchema: {
+        clientId: z.string().uuid(),
+        projectId: z.string().uuid().optional(),
+        currency: currencyField,
+        taxTreatment: z
+          .enum(["standard", "zero_rated", "reverse_charge"])
+          .describe("Tax treatment for the whole invoice."),
+        dueDate: z.string().datetime().nullable().optional().describe(ISO),
+      },
+    },
+    ({ dueDate, ...rest }) =>
+      runTool(async () =>
+        toolJson(
+          await caller.invoices.createDraft({
+            ...rest,
+            dueDate: dueDate ? new Date(dueDate) : null,
+          }),
+        ),
+      ),
+  );
+
+  server.registerTool(
+    "generate_invoice_from_time",
+    {
+      title: "Generate invoice lines from time",
+      description:
+        "Fill a draft invoice with lines built from unbilled, billable time. Groups by person+rate, by task, or into a single line.",
+      inputSchema: {
+        invoiceId: z.string().uuid(),
+        projectId: z.string().uuid().optional().describe("Limit to one project."),
+        grouping: z.enum(["person_rate", "task", "single"]),
+        includeTaskList: z.boolean().optional(),
+      },
+    },
+    (args) =>
+      runTool(async () =>
+        toolJson(await caller.invoices.generateFromTime(args)),
+      ),
+  );
+
+  server.registerTool(
+    "add_invoice_line",
+    {
+      title: "Add fixed-amount invoice line",
+      description:
+        "Add a manual fixed-amount line to a draft invoice. Amount is a plain decimal string in major units, e.g. \"1500\" or \"1500.00\".",
+      inputSchema: {
+        invoiceId: z.string().uuid(),
+        description: z.string().min(1),
+        amountMajor: z
+          .string()
+          .regex(/^\d+(\.\d+)?$/)
+          .describe("Major units as a decimal string, e.g. 1500.00 (not cents)."),
+      },
+    },
+    (args) =>
+      runTool(async () => toolJson(await caller.invoices.addLine(args))),
+  );
+
+  server.registerTool(
+    "issue_invoice",
+    {
+      title: "Issue invoice",
+      description:
+        "Issue a draft invoice: assigns the next sequential number and marks it sent. Irreversible.",
+      inputSchema: { invoiceId: z.string().uuid() },
+    },
+    ({ invoiceId }) =>
+      runTool(async () => toolJson(await caller.invoices.issue({ invoiceId }))),
+  );
+
+  server.registerTool(
+    "mark_invoice_paid",
+    {
+      title: "Mark invoice paid",
+      description: "Mark an issued invoice as paid.",
+      inputSchema: { invoiceId: z.string().uuid() },
+    },
+    ({ invoiceId }) =>
+      runTool(async () =>
+        toolJson(await caller.invoices.markPaid({ invoiceId })),
+      ),
+  );
+
+  // --- Expenses -----------------------------------------------------------
+  server.registerTool(
+    "list_expenses",
+    {
+      title: "List expenses",
+      description:
+        "List business expenses, optionally filtered to paid or unpaid. Receipt files are omitted from the list.",
+      inputSchema: {
+        status: z
+          .enum(["unpaid", "paid"])
+          .optional()
+          .describe("Filter to expenses with this status."),
+      },
+    },
+    ({ status }) =>
+      runTool(async () => toolJson(await caller.expenses.list({ status }))),
+  );
+
+  server.registerTool(
+    "get_expense",
+    {
+      title: "Get expense",
+      description:
+        "Fetch a single expense. The receipt file itself is not returned, only whether one is attached.",
+      inputSchema: { expenseId: z.string().uuid() },
+    },
+    ({ expenseId }) =>
+      runTool(async () => {
+        const expense = await caller.expenses.get({ expenseId });
+        // Never ship the (potentially multi-MB) receipt data URL to the model.
+        const { receiptDataUrl, ...rest } = expense;
+        return toolJson({ ...rest, hasReceipt: Boolean(receiptDataUrl) });
+      }),
+  );
+
+  server.registerTool(
+    "create_expense",
+    {
+      title: "Create expense",
+      description:
+        "Record a business expense. Upload a receipt file through the web app; this tool creates the expense without one.",
+      inputSchema: {
+        description: z.string().min(1).describe("What the expense was for."),
+        amountMinor: z.number().int().positive().describe(MINOR),
+        currency: currencyField,
+        vendor: z.string().nullable().optional().describe("Who was paid."),
+        category: z.string().nullable().optional(),
+        incurredAt: z
+          .string()
+          .datetime()
+          .describe(`Date the cost was incurred. ${ISO}`),
+        notes: z.string().nullable().optional(),
+      },
+    },
+    ({ incurredAt, ...rest }) =>
+      runTool(async () =>
+        toolJson(
+          await caller.expenses.create({
+            ...rest,
+            incurredAt: new Date(incurredAt),
+          }),
+        ),
+      ),
+  );
+
+  server.registerTool(
+    "mark_expense_paid",
+    {
+      title: "Mark expense paid",
+      description: "Mark an expense as paid (records the time it was paid).",
+      inputSchema: { expenseId: z.string().uuid() },
+    },
+    ({ expenseId }) =>
+      runTool(async () =>
+        toolJson(
+          await caller.expenses.setStatus({ expenseId, status: "paid" }),
+        ),
+      ),
+  );
+
+  server.registerTool(
+    "mark_expense_unpaid",
+    {
+      title: "Mark expense unpaid",
+      description: "Return an expense to unpaid (clears its paid timestamp).",
+      inputSchema: { expenseId: z.string().uuid() },
+    },
+    ({ expenseId }) =>
+      runTool(async () =>
+        toolJson(
+          await caller.expenses.setStatus({ expenseId, status: "unpaid" }),
+        ),
+      ),
+  );
+
+  server.registerTool(
+    "delete_expense",
+    {
+      title: "Delete expense",
+      description: "Delete an expense permanently.",
+      inputSchema: { expenseId: z.string().uuid() },
+    },
+    ({ expenseId }) =>
+      runTool(async () => toolJson(await caller.expenses.delete({ expenseId }))),
+  );
+
+  server.registerTool(
+    "get_invoice_pdf_link",
+    {
+      title: "Get invoice PDF download link",
+      description:
+        "Return a short-lived (15 minute) signed URL to download the invoice as a PDF. The link works without a browser login.",
+      inputSchema: { invoiceId: z.string().uuid() },
+    },
+    ({ invoiceId }) =>
+      runTool(async () => {
+        // Confirm the invoice exists and belongs to this business (throws
+        // NOT_FOUND otherwise) before minting a link for it.
+        const invoice = await caller.invoices.get({ invoiceId });
+        const token = signInvoicePdfToken({ invoiceId, businessId });
+        const url = new URL(`/api/invoices/${invoiceId}/pdf`, baseUrl);
+        url.searchParams.set("token", token);
+        return toolJson({
+          url: url.toString(),
+          invoiceNumber: invoice.number,
+          expiresInSeconds: 15 * 60,
+        });
+      }),
+  );
+
+  return server;
+}
