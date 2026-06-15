@@ -59,7 +59,27 @@ export const businessMember = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    role: text("role", { enum: ["owner", "member"] }).notNull(),
+    // The role names mirror modules/authz ROLES; the column is plain text
+    // (the enum is TypeScript-level only), so extending the catalog is
+    // migration-free. owner carries the ownership invariants (see the team
+    // service); every other role's powers come from its permission set.
+    // "custom" means the member's permissions come from business_role_id (a
+    // business-defined role) rather than the predefined catalog.
+    role: text("role", {
+      enum: [
+        "owner",
+        "admin",
+        "manager",
+        "member",
+        "accountant",
+        "contractor",
+        "viewer",
+        "custom",
+      ],
+    }).notNull(),
+    // Set only when role is "custom": the business-defined role this member
+    // holds. Null for predefined roles.
+    businessRoleId: uuid("business_role_id").references(() => businessRole.id),
     ...timestamps,
   },
   (table) => [
@@ -69,6 +89,61 @@ export const businessMember = pgTable(
     ),
     index("business_member_business_id_idx").on(table.businessId),
     index("business_member_user_id_idx").on(table.userId),
+  ],
+);
+
+// Custom, business-defined roles: a named bundle of permissions a business
+// creates for itself beyond the predefined catalog. A member holds one via
+// business_member.business_role_id (with role = "custom"). Custom roles are
+// never the owner wildcard - their power is exactly their stored permission
+// list, which is validated against the authz catalog at write time.
+export const businessRole = pgTable(
+  "business_role",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => business.id),
+    name: text("name").notNull(),
+    // authz permission strings. Unknown entries are ignored on read so a
+    // retired permission can't silently grant anything.
+    permissions: jsonb("permissions").notNull().default([]),
+    ...timestamps,
+  },
+  (table) => [
+    unique("business_role_business_name_unique").on(table.businessId, table.name),
+    index("business_role_business_id_idx").on(table.businessId),
+  ],
+);
+
+// Per-member permission overrides layered on top of the member's role: a
+// `grant` adds a permission the role lacks, a `deny` removes one it has (deny
+// wins). modules/authz resolves a role plus these rows into an effective
+// permission set. business_id is denormalised from the member row so the
+// tenancy convention stays structural (every domain table carries it).
+export const businessMemberPermission = pgTable(
+  "business_member_permission",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => business.id),
+    businessMemberId: uuid("business_member_id")
+      .notNull()
+      .references(() => businessMember.id, { onDelete: "cascade" }),
+    permission: text("permission").notNull(),
+    effect: text("effect", { enum: ["grant", "deny"] }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    unique("business_member_permission_unique").on(
+      table.businessMemberId,
+      table.permission,
+    ),
+    index("business_member_permission_member_id_idx").on(
+      table.businessMemberId,
+    ),
+    index("business_member_permission_business_id_idx").on(table.businessId),
   ],
 );
 
@@ -244,9 +319,23 @@ export const businessInvitation = pgTable(
     // Lowercased invitee email - whom the invite was intended for. Shown on
     // the accept screen; not a hard auth gate (the token is the secret).
     email: text("email").notNull(),
-    role: text("role", { enum: ["owner", "member"] })
+    role: text("role", {
+      enum: [
+        "owner",
+        "admin",
+        "manager",
+        "member",
+        "accountant",
+        "contractor",
+        "viewer",
+        "custom",
+      ],
+    })
       .notNull()
       .default("member"),
+    // Set only when role is "custom": the business-defined role the invitee
+    // joins as. Copied onto their membership when they accept.
+    businessRoleId: uuid("business_role_id").references(() => businessRole.id),
     token: text("token").notNull().unique(),
     invitedByUserId: text("invited_by_user_id")
       .notNull()

@@ -10,10 +10,19 @@ export type Db = PgDatabase<PgQueryResultHKT, typeof schema>;
 
 let db: NodePgDatabase<typeof schema> | undefined;
 
+// Test-only seam: the integration suites point getDb() at an in-process
+// PGlite instance (real Postgres, no DATABASE_URL). Nothing in production
+// calls this; passing undefined clears the override.
+let testDb: Db | undefined;
+export function setTestDb(override: Db | undefined): void {
+  testDb = override;
+}
+
 // Lazy on purpose: the production build and DB-free test suites must work
 // without a DATABASE_URL. Anything that actually touches the database goes
 // through getDb() and fails loud if the env is missing.
 export function getDb(): Db {
+  if (testDb) return testDb;
   if (!db) {
     const url = process.env.DATABASE_URL;
     if (!url) {

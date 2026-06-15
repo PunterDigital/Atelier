@@ -13,7 +13,7 @@ import {
   updateExpense,
 } from "@/modules/expenses/service";
 
-import { businessProcedure, createTRPCRouter } from "../init";
+import { createTRPCRouter, permissionProcedure } from "../init";
 
 const expenseIdInput = z.object({ expenseId: z.string().uuid() });
 
@@ -27,25 +27,25 @@ function found<T>(row: T | null): T {
 }
 
 export const expensesRouter = createTRPCRouter({
-  list: businessProcedure
+  list: permissionProcedure("expenses.view")
     .input(z.object({ status: expenseStatusSchema.optional() }).optional())
     .query(({ ctx, input }) =>
       listExpenses(getDb(), ctx.businessId, { status: input?.status }),
     ),
 
-  get: businessProcedure
+  get: permissionProcedure("expenses.view")
     .input(expenseIdInput)
     .query(async ({ ctx, input }) =>
       found(await getExpense(getDb(), ctx.businessId, input.expenseId)),
     ),
 
-  create: businessProcedure
+  create: permissionProcedure("expenses.create")
     .input(expenseInputSchema)
     .mutation(({ ctx, input }) =>
       createExpense(getDb(), ctx.businessId, input),
     ),
 
-  update: businessProcedure
+  update: permissionProcedure("expenses.edit")
     .input(expenseIdInput.extend({ data: expenseInputSchema }))
     .mutation(async ({ ctx, input }) =>
       found(
@@ -53,7 +53,7 @@ export const expensesRouter = createTRPCRouter({
       ),
     ),
 
-  setStatus: businessProcedure
+  setStatus: permissionProcedure("expenses.approve")
     .input(expenseIdInput.extend({ status: expenseStatusSchema }))
     .mutation(async ({ ctx, input }) =>
       found(
@@ -66,7 +66,7 @@ export const expensesRouter = createTRPCRouter({
       ),
     ),
 
-  delete: businessProcedure
+  delete: permissionProcedure("expenses.delete")
     .input(expenseIdInput)
     .mutation(async ({ ctx, input }) =>
       found(await deleteExpense(getDb(), ctx.businessId, input.expenseId)),

@@ -1,6 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
+import { PERMISSION_META, type Permission } from "@/modules/authz";
 import { getAuth, type Session } from "@/server/auth";
 import { getActiveMembership } from "@/server/membership";
 
@@ -42,6 +43,43 @@ export const businessProcedure = authedProcedure.use(async ({ ctx, next }) => {
     });
   }
   return next({
-    ctx: { ...ctx, businessId: active.businessId, businessRole: active.role },
+    ctx: {
+      ...ctx,
+      businessId: active.businessId,
+      businessMemberId: active.businessMemberId,
+      // The stored role key ("owner".."viewer" or "custom"). Use it only for
+      // ownership checks (=== "owner"); for everything else gate on
+      // permissions below.
+      businessRole: active.role,
+      businessRoleId: active.customRoleId,
+      roleName: active.roleName,
+      // The caller's resolved permissions (role + per-member overrides).
+      // Gate on this, never on businessRole directly - a member's individual
+      // grants and denies only show up here.
+      permissions: active.permissions,
+    },
   });
 });
+
+// Throws FORBIDDEN unless the permission set holds `permission`. Use inside a
+// businessProcedure when a single handler needs more than one permission, or
+// when the gate is conditional; otherwise prefer permissionProcedure below.
+export function requirePermission(
+  permissions: ReadonlySet<Permission>,
+  permission: Permission,
+): void {
+  if (!permissions.has(permission)) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: `You don't have permission to ${PERMISSION_META[permission].label.toLowerCase()}`,
+    });
+  }
+}
+
+// The common case: a procedure that requires exactly one permission. Builds on
+// businessProcedure, so it also carries the tenancy boundary and session.
+export const permissionProcedure = (permission: Permission) =>
+  businessProcedure.use(({ ctx, next }) => {
+    requirePermission(ctx.permissions, permission);
+    return next({ ctx });
+  });

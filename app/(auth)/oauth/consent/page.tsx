@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { ConsentForm } from "./consent-form";
 
 // Where an authenticated user approves (or denies) an MCP client that is
@@ -15,11 +17,22 @@ export default async function ConsentPage({
     Array.isArray(value) ? value[0] : value;
 
   return (
-    <ConsentForm
-      clientId={first(params.client_id) ?? null}
-      clientName={first(params.client_name) ?? null}
-      scope={first(params.scope) ?? null}
-      consentCode={first(params.consent_code) ?? null}
-    />
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-4 py-12">
+      <Image
+        src="/brand/clerq-logo.svg"
+        alt="Clerq"
+        width={132}
+        height={36}
+        priority
+      />
+      <div className="w-full max-w-sm">
+        <ConsentForm
+          clientId={first(params.client_id) ?? null}
+          clientName={first(params.client_name) ?? null}
+          scope={first(params.scope) ?? null}
+          consentCode={first(params.consent_code) ?? null}
+        />
+      </div>
+    </main>
   );
 }

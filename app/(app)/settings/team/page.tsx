@@ -15,7 +15,16 @@ export const dynamic = "force-dynamic";
 
 export default async function TeamPage() {
   const session = await getAuth().api.getSession({ headers: await headers() });
-  const { members, invitations, role } = await caller.team.list();
+  const {
+    members,
+    invitations,
+    overrides,
+    customRoles,
+    canInvite,
+    canRemove,
+    canManageRoles,
+    assignableRoles,
+  } = await caller.team.list();
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
@@ -32,8 +41,13 @@ export default async function TeamPage() {
       <TeamManager
         members={members}
         invitations={invitations}
-        role={role}
+        overrides={overrides}
+        customRoles={customRoles}
         currentUserId={session?.user.id ?? ""}
+        canInvite={canInvite}
+        canRemove={canRemove}
+        canManageRoles={canManageRoles}
+        assignableRoles={assignableRoles}
       />
     </div>
   );

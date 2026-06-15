@@ -4,17 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+
+import styles from "../auth.module.css";
+import { AuthToggle, GoogleButton } from "../auth-shell";
 
 export function SignUpForm({
   googleEnabled,
@@ -54,8 +47,8 @@ export function SignUpForm({
       email,
       password,
     });
-    setPending(false);
     if (signUpError) {
+      setPending(false);
       setError(signUpError.message ?? "Could not create your account");
       return;
     }
@@ -64,108 +57,109 @@ export function SignUpForm({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create your account</CardTitle>
-        <CardDescription>
-          Your Clerq instance, your data - let&apos;s get you set up
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              autoComplete="name"
-              required
-              value={name}
-              onChange={(event) => setName(event.target.value)}
+    <>
+      <AuthToggle active="signup" redirectTo={redirectTo} />
+      <h1 className={styles.formTitle}>Create your account</h1>
+      <p className={styles.formSub}>Start running your back office in seconds.</p>
+
+      {googleEnabled ? (
+        <GoogleButton
+          disabled={pending}
+          onClick={() =>
+            authClient.signIn.social({
+              provider: "google",
+              callbackURL: destination,
+            })
+          }
+        />
+      ) : null}
+
+      <form onSubmit={handleSubmit}>
+        <div className={styles.field}>
+          <label htmlFor="name">Your name</label>
+          <input
+            id="name"
+            autoComplete="name"
+            required
+            placeholder="Sam Rivera"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+          />
+        </div>
+        <div className={styles.field}>
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder="you@studio.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </div>
+        <div className={`${styles.field} ${styles.fieldLast}`}>
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={8}
+            placeholder="••••••••"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </div>
+        {requireConsent ? (
+          <label className={styles.consent}>
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(event) => setAcceptedTerms(event.target.checked)}
             />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </div>
-          {requireConsent ? (
-            <label className="flex items-start gap-2 text-sm text-muted-foreground">
-              <input
-                type="checkbox"
-                className="mt-0.5"
-                checked={acceptedTerms}
-                onChange={(event) => setAcceptedTerms(event.target.checked)}
-              />
-              <span>
-                I agree to the{" "}
-                <Link
-                  href="https://useclerq.net/terms"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline-offset-4 hover:underline"
-                >
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link
-                  href="https://useclerq.net/privacy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline-offset-4 hover:underline"
-                >
-                  Privacy Policy
-                </Link>
-              </span>
-            </label>
-          ) : null}
-          {error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
-          <Button type="submit" disabled={pending || (requireConsent && !acceptedTerms)}>
-            {pending ? "Creating your account..." : "Create account"}
-          </Button>
-        </form>
-        {googleEnabled ? (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() =>
-              authClient.signIn.social({
-                provider: "google",
-                callbackURL: destination,
-              })
-            }
-          >
-            Continue with Google
-          </Button>
+            <span>
+              I agree to the{" "}
+              <Link
+                href="https://useclerq.net/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.consentLink}
+              >
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="https://useclerq.net/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.consentLink}
+              >
+                Privacy Policy
+              </Link>
+            </span>
+          </label>
         ) : null}
-        <p className="text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/sign-in" className="text-primary underline-offset-4 hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </CardContent>
-    </Card>
+        {error ? (
+          <p role="alert" className={styles.error}>
+            {error}
+          </p>
+        ) : null}
+        <button
+          type="submit"
+          className={styles.submit}
+          disabled={pending || (requireConsent && !acceptedTerms)}
+        >
+          {pending ? (
+            <>
+              <span className={styles.spinner} />
+              Creating your account
+            </>
+          ) : (
+            "Create account"
+          )}
+        </button>
+      </form>
+    </>
   );
 }

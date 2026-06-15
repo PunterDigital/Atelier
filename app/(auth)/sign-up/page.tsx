@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { isGoogleSsoEnabled } from "@/server/auth";
 
+import { AuthShell } from "../auth-shell";
 import { SignUpForm } from "./sign-up-form";
 
 export const metadata: Metadata = {
@@ -23,9 +24,11 @@ export default async function SignUpPage({
 }) {
   const { redirect } = await searchParams;
   return (
-    <SignUpForm
-      googleEnabled={isGoogleSsoEnabled()}
-      redirectTo={safeRedirect(redirect)}
-    />
+    <AuthShell>
+      <SignUpForm
+        googleEnabled={isGoogleSsoEnabled()}
+        redirectTo={safeRedirect(redirect)}
+      />
+    </AuthShell>
   );
 }

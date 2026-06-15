@@ -10,7 +10,7 @@ import {
   updateProject,
 } from "@/modules/projects/service";
 
-import { businessProcedure, createTRPCRouter } from "../init";
+import { createTRPCRouter, permissionProcedure } from "../init";
 
 function found<T>(row: T | null): T {
   if (!row) {
@@ -20,19 +20,19 @@ function found<T>(row: T | null): T {
 }
 
 export const projectsRouter = createTRPCRouter({
-  list: businessProcedure
+  list: permissionProcedure("projects.view")
     .input(z.object({ clientId: z.string().uuid().optional() }).optional())
     .query(({ ctx, input }) =>
       listProjects(getDb(), ctx.businessId, { clientId: input?.clientId }),
     ),
 
-  get: businessProcedure
+  get: permissionProcedure("projects.view")
     .input(z.object({ projectId: z.string().uuid() }))
     .query(async ({ ctx, input }) =>
       found(await getProject(getDb(), ctx.businessId, input.projectId)),
     ),
 
-  create: businessProcedure
+  create: permissionProcedure("projects.create")
     .input(projectInputSchema)
     .mutation(async ({ ctx, input }) =>
       found(
@@ -40,7 +40,7 @@ export const projectsRouter = createTRPCRouter({
       ),
     ),
 
-  update: businessProcedure
+  update: permissionProcedure("projects.edit")
     .input(z.object({ projectId: z.string().uuid(), data: projectInputSchema }))
     .mutation(async ({ ctx, input }) =>
       found(

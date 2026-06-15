@@ -20,7 +20,7 @@ import {
   markInvoicePaid,
 } from "@/modules/billing/lifecycle";
 
-import { businessProcedure, createTRPCRouter } from "../init";
+import { createTRPCRouter, permissionProcedure } from "../init";
 
 function found<T>(row: T | null): T {
   if (!row) {
@@ -32,17 +32,17 @@ function found<T>(row: T | null): T {
 const treatmentSchema = z.enum(["standard", "zero_rated", "reverse_charge"]);
 
 export const invoicesRouter = createTRPCRouter({
-  list: businessProcedure.query(({ ctx }) =>
+  list: permissionProcedure("invoices.view").query(({ ctx }) =>
     listInvoices(getDb(), ctx.businessId),
   ),
 
-  get: businessProcedure
+  get: permissionProcedure("invoices.view")
     .input(z.object({ invoiceId: z.string().uuid() }))
     .query(async ({ ctx, input }) =>
       found(await getInvoice(getDb(), ctx.businessId, input.invoiceId)),
     ),
 
-  createDraft: businessProcedure
+  createDraft: permissionProcedure("invoices.create")
     .input(
       z.object({
         clientId: z.string().uuid(),
@@ -85,7 +85,7 @@ export const invoicesRouter = createTRPCRouter({
       );
     }),
 
-  generateFromTime: businessProcedure
+  generateFromTime: permissionProcedure("invoices.edit")
     .input(
       z.object({
         invoiceId: z.string().uuid(),
@@ -110,7 +110,7 @@ export const invoicesRouter = createTRPCRouter({
   // Server-side ECB lookup (keyless, no CORS) for the generate flow. The
   // chosen rate is only ever applied via generateFromTime's fxRates input,
   // so what the user confirmed is exactly what is stored.
-  fetchRate: businessProcedure
+  fetchRate: permissionProcedure("invoices.view")
     .input(
       z.object({
         from: z.string().trim().toUpperCase().regex(/^[A-Z]{3}$/),
@@ -121,7 +121,7 @@ export const invoicesRouter = createTRPCRouter({
       fetchEcbRate({ date: new Date(), from: input.from, to: input.to }),
     ),
 
-  deleteLine: businessProcedure
+  deleteLine: permissionProcedure("invoices.edit")
     .input(z.object({ lineId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) =>
       found(await deleteInvoiceLine(getDb(), ctx.businessId, input.lineId)),
@@ -129,7 +129,7 @@ export const invoicesRouter = createTRPCRouter({
 
   // Fixed-amount manual line - invoices are dual-purpose, not only
   // generated from time.
-  addLine: businessProcedure
+  addLine: permissionProcedure("invoices.edit")
     .input(
       z.object({
         invoiceId: z.string().uuid(),
@@ -151,7 +151,7 @@ export const invoicesRouter = createTRPCRouter({
       return result.invoice;
     }),
 
-  issue: businessProcedure
+  issue: permissionProcedure("invoices.issue")
     .input(z.object({ invoiceId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       const result = await issueInvoice(getDb(), ctx.businessId, input.invoiceId);
@@ -170,13 +170,13 @@ export const invoicesRouter = createTRPCRouter({
       return result.invoice;
     }),
 
-  markPaid: businessProcedure
+  markPaid: permissionProcedure("invoices.markPaid")
     .input(z.object({ invoiceId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) =>
       found(await markInvoicePaid(getDb(), ctx.businessId, input.invoiceId)),
     ),
 
-  configureNextNumber: businessProcedure
+  configureNextNumber: permissionProcedure("invoices.configure")
     .input(
       z.object({
         year: z.number().int().min(2000).max(2200),
@@ -184,12 +184,6 @@ export const invoicesRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (ctx.businessRole !== "owner") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only the business owner can change numbering",
-        });
-      }
       const result = await configureNextInvoiceNumber(
         getDb(),
         ctx.businessId,

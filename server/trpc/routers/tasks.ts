@@ -12,7 +12,7 @@ import {
   updateTask,
 } from "@/modules/projects/tasks-service";
 
-import { businessProcedure, createTRPCRouter } from "../init";
+import { createTRPCRouter, permissionProcedure } from "../init";
 
 function found<T>(row: T | null): T {
   if (!row) {
@@ -22,23 +22,23 @@ function found<T>(row: T | null): T {
 }
 
 export const tasksRouter = createTRPCRouter({
-  list: businessProcedure
+  list: permissionProcedure("tasks.view")
     .input(z.object({ projectId: z.string().uuid() }))
     .query(({ ctx, input }) => listTasks(getDb(), ctx.businessId, input.projectId)),
 
-  create: businessProcedure
+  create: permissionProcedure("tasks.create")
     .input(z.object({ projectId: z.string().uuid(), data: taskInputSchema }))
     .mutation(async ({ ctx, input }) =>
       found(await createTask(getDb(), ctx.businessId, input.projectId, input.data)),
     ),
 
-  update: businessProcedure
+  update: permissionProcedure("tasks.edit")
     .input(z.object({ taskId: z.string().uuid(), data: taskInputSchema }))
     .mutation(async ({ ctx, input }) =>
       found(await updateTask(getDb(), ctx.businessId, input.taskId, input.data)),
     ),
 
-  setStatus: businessProcedure
+  setStatus: permissionProcedure("tasks.edit")
     .input(z.object({ taskId: z.string().uuid(), status: taskStatusSchema }))
     .mutation(async ({ ctx, input }) =>
       found(
@@ -46,7 +46,7 @@ export const tasksRouter = createTRPCRouter({
       ),
     ),
 
-  delete: businessProcedure
+  delete: permissionProcedure("tasks.delete")
     .input(z.object({ taskId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) =>
       found(await deleteTask(getDb(), ctx.businessId, input.taskId)),

@@ -1,0 +1,294 @@
+/* Two-panel auth design, ported from the Clerq marketing site's get-started
+   page. Brand panel (left) + form panel (right); collapses to the form alone
+   on narrow screens. Colours/radii/shadows come from the design tokens, so
+   this follows the active brand (teal) automatically. */
+
+.auth {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+/* --- brand panel --- */
+.brandPanel {
+  position: relative;
+  overflow: hidden;
+  background: var(--neutral-950);
+  color: #fff;
+  padding: 56px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.brandGlow {
+  position: absolute;
+  top: -100px;
+  right: -80px;
+  width: 520px;
+  height: 420px;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--primary) 40%, transparent),
+    transparent 70%
+  );
+  filter: blur(20px);
+  pointer-events: none;
+}
+.brandTop {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brandMark {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.brandName {
+  font: 700 20px var(--font-sans);
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+.brandMid {
+  position: relative;
+}
+.brandH {
+  font: 700 34px/1.15 var(--font-sans);
+  color: #fff;
+  letter-spacing: -0.02em;
+  max-width: 380px;
+}
+.brandChecks {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 28px;
+}
+.bc {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+}
+.bcIc {
+  color: var(--teal-300);
+  flex: none;
+}
+.bc span {
+  font: 400 15px var(--font-sans);
+  color: var(--neutral-300);
+}
+.brandFoot {
+  position: relative;
+  font: 400 13px var(--font-sans);
+  color: var(--neutral-500);
+}
+.brandLink {
+  color: var(--teal-300);
+}
+
+/* --- form panel --- */
+.formPanel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 28px;
+  background: var(--background);
+}
+.formBox {
+  width: 100%;
+  max-width: 380px;
+}
+.seg {
+  display: inline-flex;
+  background: var(--surface-muted);
+  border-radius: var(--radius-full);
+  padding: 4px;
+  margin-bottom: 24px;
+}
+.segBtn {
+  font: 600 13px var(--font-sans);
+  padding: 7px 16px;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  line-height: 1;
+  white-space: nowrap;
+  background: transparent;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+.segBtn.on {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.formTitle {
+  font: 700 28px var(--font-sans);
+  color: var(--text-strong);
+  letter-spacing: -0.02em;
+}
+.formSub {
+  font: 400 15px var(--font-sans);
+  color: var(--text-muted);
+  margin: 6px 0 0;
+}
+.google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 24px;
+  font: 600 15px var(--font-sans);
+  color: var(--text-body);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  padding: 11px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  box-shadow: var(--shadow-xs);
+}
+.google:hover {
+  background: var(--surface-muted);
+}
+.google:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+.or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+}
+.orLine {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.orText {
+  font: 400 12px var(--font-sans);
+  color: var(--text-subtle);
+}
+.field {
+  margin-bottom: 14px;
+}
+.fieldLast {
+  margin-bottom: 18px;
+}
+.field label {
+  display: block;
+  font: 600 13px var(--font-sans);
+  color: var(--text-body);
+  margin-bottom: 6px;
+}
+.field input {
+  width: 100%;
+  box-sizing: border-box;
+  font: 400 15px var(--font-sans);
+  color: var(--text-body);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 10px 13px;
+}
+.field input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.submit {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font: 600 15px var(--font-sans);
+  color: #fff;
+  background: var(--primary);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+.submit:hover {
+  background: var(--primary-hover);
+  box-shadow: var(--shadow-md);
+}
+.submit:active {
+  background: var(--primary-active);
+}
+.submit:disabled {
+  opacity: 0.85;
+  cursor: default;
+}
+.spinner {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: authSpin 0.6s linear infinite;
+  display: inline-block;
+}
+@keyframes authSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.error {
+  font: 400 13px/1.4 var(--font-sans);
+  color: var(--error);
+  margin: 0 0 14px;
+}
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font: 400 13px/1.45 var(--font-sans);
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.consent input {
+  margin-top: 3px;
+  flex: none;
+}
+.consentLink {
+  color: var(--text-body);
+  text-decoration: underline;
+}
+.consentLink:hover {
+  color: var(--primary);
+}
+.terms {
+  font: 400 12px/1.5 var(--font-sans);
+  color: var(--text-subtle);
+  text-align: center;
+  margin: 16px 0 0;
+}
+.termsLink {
+  color: var(--text-muted);
+  text-decoration: underline;
+}
+.termsLink:hover {
+  color: var(--primary);
+}
+
+@media (max-width: 860px) {
+  .auth {
+    grid-template-columns: 1fr;
+  }
+  .brandPanel {
+    display: none;
+  }
+  .formPanel {
+    min-height: 100vh;
+  }
+}

@@ -6,12 +6,12 @@ import { listRecentActivity } from "@/modules/clients/service";
 import { listEntriesBetween } from "@/modules/time/service";
 import { addDays, startOfWeek } from "@/lib/week";
 
-import { businessProcedure, createTRPCRouter } from "../init";
+import { createTRPCRouter, permissionProcedure } from "../init";
 
 export const dashboardRouter = createTRPCRouter({
   // One round trip for the whole dashboard. Aggregation only - every
   // number is composed from module services or scoped queries.
-  summary: businessProcedure.query(async ({ ctx }) => {
+  summary: permissionProcedure("dashboard.view").query(async ({ ctx }) => {
     const db = getDb();
     const now = new Date();
     const weekStart = startOfWeek(now);

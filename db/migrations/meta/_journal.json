@@ -85,6 +85,20 @@
       "when": 1781512664779,
       "tag": "0011_bent_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1781531950958,
+      "tag": "0012_green_gauntlet",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1781534277341,
+      "tag": "0013_silent_clea",
+      "breakpoints": true
     }
   ]
 }

@@ -1,20 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+
+import styles from "../auth.module.css";
+import { AuthToggle, GoogleButton } from "../auth-shell";
 
 export function SignInForm({
   googleEnabled,
@@ -38,8 +30,8 @@ export function SignInForm({
       email,
       password,
     });
-    setPending(false);
     if (signInError) {
+      setPending(false);
       setError(signInError.message ?? "Could not sign you in");
       return;
     }
@@ -48,65 +40,64 @@ export function SignInForm({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Welcome back</CardTitle>
-        <CardDescription>Sign in to your Clerq instance</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </div>
-          {error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
-          <Button type="submit" disabled={pending}>
-            {pending ? "Signing in..." : "Sign in"}
-          </Button>
-        </form>
-        {googleEnabled ? (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() =>
-              authClient.signIn.social({
-                provider: "google",
-                callbackURL: destination,
-              })
-            }
-          >
-            Continue with Google
-          </Button>
+    <>
+      <AuthToggle active="signin" redirectTo={redirectTo} />
+      <h1 className={styles.formTitle}>Welcome back</h1>
+      <p className={styles.formSub}>Sign in to pick up where you left off.</p>
+
+      {googleEnabled ? (
+        <GoogleButton
+          disabled={pending}
+          onClick={() =>
+            authClient.signIn.social({
+              provider: "google",
+              callbackURL: destination,
+            })
+          }
+        />
+      ) : null}
+
+      <form onSubmit={handleSubmit}>
+        <div className={styles.field}>
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder="you@studio.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </div>
+        <div className={`${styles.field} ${styles.fieldLast}`}>
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            placeholder="••••••••"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </div>
+        {error ? (
+          <p role="alert" className={styles.error}>
+            {error}
+          </p>
         ) : null}
-        <p className="text-sm text-muted-foreground">
-          New here?{" "}
-          <Link href="/sign-up" className="text-primary underline-offset-4 hover:underline">
-            Create an account
-          </Link>
-        </p>
-      </CardContent>
-    </Card>
+        <button type="submit" className={styles.submit} disabled={pending}>
+          {pending ? (
+            <>
+              <span className={styles.spinner} />
+              Signing in
+            </>
+          ) : (
+            "Sign in"
+          )}
+        </button>
+      </form>
+    </>
   );
 }

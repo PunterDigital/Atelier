@@ -1,4 +1,3 @@
-import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -7,6 +6,7 @@ import {
   authedProcedure,
   businessProcedure,
   createTRPCRouter,
+  permissionProcedure,
 } from "../init";
 
 // Shape of the branding JSONB blob. Owned here: the logo is a base64 data
@@ -73,7 +73,7 @@ export const businessRouter = createTRPCRouter({
     return row;
   }),
 
-  settings: businessProcedure.query(async ({ ctx }) => {
+  settings: permissionProcedure("settings.view").query(async ({ ctx }) => {
     const [row] = await getDb()
       .select({
         name: schema.business.name,
@@ -101,7 +101,7 @@ export const businessRouter = createTRPCRouter({
     };
   }),
 
-  updateSettings: businessProcedure
+  updateSettings: permissionProcedure("settings.edit")
     .input(
       z.object({
         name: z.string().trim().min(1).max(200),
@@ -122,12 +122,6 @@ export const businessRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (ctx.businessRole !== "owner") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only the business owner can change settings",
-        });
-      }
       const [updated] = await getDb()
         .update(schema.business)
         .set({
@@ -150,7 +144,7 @@ export const businessRouter = createTRPCRouter({
   // Logo, brand colour and a short footer line for the invoice. Kept separate
   // from updateSettings so the (potentially large) logo only travels when the
   // appearance is actually changed. Owner-only, like the rest of settings.
-  updateBranding: businessProcedure
+  updateBranding: permissionProcedure("branding.edit")
     .input(
       z.object({
         logoDataUrl: logoDataUrlSchema,
@@ -163,12 +157,6 @@ export const businessRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (ctx.businessRole !== "owner") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only the business owner can change settings",
-        });
-      }
       // Read-modify-write so unknown keys the design system may add later
       // survive an appearance edit. Absent values drop the key entirely.
       const [current] = await getDb()

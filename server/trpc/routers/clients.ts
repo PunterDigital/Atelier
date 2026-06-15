@@ -15,7 +15,7 @@ import {
   updateClient,
 } from "@/modules/clients/service";
 
-import { businessProcedure, createTRPCRouter } from "../init";
+import { createTRPCRouter, permissionProcedure } from "../init";
 
 const clientIdInput = z.object({ clientId: z.string().uuid() });
 
@@ -30,7 +30,7 @@ function found<T>(row: T | null): T {
 }
 
 export const clientsRouter = createTRPCRouter({
-  list: businessProcedure
+  list: permissionProcedure("clients.view")
     .input(z.object({ includeArchived: z.boolean().default(false) }).optional())
     .query(({ ctx, input }) =>
       listClients(getDb(), ctx.businessId, {
@@ -38,19 +38,19 @@ export const clientsRouter = createTRPCRouter({
       }),
     ),
 
-  get: businessProcedure
+  get: permissionProcedure("clients.view")
     .input(clientIdInput)
     .query(async ({ ctx, input }) =>
       found(await getClient(getDb(), ctx.businessId, input.clientId)),
     ),
 
-  create: businessProcedure
+  create: permissionProcedure("clients.create")
     .input(clientInputSchema)
     .mutation(({ ctx, input }) =>
       createClient(getDb(), ctx.businessId, ctx.session.user.id, input),
     ),
 
-  update: businessProcedure
+  update: permissionProcedure("clients.edit")
     .input(clientIdInput.extend({ data: clientInputSchema }))
     .mutation(async ({ ctx, input }) =>
       found(
@@ -64,7 +64,7 @@ export const clientsRouter = createTRPCRouter({
       ),
     ),
 
-  archive: businessProcedure
+  archive: permissionProcedure("clients.archive")
     .input(clientIdInput)
     .mutation(async ({ ctx, input }) =>
       found(
@@ -77,7 +77,7 @@ export const clientsRouter = createTRPCRouter({
       ),
     ),
 
-  unarchive: businessProcedure
+  unarchive: permissionProcedure("clients.archive")
     .input(clientIdInput)
     .mutation(async ({ ctx, input }) =>
       found(
@@ -90,14 +90,14 @@ export const clientsRouter = createTRPCRouter({
       ),
     ),
 
-  activity: businessProcedure
+  activity: permissionProcedure("clients.view")
     .input(clientIdInput)
     .query(async ({ ctx, input }) => {
       found(await getClient(getDb(), ctx.businessId, input.clientId));
       return listActivity(getDb(), ctx.businessId, input.clientId);
     }),
 
-  importMany: businessProcedure
+  importMany: permissionProcedure("clients.create")
     .input(
       z.object({
         // One wizard batch; bigger files import in chunks client-side.
@@ -108,7 +108,7 @@ export const clientsRouter = createTRPCRouter({
       importClients(getDb(), ctx.businessId, ctx.session.user.id, input.rows),
     ),
 
-  addNote: businessProcedure
+  addNote: permissionProcedure("clients.edit")
     .input(clientIdInput.extend({ text: z.string().trim().min(1).max(10_000) }))
     .mutation(async ({ ctx, input }) =>
       found(

@@ -1,18 +1,8 @@
-import Image from "next/image";
-
+// Passthrough layout. The sign-in/sign-up routes render their own full-bleed
+// two-panel design (see auth-shell), and the consent route centres its own
+// card, so this group layout no longer imposes shared chrome.
 export default function AuthLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-4 py-12">
-      <Image
-        src="/brand/clerq-logo.svg"
-        alt="Clerq"
-        width={132}
-        height={36}
-        priority
-      />
-      <div className="w-full max-w-sm">{children}</div>
-    </main>
-  );
+  return children;
 }
