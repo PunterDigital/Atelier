@@ -1,8 +1,16 @@
 # One-command self-host: docker compose up
 #
+# Pulls the published image and runs it against a bundled Postgres. The app
+# applies its own database migrations on startup, so there is no separate
+# migration step to run.
+#
 # Defaults work out of the box for a local instance. Override the password
 # (and anything else) with a .env file next to this compose file - see
 # .env.example. Change POSTGRES_PASSWORD before exposing this to a network.
+#
+# To build from source instead of pulling the image (contributors, local
+# changes), add the build override:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
 
 services:
   postgres:
@@ -23,22 +31,10 @@ services:
       timeout: 5s
       retries: 10
 
-  migrate:
-    build:
-      context: .
-      target: builder
-    command: ["pnpm", "db:migrate"]
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-clerq}:${POSTGRES_PASSWORD:-clerq}@postgres:5432/${POSTGRES_DB:-clerq}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
-
   app:
-    build:
-      context: .
-      target: runner
+    # Pinnable: set CLERQ_TAG to a released version (e.g. 0.1.0) to pin, or
+    # leave it for the latest stable release.
+    image: ghcr.io/punterdigital/clerq:${CLERQ_TAG:-latest}
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
@@ -49,8 +45,8 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres-data:

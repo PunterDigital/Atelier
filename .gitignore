@@ -41,6 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# build artifact from `pnpm build:migrator` (produced into the image)
+/migrate.mjs
+
 # local planning docs (not part of the public repo)
 clerq-software-plan.md
 

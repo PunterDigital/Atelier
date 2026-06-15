@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Bundled migrator artifact from `pnpm build:migrator` (third-party code).
+    "migrate.mjs",
   ]),
 ]);
 

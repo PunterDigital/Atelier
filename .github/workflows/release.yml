@@ -1,0 +1,60 @@
+# Build and publish the Clerq image on version tags.
+#
+# Tag a green commit on main with a vX.Y.Z tag (e.g. `git tag v0.1.0 && git
+# push origin v0.1.0`) and this builds a multi-arch image and pushes it to the
+# GitHub Container Registry. Self-hosters pull ghcr.io/punterdigital/clerq.
+#
+# `latest` tracks the newest stable release only - pre-release tags
+# (v1.2.3-rc1) publish their own tag but never move `latest`.
+#
+# One-time setup: after the first successful run, set the package visibility to
+# Public under the repo's Packages settings so anonymous pulls work.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/punterdigital/clerq
+          # latest=auto: applied to stable releases, skipped for pre-releases.
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runner
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
