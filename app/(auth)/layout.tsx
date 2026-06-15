@@ -6,8 +6,8 @@ export default function AuthLayout({
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-4 py-12">
       <Image
-        src="/brand/atelier-logo.svg"
-        alt="Atelier"
+        src="/brand/clerq-logo.svg"
+        alt="Clerq"
         width={132}
         height={36}
         priority

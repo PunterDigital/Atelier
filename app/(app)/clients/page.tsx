@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/format";
 import { caller } from "@/server/trpc/server";
 
 export const metadata: Metadata = {
-  title: "Clients - Atelier",
+  title: "Clients - Clerq",
 };
 
 export const dynamic = "force-dynamic";

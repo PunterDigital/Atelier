@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ClientForm } from "../client-form";
 
 export const metadata: Metadata = {
-  title: "New client - Atelier",
+  title: "New client - Clerq",
 };
 
 export default function NewClientPage() {

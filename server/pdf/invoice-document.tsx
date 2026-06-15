@@ -133,8 +133,8 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
     <Document
       title={data.title}
       author={data.businessName}
-      creator="Atelier"
-      producer="Atelier"
+      creator="Clerq"
+      producer="Clerq"
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>

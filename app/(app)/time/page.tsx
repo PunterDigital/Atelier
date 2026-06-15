@@ -8,7 +8,7 @@ import { addDays, parseWeekParam, toDateKey } from "@/lib/week";
 import { caller } from "@/server/trpc/server";
 
 export const metadata: Metadata = {
-  title: "Timesheet - Atelier",
+  title: "Timesheet - Clerq",
 };
 
 export const dynamic = "force-dynamic";

@@ -47,18 +47,18 @@ jobs:
       postgres:
         image: postgres:17-alpine
         env:
-          POSTGRES_USER: atelier
-          POSTGRES_PASSWORD: atelier
-          POSTGRES_DB: atelier
+          POSTGRES_USER: clerq
+          POSTGRES_PASSWORD: clerq
+          POSTGRES_DB: clerq
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U atelier -d atelier"
+          --health-cmd "pg_isready -U clerq -d clerq"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://atelier:atelier@localhost:5432/atelier
+      DATABASE_URL: postgresql://clerq:clerq@localhost:5432/clerq
       BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-real
     steps:
       - uses: actions/checkout@v4

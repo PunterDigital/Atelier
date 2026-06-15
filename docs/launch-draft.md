@@ -10,11 +10,11 @@ voice when you decide the product is ready. Claims below are true as of
 
 **Title options** (HN cuts ~80 chars; pick one)
 
-1. Show HN: Atelier - open-source business OS for freelancers, after
+1. Show HN: Clerq - open-source business OS for freelancers, after
    AndCo died
 2. Show HN: I'm rebuilding AndCo as open source (clients, time,
    invoices)
-3. Show HN: Atelier - self-hosted clients, projects, time and invoicing
+3. Show HN: Clerq - self-hosted clients, projects, time and invoicing
    in one flow
 
 **Body**
@@ -27,7 +27,7 @@ it and got tired of the alternatives: 40-60 USD/month SaaS aimed at
 wedding planners, or open-source suites that cover the features but
 feel like ERP.
 
-Atelier is an open-source (AGPL-3.0), self-hostable take on the AndCo
+Clerq is an open-source (AGPL-3.0), self-hostable take on the AndCo
 shape: one connected flow from client to project to tracked time to
 invoice. Track time on a task, pull the unbilled hours onto an invoice
 grouped how you like, issue it with a gapless number, download the PDF.
@@ -49,7 +49,7 @@ tracking, timesheets and invoicing (incl. PDF) work end to end.
 Proposals, recurring invoices and payment collection do not exist yet.
 The design system is in place but mid-refinement.
 
-Repo: https://github.com/PunterDigital/Atelier
+Repo: https://github.com/PunterDigital/Clerq
 
 I'd genuinely value brutal feedback on the billing model - the spec and
 fixtures are in the repo (BILLING-SPEC.md, fixtures/billing/).
@@ -58,7 +58,7 @@ fixtures are in the repo (BILLING-SPEC.md, fixtures/billing/).
 
 ## r/selfhosted
 
-**Title:** Atelier - open-source AndCo replacement (clients, projects,
+**Title:** Clerq - open-source AndCo replacement (clients, projects,
 time tracking, invoicing), one docker compose up
 
 **Body**
@@ -80,7 +80,7 @@ Pre-alpha and honest about it (the README keeps a real feature status).
 Would love feedback from people who run their freelance back office
 self-hosted.
 
-Repo: https://github.com/PunterDigital/Atelier
+Repo: https://github.com/PunterDigital/Clerq
 
 ---
 

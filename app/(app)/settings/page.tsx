@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { caller } from "@/server/trpc/server";
 
 import { BrandingForm } from "./branding-form";
 import { SettingsForm } from "./settings-form";
 
 export const metadata: Metadata = {
-  title: "Settings - Atelier",
+  title: "Settings - Clerq",
 };
 
 export const dynamic = "force-dynamic";
@@ -30,6 +39,19 @@ export default async function SettingsPage() {
           footerNote: settings.footerNote,
         }}
       />
+      <Card>
+        <CardHeader>
+          <CardTitle>Team</CardTitle>
+          <CardDescription>
+            Invite people to your business and manage who has access
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" asChild>
+            <Link href="/settings/team">Manage team</Link>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

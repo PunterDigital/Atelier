@@ -1,4 +1,4 @@
-# Multi-stage build for the self-hosted Atelier instance.
+# Multi-stage build for the self-hosted Clerq instance.
 # - builder: full workspace, used for next build and as the one-shot
 #   migration runner in docker-compose (it has drizzle-kit and the
 #   migrations folder).

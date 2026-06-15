@@ -228,6 +228,43 @@ export const expense = pgTable(
   (table) => [index("expense_business_id_idx").on(table.businessId)],
 );
 
+// Invitations to join a business. Membership itself lives in
+// business_member; an invitation is the pending step before that row exists.
+// There is no email transport when self-hosting, so an invite is a
+// shareable link bearing the unguessable token - the owner sends it however
+// they like, and accepting it creates the business_member row. status is the
+// lifecycle (pending -> accepted | revoked); expires_at caps a stale link.
+export const businessInvitation = pgTable(
+  "business_invitation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => business.id),
+    // Lowercased invitee email - whom the invite was intended for. Shown on
+    // the accept screen; not a hard auth gate (the token is the secret).
+    email: text("email").notNull(),
+    role: text("role", { enum: ["owner", "member"] })
+      .notNull()
+      .default("member"),
+    token: text("token").notNull().unique(),
+    invitedByUserId: text("invited_by_user_id")
+      .notNull()
+      .references(() => user.id),
+    status: text("status", { enum: ["pending", "accepted", "revoked"] })
+      .notNull()
+      .default("pending"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    acceptedByUserId: text("accepted_by_user_id").references(() => user.id),
+    ...timestamps,
+  },
+  (table) => [
+    index("business_invitation_business_id_idx").on(table.businessId),
+    index("business_invitation_token_idx").on(table.token),
+  ],
+);
+
 // Invoices (billing spec Sections 4-7). Drafts carry no number; number
 // and year are assigned at issue time from invoice_sequence under a row
 // lock. One tax treatment per invoice; all amounts are integers in the

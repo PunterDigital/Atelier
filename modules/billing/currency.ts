@@ -1,5 +1,5 @@
 // Money core, part 1: ISO 4217 minor units (billing spec Section 2).
-// All amounts in Atelier are integers in the currency's minor unit; these
+// All amounts in Clerq are integers in the currency's minor unit; these
 // helpers convert at the display/input edge. No floats: major-unit values
 // travel as strings and are parsed digit-wise.
 //

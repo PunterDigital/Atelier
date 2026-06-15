@@ -13,7 +13,7 @@ import { ArchiveButton } from "./archive-button";
 import { NoteComposer } from "./note-composer";
 
 export const metadata: Metadata = {
-  title: "Client - Atelier",
+  title: "Client - Clerq",
 };
 
 export const dynamic = "force-dynamic";

@@ -8,9 +8,9 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-atelier}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atelier}
-      POSTGRES_DB: ${POSTGRES_DB:-atelier}
+      POSTGRES_USER: ${POSTGRES_USER:-clerq}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clerq}
+      POSTGRES_DB: ${POSTGRES_DB:-clerq}
     ports:
       # Bound to loopback only: reachable for local development
       # (pnpm dev against compose postgres), never from the network.
@@ -18,7 +18,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-atelier} -d ${POSTGRES_DB:-atelier}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clerq} -d ${POSTGRES_DB:-clerq}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -29,7 +29,7 @@ services:
       target: builder
     command: ["pnpm", "db:migrate"]
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-atelier}:${POSTGRES_PASSWORD:-atelier}@postgres:5432/${POSTGRES_DB:-atelier}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-clerq}:${POSTGRES_PASSWORD:-clerq}@postgres:5432/${POSTGRES_DB:-clerq}
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,9 +42,9 @@ services:
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-atelier}:${POSTGRES_PASSWORD:-atelier}@postgres:5432/${POSTGRES_DB:-atelier}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-clerq}:${POSTGRES_PASSWORD:-clerq}@postgres:5432/${POSTGRES_DB:-clerq}
       # Change this before exposing the instance anywhere - see .env.example
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-atelier-dev-secret-change-me}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-clerq-dev-secret-change-me}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}

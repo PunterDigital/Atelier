@@ -42,7 +42,7 @@ yarn-error.log*
 next-env.d.ts
 
 # local planning docs (not part of the public repo)
-atelier-software-plan.md
+clerq-software-plan.md
 
 # IDE
 .idea/

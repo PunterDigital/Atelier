@@ -4,12 +4,12 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import type { AtelierCaller } from "./caller";
+import type { ClerqCaller } from "./caller";
 import { verifyInvoicePdfToken } from "./pdf-link";
-import { createAtelierMcpServer } from "./server";
+import { createClerqMcpServer } from "./server";
 
 const businessId = "22222222-2222-2222-2222-222222222222";
-const baseUrl = "https://atelier.example.com";
+const baseUrl = "https://clerq.example.com";
 const SECRET = "test-secret-do-not-use-in-prod";
 
 // Records every caller method the tools invoke, so a test can assert exactly
@@ -85,11 +85,23 @@ function buildFakeCaller(recorded: Recorded[]) {
         ...(input as object),
       })),
     },
-  } as unknown as AtelierCaller;
+    team: {
+      list: rec("team.list", {
+        members: [{ userId: "owner-a", name: "Owner", role: "owner" }],
+        invitations: [],
+        role: "owner",
+      }),
+      invite: rec("team.invite", (input: unknown) => ({
+        id: "inv1",
+        token: "tok_abc",
+        ...(input as object),
+      })),
+    },
+  } as unknown as ClerqCaller;
 }
 
-async function connectClient(caller: AtelierCaller) {
-  const server = createAtelierMcpServer({ caller, businessId, baseUrl });
+async function connectClient(caller: ClerqCaller) {
+  const server = createClerqMcpServer({ caller, businessId, baseUrl });
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
@@ -107,7 +119,7 @@ function jsonOf(result: CallToolResult): unknown {
   return JSON.parse(textOf(result));
 }
 
-describe("Atelier MCP server", () => {
+describe("Clerq MCP server", () => {
   beforeAll(() => {
     process.env.BETTER_AUTH_SECRET = SECRET;
   });
@@ -152,6 +164,10 @@ describe("Atelier MCP server", () => {
         "mark_expense_paid",
         "mark_expense_unpaid",
         "delete_expense",
+        "list_team_members",
+        "invite_team_member",
+        "revoke_invitation",
+        "remove_team_member",
       ]),
     );
     // Each tool must carry a description - it is the model's only guidance.
@@ -279,6 +295,21 @@ describe("Atelier MCP server", () => {
     expect(payload.receiptDataUrl).toBeUndefined();
     expect(payload.hasReceipt).toBe(true);
     expect(payload.receiptFilename).toBe("camera.png");
+  });
+
+  it("invite_team_member returns a shareable invite link built from the base URL", async () => {
+    const recorded: Recorded[] = [];
+    const client = await connectClient(buildFakeCaller(recorded));
+    const result = (await client.callTool({
+      name: "invite_team_member",
+      arguments: { email: "teammate@example.com", role: "member" },
+    })) as CallToolResult;
+    const payload = jsonOf(result) as { inviteUrl: string; token: string };
+    expect(payload.inviteUrl).toBe(`${baseUrl}/invite/tok_abc`);
+    expect(recorded).toContainEqual({
+      method: "team.invite",
+      input: { email: "teammate@example.com", role: "member" },
+    });
   });
 
   it("rejects input that violates the tool schema", async () => {

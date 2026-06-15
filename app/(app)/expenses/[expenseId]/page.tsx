@@ -15,7 +15,7 @@ import {
 } from "./expense-actions";
 
 export const metadata: Metadata = {
-  title: "Expense - Atelier",
+  title: "Expense - Clerq",
 };
 
 export const dynamic = "force-dynamic";

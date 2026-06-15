@@ -2,8 +2,8 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { withMcpAuth } from "better-auth/plugins";
 
 import { getAuth } from "@/server/auth";
-import { createAtelierCaller, mcpContextForUser } from "@/server/mcp/caller";
-import { createAtelierMcpServer } from "@/server/mcp/server";
+import { createClerqCaller, mcpContextForUser } from "@/server/mcp/caller";
+import { createClerqMcpServer } from "@/server/mcp/server";
 import { getActiveMembership } from "@/server/membership";
 
 // The MCP protected resource. withMcpAuth validates the OAuth bearer token
@@ -27,10 +27,10 @@ async function handle(req: Request): Promise<Response> {
       );
     }
 
-    const caller = createAtelierCaller(
+    const caller = createClerqCaller(
       mcpContextForUser(session.userId, request.headers),
     );
-    const server = createAtelierMcpServer({
+    const server = createClerqMcpServer({
       caller,
       businessId: membership.businessId,
       baseUrl: new URL(request.url).origin,

@@ -189,7 +189,7 @@ export async function issueInvoice(
 
 // Spec Section 6 (Shay's review feedback): a migrating business can set
 // where this year's sequence continues. The configured next number must
-// exceed every number Atelier has already issued for that year.
+// exceed every number Clerq has already issued for that year.
 export async function configureNextInvoiceNumber(
   db: Db,
   businessId: string,

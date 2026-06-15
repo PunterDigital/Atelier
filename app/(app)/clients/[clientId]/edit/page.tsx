@@ -7,7 +7,7 @@ import { caller } from "@/server/trpc/server";
 import { ClientForm, type ClientFormValues } from "../../client-form";
 
 export const metadata: Metadata = {
-  title: "Edit client - Atelier",
+  title: "Edit client - Clerq",
 };
 
 export const dynamic = "force-dynamic";

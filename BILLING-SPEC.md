@@ -1,4 +1,4 @@
-# Atelier billing specification
+# Clerq billing specification
 
 Status: **APPROVED by Shay, 2026-06-10** (sign-off below). This is the
 agreed billing spec - money math is implemented only from this document.
@@ -62,7 +62,7 @@ require a new sign-off.
   a single rate the results differ only in rounding, and subtotal-based
   matches how the target users' accountants reconcile.
 - **[agreed]** The standard rate percentage is configuration
-  (`tax_config.standardRatePct`, e.g. 21 for CZ, 20 for UK). Atelier
+  (`tax_config.standardRatePct`, e.g. 21 for CZ, 20 for UK). Clerq
   never hardcodes a jurisdiction's rate and never infers which treatment
   applies - the user picks the treatment per invoice (default:
   the business's configured default treatment).
@@ -103,11 +103,11 @@ require a new sign-off.
   once numbered; drafts have no number until issued).
 - **[agreed]** (Shay's review feedback) The current year's sequence
   position is configurable in business settings, so a business moving to
-  Atelier mid-year can continue its existing numbering (e.g. set the next
+  Clerq mid-year can continue its existing numbering (e.g. set the next
   number to 0100). Constraint: the configured next number must be greater
-  than the highest number already issued by Atelier for that business and
+  than the highest number already issued by Clerq for that business and
   year - the no-gaps/no-duplicates guarantee applies from the configured
-  starting point onward, and Atelier cannot vouch for numbers issued
+  starting point onward, and Clerq cannot vouch for numbers issued
   outside it.
 - **[agreed]** Drafts are unnumbered; the number is assigned at the
   moment an invoice is issued (draft -> sent).

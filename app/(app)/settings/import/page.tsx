@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { ImportWizard } from "./import-wizard";
 
 export const metadata: Metadata = {
-  title: "Import clients - Atelier",
+  title: "Import clients - Clerq",
 };
 
 export const dynamic = "force-dynamic";

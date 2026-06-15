@@ -1,5 +1,5 @@
 {
-  "name": "atelier",
+  "name": "clerq",
   "version": "0.1.0",
   "private": true,
   "license": "AGPL-3.0-only",
@@ -14,7 +14,8 @@
     "test:billing": "vitest run --project billing",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:seed": "tsx --env-file-if-exists=.env db/seed.ts"
+    "db:seed": "tsx --env-file-if-exists=.env db/seed.ts",
+    "seed:acme": "tsx --env-file-if-exists=.env db/seed-acme.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

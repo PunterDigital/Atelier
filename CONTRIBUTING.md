@@ -1,4 +1,4 @@
-# Contributing to Atelier
+# Contributing to Clerq
 
 Thanks for considering it. The project is pre-alpha, so the most useful
 contributions right now are small, focused, and discussed first in an

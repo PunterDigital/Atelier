@@ -7,6 +7,7 @@ import { healthRouter } from "./health";
 import { invoicesRouter } from "./invoices";
 import { projectsRouter } from "./projects";
 import { tasksRouter } from "./tasks";
+import { teamRouter } from "./team";
 import { timeRouter } from "./time";
 
 export const appRouter = createTRPCRouter({
@@ -18,6 +19,7 @@ export const appRouter = createTRPCRouter({
   time: timeRouter,
   invoices: invoicesRouter,
   expenses: expensesRouter,
+  team: teamRouter,
   dashboard: dashboardRouter,
 });
 

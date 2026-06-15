@@ -11,7 +11,7 @@ import { caller } from "@/server/trpc/server";
 import { TasksPanel } from "./tasks-panel";
 
 export const metadata: Metadata = {
-  title: "Project - Atelier",
+  title: "Project - Clerq",
 };
 
 export const dynamic = "force-dynamic";

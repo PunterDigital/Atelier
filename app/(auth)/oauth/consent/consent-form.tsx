@@ -76,7 +76,7 @@ export function ConsentForm({
         <CardTitle>Authorize access</CardTitle>
         <CardDescription>
           <span className="font-medium text-foreground">{appName}</span> wants
-          to connect to your Atelier account.
+          to connect to your Clerq account.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

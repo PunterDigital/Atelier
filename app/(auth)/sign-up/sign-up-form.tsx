@@ -16,8 +16,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 
-export function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
+export function SignUpForm({
+  googleEnabled,
+  redirectTo,
+}: {
+  googleEnabled: boolean;
+  redirectTo?: string;
+}) {
   const router = useRouter();
+  // Invited sign-ups return to the accept screen; everyone else goes to set
+  // up their own business.
+  const destination = redirectTo ?? "/onboarding";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,7 +47,7 @@ export function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
       setError(signUpError.message ?? "Could not create your account");
       return;
     }
-    router.push("/onboarding");
+    router.push(destination);
     router.refresh();
   }
 
@@ -47,7 +56,7 @@ export function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
       <CardHeader>
         <CardTitle>Create your account</CardTitle>
         <CardDescription>
-          Your Atelier instance, your data - let&apos;s get you set up
+          Your Clerq instance, your data - let&apos;s get you set up
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -101,7 +110,7 @@ export function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
             onClick={() =>
               authClient.signIn.social({
                 provider: "google",
-                callbackURL: "/onboarding",
+                callbackURL: destination,
               })
             }
           >

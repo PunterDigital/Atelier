@@ -17,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Atelier",
+  title: "Clerq",
   description:
     "Open-source, self-hostable business operating system for developer-freelancers: clients, projects, time tracking and invoicing in one connected flow.",
 };

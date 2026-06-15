@@ -9,7 +9,7 @@ import { formatDate, formatMoney } from "@/lib/format";
 import { caller } from "@/server/trpc/server";
 
 export const metadata: Metadata = {
-  title: "Expenses - Atelier",
+  title: "Expenses - Clerq",
 };
 
 export const dynamic = "force-dynamic";

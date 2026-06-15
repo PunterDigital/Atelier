@@ -1,4 +1,4 @@
-# Atelier
+# Clerq
 
 An open-source, self-hostable business operating system for
 developer-freelancers and small dev studios: clients, projects, time
@@ -32,8 +32,8 @@ The README will track honest feature status as things actually land.
 Requires Docker.
 
 ```bash
-git clone https://github.com/PunterDigital/Atelier.git
-cd Atelier
+git clone https://github.com/PunterDigital/Clerq.git
+cd Clerq
 docker compose up
 ```
 
@@ -51,7 +51,7 @@ Requires Node 24+, pnpm 10+, and a Postgres instance (or use
 pnpm install
 cp .env.example .env   # point DATABASE_URL at your Postgres
 pnpm db:migrate
-pnpm db:seed           # optional demo data (demo@atelier.local / atelier-demo)
+pnpm db:seed           # optional demo data (demo@clerq.local / clerq-demo)
 pnpm dev
 ```
 

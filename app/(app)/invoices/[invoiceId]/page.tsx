@@ -14,7 +14,7 @@ import { GeneratePanel } from "./generate-panel";
 import { InvoiceActions, RemoveLineButton } from "./invoice-actions";
 
 export const metadata: Metadata = {
-  title: "Invoice - Atelier",
+  title: "Invoice - Clerq",
 };
 
 export const dynamic = "force-dynamic";

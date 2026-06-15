@@ -1,6 +1,6 @@
 # Modules
 
-Atelier is a modular monolith: each domain module lives here, cleanly
+Clerq is a modular monolith: each domain module lives here, cleanly
 separated in code, shipped as one deployable. Modules own their domain
 logic and expose it to `/server` (tRPC routers); they do not import from
 each other's internals.

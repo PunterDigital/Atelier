@@ -1,13 +1,13 @@
 # Design
 
-The Atelier design system: warm, calm, human - AndCo's friendliness with
+The Clerq design system: warm, calm, human - AndCo's friendliness with
 Linear's restraint. Tokens here are the single source of truth for how
-Atelier looks; components are shadcn/ui primitives styled entirely by
+Clerq looks; components are shadcn/ui primitives styled entirely by
 these tokens.
 
 ## Source
 
-Implemented from the Atelier Design System bundle (2026-06-10),
+Implemented from the Clerq Design System bundle (2026-06-10),
 supplied by Shay as the resolution of ESC-4. The bundle
 (tokens, 16 component specs, dashboard/invoice/board UI kits, brand
 assets, full design brief) is the design reference; ask Shay for the

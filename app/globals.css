@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Atelier design tokens - the single source of truth for look and feel.
+/* Clerq design tokens - the single source of truth for look and feel.
    See design/README.md. Components consume the shadcn semantic variables
    mapped below; never hardcode colors, radii, or shadows. */
 @import "../design/tokens/colors.css";
@@ -47,7 +47,7 @@
   --color-card-foreground: var(--text-body);
   --color-card: var(--surface);
 
-  /* Atelier semantic extras (status pills, subtle pairs) */
+  /* Clerq semantic extras (status pills, subtle pairs) */
   --color-success: var(--success);
   --color-success-subtle: var(--success-subtle);
   --color-success-subtle-foreground: var(--success-subtle-fg);

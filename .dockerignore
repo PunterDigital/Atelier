@@ -6,6 +6,6 @@ coverage
 .env
 .env.*
 !.env.example
-atelier-software-plan.md
+clerq-software-plan.md
 TASKS.md
 ESCALATIONS.md

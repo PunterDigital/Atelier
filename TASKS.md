@@ -1,11 +1,11 @@
-# Atelier backlog
+# Clerq backlog
 
 Source of truth for the build backlog.
 One task at a time, top unchecked item first. Tasks marked `[BLOCKED: ESC-n]`
 depend on an open escalation in `ESCALATIONS.md` and must be skipped until it
 is resolved.
 
-Derived from `atelier-software-plan.md` Section 12 (build phases). Update this
+Derived from `clerq-software-plan.md` Section 12 (build phases). Update this
 file in the same commit as the work it tracks.
 
 ## Phase 0 - skeleton
@@ -264,7 +264,7 @@ fixture-first against it; a case the spec misses gets escalated.
   local stack: sign-up, session, onboarding redirect, business creation,
   scoped query, 401 without session; on `feat/auth`.
 
-- 2026-06-10 Design tokens: implemented the Atelier Design System bundle
+- 2026-06-10 Design tokens: implemented the Clerq Design System bundle
   with Soft Teal locked as primary (Shay's pick); full
   color/type/spacing/elevation token set in `/design/tokens`, mapped to
   the shadcn theme in globals.css, Figtree + JetBrains Mono self-hosted

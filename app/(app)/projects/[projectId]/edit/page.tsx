@@ -7,7 +7,7 @@ import { caller } from "@/server/trpc/server";
 import { ProjectForm, type ProjectFormValues } from "../../project-form";
 
 export const metadata: Metadata = {
-  title: "Edit project - Atelier",
+  title: "Edit project - Clerq",
 };
 
 export const dynamic = "force-dynamic";

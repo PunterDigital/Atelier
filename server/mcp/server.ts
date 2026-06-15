@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
-import type { AtelierCaller } from "./caller";
+import type { ClerqCaller } from "./caller";
 import { signInvoicePdfToken } from "./pdf-link";
 import { runTool, toolJson } from "./result";
 
@@ -49,21 +49,21 @@ const taskStatus = z
   .enum(["todo", "in_progress", "in_review", "done"])
   .describe("Task status.");
 
-export type AtelierMcpOptions = {
-  caller: AtelierCaller;
+export type ClerqMcpOptions = {
+  caller: ClerqCaller;
   /** Active business of the authenticated user; used to sign PDF links. */
   businessId: string;
   /** Absolute origin of this deployment, e.g. https://app.example.com. */
   baseUrl: string;
 };
 
-// Builds the Atelier MCP server for one authenticated request. Every tool is a
+// Builds the Clerq MCP server for one authenticated request. Every tool is a
 // thin adapter: validate the model's args, call the matching tRPC procedure,
 // hand the result back as JSON. Errors become readable isError results via
 // runTool rather than throwing.
-export function createAtelierMcpServer(opts: AtelierMcpOptions): McpServer {
+export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
   const { caller, businessId, baseUrl } = opts;
-  const server = new McpServer({ name: "atelier", version: "1.0.0" });
+  const server = new McpServer({ name: "clerq", version: "1.0.0" });
 
   // --- Connectivity -------------------------------------------------------
   server.registerTool(
@@ -711,6 +711,69 @@ export function createAtelierMcpServer(opts: AtelierMcpOptions): McpServer {
           expiresInSeconds: 15 * 60,
         });
       }),
+  );
+
+  // --- Team ---------------------------------------------------------------
+  server.registerTool(
+    "list_team_members",
+    {
+      title: "List team members",
+      description:
+        "List the people on the business and any pending invitations (invitations are visible to owners only).",
+    },
+    () => runTool(async () => toolJson(await caller.team.list())),
+  );
+
+  server.registerTool(
+    "invite_team_member",
+    {
+      title: "Invite team member",
+      description:
+        "Invite someone to the business by email (owner only). Returns a shareable invite link to send them - there is no automatic email.",
+      inputSchema: {
+        email: z.string().email().describe("The invitee's email address."),
+        role: z
+          .enum(["owner", "member"])
+          .optional()
+          .describe("Defaults to member. Owners can manage settings and the team."),
+      },
+    },
+    ({ email, role }) =>
+      runTool(async () => {
+        const invitation = await caller.team.invite({
+          email,
+          role: role ?? "member",
+        });
+        return toolJson({
+          ...invitation,
+          inviteUrl: `${baseUrl}/invite/${invitation.token}`,
+        });
+      }),
+  );
+
+  server.registerTool(
+    "revoke_invitation",
+    {
+      title: "Revoke invitation",
+      description: "Revoke a pending team invitation (owner only).",
+      inputSchema: { invitationId: z.string().uuid() },
+    },
+    ({ invitationId }) =>
+      runTool(async () => toolJson(await caller.team.revoke({ invitationId }))),
+  );
+
+  server.registerTool(
+    "remove_team_member",
+    {
+      title: "Remove team member",
+      description:
+        "Remove a member from the business by their user id (owner only). The last owner cannot be removed.",
+      inputSchema: { userId: z.string() },
+    },
+    ({ userId }) =>
+      runTool(async () =>
+        toolJson(await caller.team.removeMember({ userId })),
+      ),
   );
 
   return server;

@@ -1,7 +1,7 @@
 import { ConsentForm } from "./consent-form";
 
 // Where an authenticated user approves (or denies) an MCP client that is
-// trying to connect to their Atelier account. The Better Auth OAuth flow
+// trying to connect to their Clerq account. The Better Auth OAuth flow
 // redirects here with the client and requested scopes in the query string;
 // approving posts back to the plugin's consent endpoint and returns to the
 // client with an authorization code.

@@ -16,8 +16,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 
-export function SignInForm({ googleEnabled }: { googleEnabled: boolean }) {
+export function SignInForm({
+  googleEnabled,
+  redirectTo,
+}: {
+  googleEnabled: boolean;
+  redirectTo?: string;
+}) {
   const router = useRouter();
+  const destination = redirectTo ?? "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +43,7 @@ export function SignInForm({ googleEnabled }: { googleEnabled: boolean }) {
       setError(signInError.message ?? "Could not sign you in");
       return;
     }
-    router.push("/");
+    router.push(destination);
     router.refresh();
   }
 
@@ -44,7 +51,7 @@ export function SignInForm({ googleEnabled }: { googleEnabled: boolean }) {
     <Card>
       <CardHeader>
         <CardTitle>Welcome back</CardTitle>
-        <CardDescription>Sign in to your Atelier instance</CardDescription>
+        <CardDescription>Sign in to your Clerq instance</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -84,7 +91,10 @@ export function SignInForm({ googleEnabled }: { googleEnabled: boolean }) {
             type="button"
             variant="outline"
             onClick={() =>
-              authClient.signIn.social({ provider: "google", callbackURL: "/" })
+              authClient.signIn.social({
+                provider: "google",
+                callbackURL: destination,
+              })
             }
           >
             Continue with Google

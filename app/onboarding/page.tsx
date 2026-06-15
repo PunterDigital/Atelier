@@ -9,7 +9,7 @@ import { getActiveMembership } from "@/server/membership";
 import { OnboardingForm } from "./onboarding-form";
 
 export const metadata: Metadata = {
-  title: "Set up your business - Atelier",
+  title: "Set up your business - Clerq",
 };
 
 // Per-request: session check + DB lookup, never prerenderable.
@@ -28,8 +28,8 @@ export default async function OnboardingPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-background px-4 py-12">
       <Image
-        src="/brand/atelier-logo.svg"
-        alt="Atelier"
+        src="/brand/clerq-logo.svg"
+        alt="Clerq"
         width={132}
         height={36}
         priority

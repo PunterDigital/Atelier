@@ -34,8 +34,8 @@ export function Sidebar() {
       <div className="flex items-center gap-2.5 px-2 pb-3.5 pt-1.5">
         <Link href="/">
           <Image
-            src="/brand/atelier-logo.svg"
-            alt="Atelier"
+            src="/brand/clerq-logo.svg"
+            alt="Clerq"
             width={104}
             height={28}
             priority

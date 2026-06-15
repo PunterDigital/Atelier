@@ -18,8 +18,8 @@ import { logManualEntry } from "@/modules/time/service";
 import { getAuth } from "@/server/auth";
 import { addDays, startOfWeek } from "@/lib/week";
 
-export const DEMO_EMAIL = "demo@atelier.local";
-export const DEMO_PASSWORD = "atelier-demo";
+export const DEMO_EMAIL = "demo@clerq.local";
+export const DEMO_PASSWORD = "clerq-demo";
 
 async function main() {
   const db = getDb();
