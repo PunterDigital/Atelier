@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,9 +32,21 @@ export function SignUpForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  // Terms/privacy consent is only required on the hosted app. We detect the
+  // host client-side (defaulting to false) to avoid a hydration mismatch.
+  const [requireConsent, setRequireConsent] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  useEffect(() => {
+    setRequireConsent(window.location.hostname === "app.useclerq.net");
+  }, []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (requireConsent && !acceptedTerms) {
+      setError("Please accept the Terms of Service and Privacy Policy");
+      return;
+    }
     setError(null);
     setPending(true);
     const { error: signUpError } = await authClient.signUp.email({
@@ -94,12 +106,42 @@ export function SignUpForm({
               onChange={(event) => setPassword(event.target.value)}
             />
           </div>
+          {requireConsent ? (
+            <label className="flex items-start gap-2 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={acceptedTerms}
+                onChange={(event) => setAcceptedTerms(event.target.checked)}
+              />
+              <span>
+                I agree to the{" "}
+                <Link
+                  href="https://useclerq.net/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline-offset-4 hover:underline"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="https://useclerq.net/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline-offset-4 hover:underline"
+                >
+                  Privacy Policy
+                </Link>
+              </span>
+            </label>
+          ) : null}
           {error ? (
             <p role="alert" className="text-sm text-destructive">
               {error}
             </p>
           ) : null}
-          <Button type="submit" disabled={pending}>
+          <Button type="submit" disabled={pending || (requireConsent && !acceptedTerms)}>
             {pending ? "Creating your account..." : "Create account"}
           </Button>
         </form>
