@@ -47,5 +47,34 @@ next-env.d.ts
 # local planning docs (not part of the public repo)
 clerq-software-plan.md
 
-# IDE
+# AI assistants
+.claude/
+CLAUDE.md
+.cursor/
+.cursorrules
+.cursorignore
+.windsurf/
+.windsurfrules
+.aider*
+.continue/
+.codeium/
+.github/copilot-instructions.md
+AGENTS.md
+.augment/
+.roo/
+.cline/
+
+# IDEs and editors
 .idea/
+.vscode/
+*.code-workspace
+.fleet/
+.zed/
+.history/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+*~

@@ -2,38 +2,38 @@
 
 An open-source, self-hostable business operating system for
 developer-freelancers and small dev studios: clients, projects, time
-tracking and invoicing in one connected flow.
+tracking, expenses and invoicing in one connected flow.
 
-## Status: pre-alpha
+- **Website:** [useclerq.net](https://useclerq.net)
+- **Documentation:** [useclerq.net/docs](https://useclerq.net/docs)
 
-Early but real: the connected flow works end to end. What exists today:
+## Features
 
-- Clients with contacts, default rates, VAT numbers and an activity thread
-- Projects and tasks with a kanban board and list views
-- Time tracking: start/stop timers, manual entries, a weekly timesheet
-- Invoicing: generate lines from unbilled time (grouped your way) or add
-  fixed amounts, multi-currency with ECB conversion fixed per line,
-  standard/zero-rated/reverse-charge VAT, gapless per-year numbering,
-  draft/sent/paid/overdue lifecycle, PDF export
-- The money math is fixture-tested against a signed-off billing spec
-  (`BILLING-SPEC.md`) - every rule has a hand-verified expected output
-- Auth: email/password (Better Auth), optional Google SSO via env,
-  small-team memberships; everything scoped per business
-- One-command self-host via docker-compose, demo seed included
-
-Not yet: proposals, recurring invoices, payment collection, importers,
-a client portal. The design is mid-pass; screens are functional and
-consistent but still being refined.
-
-The README will track honest feature status as things actually land.
+- **Clients** with contacts, default rates, VAT numbers and an activity thread
+- **Projects and tasks** with a kanban board and list views
+- **Time tracking:** start/stop timers, manual entries, and a weekly timesheet
+- **Invoicing:** generate lines from unbilled time (grouped your way) or add
+  fixed amounts; multi-currency with ECB conversion fixed per line;
+  standard / zero-rated / reverse-charge VAT; gapless per-year numbering;
+  draft / sent / paid / overdue lifecycle; branded PDF export
+- **Expenses:** capture expenses and attach them to projects
+- **Provably-correct money math:** every billing rule is fixture-tested with
+  hand-verified expected output, using minor-unit integer arithmetic so floats
+  never touch money
+- **Teams and roles:** small-team memberships with roles and permissions,
+  everything scoped per business
+- **CSV import** with interactive column mapping for migrating clients in
+- **Auth:** email/password (Better Auth), optional Google SSO via env config,
+  server-side database sessions
+- **One-command self-host** via docker-compose, demo seed included
 
 ## Self-host (one command)
 
 Requires Docker.
 
 ```bash
-git clone https://github.com/PunterDigital/Clerq.git
-cd Clerq
+git clone https://github.com/PunterDigital/clerq.git
+cd clerq
 docker compose up
 ```
 
@@ -64,6 +64,8 @@ pnpm test
 pnpm test:billing
 pnpm build
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for repo layout and conventions.
 
 ## Licence
 
