@@ -1,32 +1,28 @@
 "use client";
 
-import { useMemo } from "react";
+import type { CurrencyOption } from "@/lib/currencies";
 
-// Full ISO 4217 dropdown built from the runtime's own currency registry -
-// no hand-maintained list to drift. Labels add the English display name.
+// Full ISO 4217 dropdown. The option list is computed once on the server (see
+// lib/currencies.ts) and passed in, so server and client render identical text
+// - building it independently on each side trips a hydration mismatch because
+// Node and browser ICU disagree on some currency names.
 export function CurrencySelect({
   id,
   value,
   onChange,
+  options,
   emptyLabel,
   required,
 }: {
   id: string;
   value: string;
   onChange: (value: string) => void;
+  options: CurrencyOption[];
   // When set, an empty choice is offered with this label (e.g. for
   // optional rate currencies).
   emptyLabel?: string;
   required?: boolean;
 }) {
-  const options = useMemo(() => {
-    const names = new Intl.DisplayNames(["en"], { type: "currency" });
-    return Intl.supportedValuesOf("currency").map((code) => ({
-      code,
-      label: `${code} - ${names.of(code) ?? code}`,
-    }));
-  }, []);
-
   return (
     <select
       id={id}

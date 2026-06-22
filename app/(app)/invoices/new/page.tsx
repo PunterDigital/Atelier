@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { listCurrencyOptions } from "@/lib/currencies";
 import { caller } from "@/server/trpc/server";
 
 import { NewInvoiceForm } from "./new-invoice-form";
@@ -34,6 +35,7 @@ export default async function NewInvoicePage() {
         <NewInvoiceForm
           clients={clients.map((c) => ({ id: c.id, name: c.name }))}
           defaultCurrency={settings.currency}
+          currencyOptions={listCurrencyOptions()}
           standardRateConfigured={Boolean(settings.standardRatePct)}
         />
       )}
