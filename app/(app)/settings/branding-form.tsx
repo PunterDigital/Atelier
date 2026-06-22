@@ -177,8 +177,8 @@ export function BrandingForm({
             <Label htmlFor="footerNote">Invoice footer</Label>
             <textarea
               id="footerNote"
-              rows={2}
-              maxLength={280}
+              rows={6}
+              maxLength={2000}
               placeholder="Thank you for your business. Payment within 30 days to GB00 BANK 1234 5678."
               value={footerNote}
               onChange={(e) => setFooterNote(e.target.value)}
@@ -186,7 +186,7 @@ export function BrandingForm({
             />
             <p className="text-sm text-muted-foreground">
               A short line printed at the foot of every invoice - payment
-              terms, bank details or a thank-you. {280 - footerNote.length} left
+              terms, bank details or a thank-you. {2000 - footerNote.length} left
             </p>
           </div>
 
@@ -252,7 +252,7 @@ function BrandingPreview({
           <span className="text-lg font-semibold text-foreground">Invoice</span>
         </div>
         {footerNote ? (
-          <p className="mt-10 border-t pt-2 text-xs text-muted-foreground">
+          <p className="mt-10 whitespace-pre-line border-t pt-2 text-xs text-muted-foreground">
             {footerNote}
           </p>
         ) : null}

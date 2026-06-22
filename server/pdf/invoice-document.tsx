@@ -123,8 +123,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
     paddingTop: 8,
+  },
+  footerLine: {
     fontSize: 8,
     color: colors.textMuted,
+    lineHeight: 1.4,
   },
 });
 
@@ -227,9 +230,13 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
         {data.notes ? <Text style={styles.notes}>{data.notes}</Text> : null}
 
         {data.footerNote ? (
-          <Text style={styles.footer} fixed>
-            {data.footerNote}
-          </Text>
+          <View style={styles.footer} fixed>
+            {data.footerNote.split("\n").map((line, i) => (
+              <Text key={i} style={styles.footerLine}>
+                {line || " "}
+              </Text>
+            ))}
+          </View>
         ) : null}
       </Page>
     </Document>
