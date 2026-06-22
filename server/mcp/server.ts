@@ -34,6 +34,16 @@ const clientFields = {
     .describe("Client display name - the company or organisation you invoice."),
   contacts: z.array(contactField).optional().describe("People at the client."),
   notes: z.string().optional().describe("Freeform notes about the client."),
+  address: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("Postal address, newline-separated; printed on invoices."),
+  companyNumber: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("Company / registration number (Companies House, IČO, etc.)."),
   vatNumber: z
     .string()
     .nullable()
@@ -168,6 +178,8 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
             name: existing.name,
             contacts,
             notes: existing.notes ?? undefined,
+            address: existing.address,
+            companyNumber: existing.companyNumber,
             vatNumber: existing.vatNumber,
             defaultRateMinor: existing.defaultRateMinor,
             defaultRateCurrency: existing.defaultRateCurrency,
@@ -604,14 +616,30 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
           .enum(["standard", "zero_rated", "reverse_charge"])
           .describe("Tax treatment for the whole invoice."),
         dueDate: z.string().datetime().nullable().optional().describe(ISO),
+        periodStart: z
+          .string()
+          .datetime()
+          .nullable()
+          .optional()
+          .describe(
+            `Start of the billing period this invoice covers. ${ISO} Set both period ends or neither.`,
+          ),
+        periodEnd: z
+          .string()
+          .datetime()
+          .nullable()
+          .optional()
+          .describe(`End of the billing period this invoice covers. ${ISO}`),
       },
     },
-    ({ dueDate, ...rest }) =>
+    ({ dueDate, periodStart, periodEnd, ...rest }) =>
       runTool(async () =>
         toolJson(
           await caller.invoices.createDraft({
             ...rest,
             dueDate: dueDate ? new Date(dueDate) : null,
+            periodStart: periodStart ? new Date(periodStart) : null,
+            periodEnd: periodEnd ? new Date(periodEnd) : null,
           }),
         ),
       ),

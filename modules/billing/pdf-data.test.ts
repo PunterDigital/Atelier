@@ -8,6 +8,8 @@ const baseInvoice = {
   currency: "EUR",
   issueDate: new Date("2026-06-11T12:00:00Z"),
   dueDate: new Date("2026-07-11T00:00:00Z"),
+  periodStart: null as Date | null,
+  periodEnd: null as Date | null,
   taxTreatment: "standard" as const,
   taxRatePercent: "21",
   taxNote: null as string | null,
@@ -36,6 +38,8 @@ const business = {
 };
 const client = {
   name: "Northwind Studio s.r.o.",
+  address: "44 Riverside\nPrague 110 00",
+  companyNumber: "08123456",
   vatNumber: "CZ12345678",
 };
 
@@ -50,8 +54,11 @@ describe("invoice PDF view model", () => {
       "Bristol BS1 4QA",
     ]);
     expect(data.clientVatNumber).toBe("CZ12345678");
+    expect(data.clientAddressLines).toEqual(["44 Riverside", "Prague 110 00"]);
+    expect(data.clientCompanyNumber).toBe("08123456");
     expect(data.issueDateLabel).toBe("11 Jun 2026");
     expect(data.dueDateLabel).toBe("11 Jul 2026");
+    expect(data.periodLabel).toBeNull();
     expect(data.lines[0].quantityLabel).toBe("11.25 h x €62.00/h");
     expect(data.lines[0].totalLabel).toBe("€697.50");
     expect(data.taxRowLabel).toBe("VAT (21%)");
@@ -84,6 +91,19 @@ describe("invoice PDF view model", () => {
     expect(data.issueDateLabel).toBeNull();
     expect(data.lines[0].quantityLabel).toBeNull();
     expect(data.lines[0].totalLabel).toBe("€1,500.00");
+  });
+
+  it("renders a billing period as a single range label when both dates are set", () => {
+    const data = buildInvoicePdfData({
+      invoice: {
+        ...baseInvoice,
+        periodStart: new Date("2026-05-26T00:00:00Z"),
+        periodEnd: new Date("2026-06-08T00:00:00Z"),
+      },
+      business,
+      client,
+    });
+    expect(data.periodLabel).toBe("26 May 2026 - 8 Jun 2026");
   });
 
   it("defaults to the house teal when the business has no brand colour", () => {

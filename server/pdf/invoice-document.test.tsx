@@ -15,6 +15,8 @@ describe("invoice PDF rendering", () => {
         currency: "EUR",
         issueDate: new Date("2026-06-11T12:00:00Z"),
         dueDate: new Date("2026-07-11T00:00:00Z"),
+        periodStart: new Date("2026-05-26T00:00:00Z"),
+        periodEnd: new Date("2026-06-08T00:00:00Z"),
         taxTreatment: "reverse_charge",
         taxRatePercent: "0",
         taxNote:
@@ -53,6 +55,8 @@ describe("invoice PDF rendering", () => {
       },
       client: {
         name: "Lumen Labs Ltd",
+        address: "44 Riverside\nPrague 110 00",
+        companyNumber: "08123456",
         vatNumber: "CZ12345678",
       },
     });

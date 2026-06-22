@@ -34,6 +34,8 @@ export function NewInvoiceForm({
     standardRateConfigured ? "standard" : "reverse_charge",
   );
   const [dueDate, setDueDate] = useState("");
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
 
   const create = useMutation(
     trpc.invoices.createDraft.mutationOptions({
@@ -55,6 +57,12 @@ export function NewInvoiceForm({
               currency: currency.trim().toUpperCase(),
               taxTreatment: treatment,
               dueDate: dueDate ? new Date(`${dueDate}T00:00:00.000Z`) : null,
+              periodStart: periodStart
+                ? new Date(`${periodStart}T00:00:00.000Z`)
+                : null,
+              periodEnd: periodEnd
+                ? new Date(`${periodEnd}T00:00:00.000Z`)
+                : null,
             });
           }}
           className="flex flex-col gap-5"
@@ -95,6 +103,31 @@ export function NewInvoiceForm({
                 onChange={(e) => setDueDate(e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label>Billing period (optional)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                aria-label="Billing period start"
+                type="date"
+                value={periodStart}
+                max={periodEnd || undefined}
+                onChange={(e) => setPeriodStart(e.target.value)}
+              />
+              <span className="text-sm text-muted-foreground">to</span>
+              <Input
+                aria-label="Billing period end"
+                type="date"
+                value={periodEnd}
+                min={periodStart || undefined}
+                onChange={(e) => setPeriodEnd(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              The work this invoice covers - shown alongside the issue and due
+              dates.
+            </p>
           </div>
 
           <div className="flex flex-col gap-2">

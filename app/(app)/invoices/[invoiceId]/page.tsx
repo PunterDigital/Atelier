@@ -61,6 +61,9 @@ export default async function InvoiceDetailPage({
               ? ` - issued ${formatDate(invoice.issueDate)}`
               : null}
             {invoice.dueDate ? ` - due ${formatDate(invoice.dueDate)}` : null}
+            {invoice.periodStart && invoice.periodEnd
+              ? ` - period ${formatDate(invoice.periodStart)} to ${formatDate(invoice.periodEnd)}`
+              : null}
           </p>
         </div>
         <div className="flex items-start gap-2">

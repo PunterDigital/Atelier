@@ -32,6 +32,10 @@ export const clientInputSchema = z.object({
   name: z.string().trim().min(1).max(200),
   contacts: z.array(contactSchema).max(50).default([]),
   notes: z.string().trim().max(10_000).optional(),
+  // Postal address, newline-separated, printed on invoices. Stored verbatim.
+  address: z.string().trim().max(1_000).nullable().optional(),
+  // Company / registration number (Companies House, IČO, etc.).
+  companyNumber: z.string().trim().max(50).nullable().optional(),
   // Stored verbatim; validated only for shape. Required at issue time for
   // reverse-charge invoices (spec Section 4).
   vatNumber: z.string().trim().max(30).nullable().optional(),
@@ -116,6 +120,8 @@ export async function createClient(
         name: input.name,
         contacts: input.contacts,
         notes: input.notes ?? null,
+        address: input.address || null,
+        companyNumber: input.companyNumber || null,
         vatNumber: input.vatNumber || null,
         defaultRateMinor: input.defaultRateMinor ?? null,
         defaultRateCurrency: input.defaultRateCurrency ?? null,
@@ -149,6 +155,8 @@ export async function updateClient(
         name: input.name,
         contacts: input.contacts,
         notes: input.notes ?? null,
+        address: input.address || null,
+        companyNumber: input.companyNumber || null,
         vatNumber: input.vatNumber || null,
         defaultRateMinor: input.defaultRateMinor ?? null,
         defaultRateCurrency: input.defaultRateCurrency ?? null,
