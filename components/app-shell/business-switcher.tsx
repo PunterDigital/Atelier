@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { ChevronsUpDown, Plus } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 import { useState } from "react";
@@ -23,15 +22,18 @@ import type { UserBusiness } from "@/server/membership";
 // The topbar organization switcher. A user can belong to several businesses
 // (clean separation of concerns - one account, several entities); this is how
 // they see which one they are in, jump between them, and spin up a new one.
-// Server-rendered with the full list, so there is no empty-state flash; the
-// switch and create mutations refresh the route afterwards so every server
-// component re-reads against the now-active business.
+// Server-rendered with the full list, so there is no empty-state flash. On a
+// switch or a create we do a full page reload rather than a soft router
+// refresh: the active business changes what every query returns, and a soft
+// refresh would re-render the server components while leaving the previous
+// business's data cached in React Query on the client - so the page would show
+// a stale mix. A reload re-fetches the current page cleanly against the now-
+// active business and keeps the user where they were.
 export function BusinessSwitcher({
   businesses,
 }: {
   businesses: UserBusiness[];
 }) {
-  const router = useRouter();
   const trpc = useTRPC();
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -39,7 +41,7 @@ export function BusinessSwitcher({
 
   const switchBusiness = useMutation(
     trpc.business.switch.mutationOptions({
-      onSuccess: () => router.refresh(),
+      onSuccess: () => window.location.reload(),
     }),
   );
 
@@ -119,7 +121,8 @@ export function BusinessSwitcher({
 
 // Create a new business inline. Mirrors the onboarding form's fields and the
 // business.create mutation; on success that mutation already makes the new
-// business active, so a route refresh lands the user inside it.
+// business active, so reloading the page lands the user inside it (a full
+// reload for the same reason as switching - see BusinessSwitcher).
 function CreateBusinessDialog({
   open,
   onOpenChange,
@@ -127,7 +130,6 @@ function CreateBusinessDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const router = useRouter();
   const trpc = useTRPC();
   const [name, setName] = useState("");
   const [currency, setCurrency] = useState("");
@@ -138,7 +140,7 @@ function CreateBusinessDialog({
         setName("");
         setCurrency("");
         onOpenChange(false);
-        router.refresh();
+        window.location.reload();
       },
     }),
   );
