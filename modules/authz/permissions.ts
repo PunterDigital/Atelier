@@ -38,6 +38,7 @@ export const PERMISSIONS = [
   "invoices.issue",
   "invoices.markPaid",
   "invoices.void",
+  "invoices.delete",
   "invoices.configure",
   // Expenses
   "expenses.view",
@@ -204,6 +205,11 @@ export const PERMISSION_META: Record<
     group: "Invoices",
     label: "Void invoices",
     description: "Void an issued invoice so a corrected copy can be re-issued.",
+  },
+  "invoices.delete": {
+    group: "Invoices",
+    label: "Delete draft invoices",
+    description: "Delete a draft invoice (issued invoices are kept).",
   },
   "invoices.configure": {
     group: "Invoices",

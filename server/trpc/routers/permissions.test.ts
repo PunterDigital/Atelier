@@ -118,6 +118,7 @@ const PROBES: Record<Permission, (c: Caller) => Promise<unknown>> = {
   "invoices.issue": (c) => c.invoices.issue({ invoiceId: randomUUID() }),
   "invoices.markPaid": (c) => c.invoices.markPaid({ invoiceId: randomUUID() }),
   "invoices.void": (c) => c.invoices.void({ invoiceId: randomUUID() }),
+  "invoices.delete": (c) => c.invoices.delete({ invoiceId: randomUUID() }),
   "invoices.configure": (c) =>
     c.invoices.configureNextNumber({ year: 2026, nextNumber: 1 }),
   "expenses.view": (c) => c.expenses.list({}),

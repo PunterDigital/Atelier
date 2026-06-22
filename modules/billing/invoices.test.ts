@@ -14,6 +14,7 @@ import { addManualLine } from "./generate";
 import {
   configureNextInvoiceNumber,
   createDraftInvoice,
+  deleteDraftInvoice,
   duplicateInvoice,
   formatInvoiceNumber,
   issueInvoice,
@@ -279,6 +280,27 @@ describe("duplicating an invoice", () => {
   it("does not duplicate another business's invoice", async () => {
     const source = await draft(businessB.id, clientB.id);
     expect(await duplicateInvoice(db, businessA.id, source.id)).toBeNull();
+  });
+});
+
+describe("deleting a draft", () => {
+  it("deletes a draft, but never an issued or foreign invoice", async () => {
+    const d = await draft(businessA.id, clientA.id);
+    // Foreign business cannot delete it.
+    expect(await deleteDraftInvoice(db, businessB.id, d.id)).toBeNull();
+
+    // Owning business deletes the draft, and it is gone.
+    expect(await deleteDraftInvoice(db, businessA.id, d.id)).not.toBeNull();
+    const [gone] = await db
+      .select()
+      .from(schema.invoice)
+      .where(eq(schema.invoice.id, d.id));
+    expect(gone).toBeUndefined();
+
+    // Issued invoices are documents - they cannot be deleted.
+    const toIssue = await draft(businessA.id, clientA.id);
+    await issueOk(businessA.id, toIssue.id, new Date("2026-05-02T12:00:00Z"));
+    expect(await deleteDraftInvoice(db, businessA.id, toIssue.id)).toBeNull();
   });
 });
 

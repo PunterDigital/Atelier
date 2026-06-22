@@ -207,6 +207,29 @@ export async function updateInvoiceDetails(
   return updated ?? null;
 }
 
+// Deletes a draft outright. Only drafts can be deleted - issued invoices are
+// documents in the sequence (void them instead). The line cascade drops the
+// invoice's lines, which releases their time entries back to the unbilled pool
+// (timeEntry.invoiceLineId is ON DELETE SET NULL). Returns the deleted id, or
+// null when there is no draft to delete.
+export async function deleteDraftInvoice(
+  db: Db,
+  businessId: string,
+  invoiceId: string,
+) {
+  const [deleted] = await db
+    .delete(schema.invoice)
+    .where(
+      and(
+        eq(schema.invoice.businessId, businessId),
+        eq(schema.invoice.id, invoiceId),
+        eq(schema.invoice.status, "draft"),
+      ),
+    )
+    .returning({ id: schema.invoice.id });
+  return deleted ?? null;
+}
+
 export type IssueResult =
   | { ok: true; invoice: typeof schema.invoice.$inferSelect }
   | {

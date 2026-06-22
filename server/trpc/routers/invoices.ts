@@ -13,6 +13,7 @@ import {
 import {
   configureNextInvoiceNumber,
   createDraftInvoice,
+  deleteDraftInvoice,
   duplicateInvoice,
   issueInvoice,
   updateInvoiceDetails,
@@ -300,6 +301,25 @@ export const invoicesRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) =>
       found(await duplicateInvoice(getDb(), ctx.businessId, input.invoiceId)),
     ),
+
+  // Deletes a draft (issued invoices are kept - void them instead). Releases
+  // any linked time entries back to unbilled via the line cascade.
+  delete: permissionProcedure("invoices.delete")
+    .input(z.object({ invoiceId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const deleted = await deleteDraftInvoice(
+        getDb(),
+        ctx.businessId,
+        input.invoiceId,
+      );
+      if (!deleted) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Only draft invoices can be deleted",
+        });
+      }
+      return { ok: true as const };
+    }),
 
   configureNextNumber: permissionProcedure("invoices.configure")
     .input(

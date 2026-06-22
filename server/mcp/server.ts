@@ -801,6 +801,20 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
       ),
   );
 
+  server.registerTool(
+    "delete_invoice",
+    {
+      title: "Delete draft invoice",
+      description:
+        "Permanently delete a draft invoice. Only drafts can be deleted - issued invoices are kept (void them instead). Any time entries billed on the draft are released back to the unbilled pool.",
+      inputSchema: { invoiceId: z.string().uuid() },
+    },
+    ({ invoiceId }) =>
+      runTool(async () =>
+        toolJson(await caller.invoices.delete({ invoiceId })),
+      ),
+  );
+
   // --- Expenses -----------------------------------------------------------
   server.registerTool(
     "list_expenses",

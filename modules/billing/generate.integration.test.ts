@@ -18,7 +18,11 @@ import {
   generateLinesFromUnbilledTime,
   setInvoiceNotes,
 } from "./generate";
-import { createDraftInvoice, issueInvoice } from "./invoices";
+import {
+  createDraftInvoice,
+  deleteDraftInvoice,
+  issueInvoice,
+} from "./invoices";
 
 const migrationsFolder = fileURLToPath(
   new URL("../../db/migrations", import.meta.url),
@@ -245,6 +249,59 @@ describe("generate lines from unbilled time (integration)", () => {
     );
     expect(issued.ok).toBe(true);
     expect(await setInvoiceNotes(db, business.id, invoiceId, "too late")).toBeNull();
+  });
+
+  it("deleting a draft releases its billed time back to unbilled", async () => {
+    const draft = await createDraftInvoice(db, business.id, {
+      clientId: client.id,
+      currency: "EUR",
+      taxTreatment: "standard",
+      standardRatePercent: "21",
+    });
+    const invoiceId = (draft as { id: string }).id;
+
+    const gen = await generateLinesFromUnbilledTime(db, business.id, {
+      invoiceId,
+      grouping: "single",
+    });
+    expect(gen.ok).toBe(true);
+
+    // The billable entries are now linked to this invoice's lines.
+    const linkedBefore = await db
+      .select({ id: schema.timeEntry.id })
+      .from(schema.timeEntry)
+      .innerJoin(
+        schema.invoiceLine,
+        eq(schema.timeEntry.invoiceLineId, schema.invoiceLine.id),
+      )
+      .where(eq(schema.invoiceLine.invoiceId, invoiceId));
+    expect(linkedBefore.length).toBeGreaterThan(0);
+
+    // Deleting the draft removes it and its lines...
+    expect(await deleteDraftInvoice(db, business.id, invoiceId)).not.toBeNull();
+    const [gone] = await db
+      .select()
+      .from(schema.invoice)
+      .where(eq(schema.invoice.id, invoiceId));
+    expect(gone).toBeUndefined();
+    const lines = await db
+      .select()
+      .from(schema.invoiceLine)
+      .where(eq(schema.invoiceLine.invoiceId, invoiceId));
+    expect(lines).toHaveLength(0);
+
+    // ...and the entries are unbilled again (the cascade set the link null).
+    const releasable = await db
+      .select({ id: schema.timeEntry.id })
+      .from(schema.timeEntry)
+      .where(
+        and(
+          eq(schema.timeEntry.businessId, business.id),
+          eq(schema.timeEntry.billable, true),
+          isNull(schema.timeEntry.invoiceLineId),
+        ),
+      );
+    expect(releasable.length).toBeGreaterThan(0);
   });
 
   it("refuses to add generated lines to an issued invoice", async () => {
