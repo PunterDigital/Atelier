@@ -73,6 +73,11 @@ const PROBES: Record<Permission, (c: Caller) => Promise<unknown>> = {
       data: { name: "Probe", contacts: [] },
     }),
   "clients.archive": (c) => c.clients.archive({ clientId: randomUUID() }),
+  "clients.manageRates": (c) =>
+    c.clients.setMemberRate({
+      clientId: randomUUID(),
+      data: { userId: "nobody", billRateMinor: 1000, billRateCurrency: "EUR" },
+    }),
   "projects.view": (c) => c.projects.list({}),
   "projects.create": (c) =>
     c.projects.create({ name: "Probe", clientId: randomUUID() }),
@@ -136,6 +141,7 @@ const PROBES: Record<Permission, (c: Caller) => Promise<unknown>> = {
     c.expenses.setStatus({ expenseId: randomUUID(), status: "paid" }),
   "expenses.delete": (c) => c.expenses.delete({ expenseId: randomUUID() }),
   "dashboard.view": (c) => c.dashboard.summary(),
+  "reports.viewProfit": (c) => c.reports.profit(),
   "team.view": (c) => c.team.list(),
   "team.invite": (c) =>
     c.team.invite({ email: `probe-${randomUUID()}@test.dev`, role: "member" }),

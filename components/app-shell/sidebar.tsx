@@ -6,6 +6,7 @@ import {
   Home,
   ReceiptText,
   Settings,
+  TrendingUp,
   Users,
   Wallet,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/time", label: "Timesheet", icon: Clock },
   { href: "/invoices", label: "Invoices", icon: ReceiptText },
   { href: "/expenses", label: "Expenses", icon: Wallet },
+  { href: "/reports", label: "Reports", icon: TrendingUp },
 ];
 
 // Spec: design system Sidebar - 244px rail, surface bg, hairline right

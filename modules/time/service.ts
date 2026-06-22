@@ -3,14 +3,18 @@ import { z } from "zod";
 
 import type { Db } from "@/db";
 import { schema } from "@/db";
+import { toEffectiveHourlyMinor } from "@/modules/billing/money";
 
 // Time tracking. Tenancy contract as everywhere: businessId scopes every
 // query. Durations are exact seconds (billing spec Section 7). Rates are
-// resolved once, at entry creation, with the spec's precedence
-// (manual entry rate > project default > client default) and stored with
-// their currency. How a stored rate currency interacts with a different
-// invoice currency is an open spec question (see ESCALATIONS.md) owned by
-// the billing module - this module only records data.
+// resolved once, at entry creation, with the precedence
+// (manual entry rate > client-member rate > project default > client default)
+// and stored with their currency. A day rate is divided by the business
+// hoursPerDay into an effective hourly rate at this point - the rest of the
+// money model works in seconds x hourly rate. The internal cost of the worker
+// (for profit tracking) is resolved and frozen here the same way. How a stored
+// rate currency interacts with a different invoice currency is owned by the
+// billing module - this module only records data.
 
 export const manualEntrySchema = z.object({
   taskId: z.string().uuid(),
@@ -35,12 +39,34 @@ export const manualEntrySchema = z.object({
 
 export type ManualEntryInput = z.infer<typeof manualEntrySchema>;
 
+type RateUnit = "hour" | "day";
+
 type TaskScope = {
   taskId: string;
+  clientId: string;
+  hoursPerDay: number;
   projectRateMinor: number | null;
   projectRateCurrency: string | null;
+  projectRateUnit: RateUnit;
   clientRateMinor: number | null;
   clientRateCurrency: string | null;
+  clientRateUnit: RateUnit;
+};
+
+type MemberRate = {
+  billRateMinor: number;
+  billRateCurrency: string;
+  billRateUnit: RateUnit;
+  internalCostMinor: number | null;
+  internalCostCurrency: string | null;
+  internalCostUnit: RateUnit;
+};
+
+type ResolvedRate = {
+  rateMinor: number | null;
+  rateCurrency: string | null;
+  internalCostMinor: number | null;
+  internalCostCurrency: string | null;
 };
 
 async function taskInBusiness(
@@ -51,42 +77,128 @@ async function taskInBusiness(
   const [row] = await db
     .select({
       taskId: schema.task.id,
+      clientId: schema.client.id,
+      hoursPerDay: schema.business.hoursPerDay,
       projectRateMinor: schema.project.defaultRateMinor,
       projectRateCurrency: schema.project.defaultRateCurrency,
+      projectRateUnit: schema.project.defaultRateUnit,
       clientRateMinor: schema.client.defaultRateMinor,
       clientRateCurrency: schema.client.defaultRateCurrency,
+      clientRateUnit: schema.client.defaultRateUnit,
     })
     .from(schema.task)
     .innerJoin(schema.project, eq(schema.task.projectId, schema.project.id))
     .innerJoin(schema.client, eq(schema.project.clientId, schema.client.id))
+    .innerJoin(schema.business, eq(schema.task.businessId, schema.business.id))
     .where(
       and(eq(schema.task.businessId, businessId), eq(schema.task.id, taskId)),
     );
   return row ?? null;
 }
 
-// Billing spec Section 7: entry-level rate if set manually, else the
-// project's default, else the client's default. Resolved exactly once.
-function resolveRate(
+// The acting user's rate on this client, if one has been set.
+async function memberRateForClient(
+  db: Db,
+  businessId: string,
+  clientId: string,
+  userId: string,
+): Promise<MemberRate | null> {
+  const [row] = await db
+    .select({
+      billRateMinor: schema.clientMemberRate.billRateMinor,
+      billRateCurrency: schema.clientMemberRate.billRateCurrency,
+      billRateUnit: schema.clientMemberRate.billRateUnit,
+      internalCostMinor: schema.clientMemberRate.internalCostMinor,
+      internalCostCurrency: schema.clientMemberRate.internalCostCurrency,
+      internalCostUnit: schema.clientMemberRate.internalCostUnit,
+    })
+    .from(schema.clientMemberRate)
+    .where(
+      and(
+        eq(schema.clientMemberRate.businessId, businessId),
+        eq(schema.clientMemberRate.clientId, clientId),
+        eq(schema.clientMemberRate.userId, userId),
+      ),
+    );
+  return row ?? null;
+}
+
+// The member's effective hourly internal cost, or null when none is set.
+// Resolved wherever a member rate applies, including under a manual bill-rate
+// override (the override changes what's billed, not what the worker costs).
+function memberInternalCost(
+  member: MemberRate | null,
+  hoursPerDay: number,
+): { internalCostMinor: number | null; internalCostCurrency: string | null } {
+  if (member && member.internalCostMinor != null && member.internalCostCurrency) {
+    return {
+      internalCostMinor: toEffectiveHourlyMinor(
+        member.internalCostMinor,
+        member.internalCostUnit,
+        hoursPerDay,
+      ),
+      internalCostCurrency: member.internalCostCurrency,
+    };
+  }
+  return { internalCostMinor: null, internalCostCurrency: null };
+}
+
+// Resolution precedence: manual entry rate > client-member rate (for the
+// acting user) > project default > client default. A day rate at any level is
+// converted to an effective hourly rate once, here. The internal cost always
+// comes from the member row (it doesn't move with a manual bill override).
+function resolveRateAndCost(
   scope: TaskScope,
+  member: MemberRate | null,
   manual: { rateMinor?: number | null; rateCurrency?: string | null },
-): { rateMinor: number | null; rateCurrency: string | null } {
+): ResolvedRate {
+  const cost = memberInternalCost(member, scope.hoursPerDay);
+
   if (manual.rateMinor != null && manual.rateCurrency) {
-    return { rateMinor: manual.rateMinor, rateCurrency: manual.rateCurrency };
+    return {
+      rateMinor: manual.rateMinor,
+      rateCurrency: manual.rateCurrency,
+      ...cost,
+    };
+  }
+  if (member) {
+    return {
+      rateMinor: toEffectiveHourlyMinor(
+        member.billRateMinor,
+        member.billRateUnit,
+        scope.hoursPerDay,
+      ),
+      rateCurrency: member.billRateCurrency,
+      ...cost,
+    };
   }
   if (scope.projectRateMinor != null && scope.projectRateCurrency) {
     return {
-      rateMinor: scope.projectRateMinor,
+      rateMinor: toEffectiveHourlyMinor(
+        scope.projectRateMinor,
+        scope.projectRateUnit,
+        scope.hoursPerDay,
+      ),
       rateCurrency: scope.projectRateCurrency,
+      ...cost,
     };
   }
   if (scope.clientRateMinor != null && scope.clientRateCurrency) {
     return {
-      rateMinor: scope.clientRateMinor,
+      rateMinor: toEffectiveHourlyMinor(
+        scope.clientRateMinor,
+        scope.clientRateUnit,
+        scope.hoursPerDay,
+      ),
       rateCurrency: scope.clientRateCurrency,
+      ...cost,
     };
   }
-  return { rateMinor: null, rateCurrency: null };
+  return {
+    rateMinor: null,
+    rateCurrency: null,
+    ...cost,
+  };
 }
 
 export async function getRunningTimer(db: Db, businessId: string, userId: string) {
@@ -122,9 +234,10 @@ export async function startTimer(
   if (!scope) {
     return null;
   }
+  const member = await memberRateForClient(db, businessId, scope.clientId, userId);
   return db.transaction(async (tx) => {
     await stopTimerTx(tx, businessId, userId);
-    const rate = resolveRate(scope, {});
+    const rate = resolveRateAndCost(scope, member, {});
     const [created] = await tx
       .insert(schema.timeEntry)
       .values({
@@ -135,6 +248,8 @@ export async function startTimer(
         billable: true,
         rateMinor: rate.rateMinor,
         rateCurrency: rate.rateCurrency,
+        internalCostMinor: rate.internalCostMinor,
+        internalCostCurrency: rate.internalCostCurrency,
       })
       .returning();
     return created;
@@ -182,7 +297,13 @@ export async function logManualEntry(
   if (!scope) {
     return null;
   }
-  const rate = resolveRate(scope, {
+  const member = await memberRateForClient(
+    db,
+    businessId,
+    scope.clientId,
+    userId,
+  );
+  const rate = resolveRateAndCost(scope, member, {
     rateMinor: input.rateMinor,
     rateCurrency: input.rateCurrency,
   });
@@ -202,6 +323,8 @@ export async function logManualEntry(
       note: input.note ?? null,
       rateMinor: rate.rateMinor,
       rateCurrency: rate.rateCurrency,
+      internalCostMinor: rate.internalCostMinor,
+      internalCostCurrency: rate.internalCostCurrency,
     })
     .returning();
   return created;

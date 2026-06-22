@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { RateFields } from "@/components/rate-fields";
+import { RateFields, type RateUnit } from "@/components/rate-fields";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,9 @@ export type ProjectFormValues = {
   dueDate: Date | null;
   defaultRateMinor?: number | null;
   defaultRateCurrency?: string | null;
+  defaultRateUnit?: RateUnit;
+  budgetMinor?: number | null;
+  budgetCurrency?: string | null;
 };
 
 const selectClassName =
@@ -56,6 +59,17 @@ export function ProjectForm({
   );
   const [rateCurrency, setRateCurrency] = useState(
     initial?.defaultRateCurrency ?? "",
+  );
+  const [rateUnit, setRateUnit] = useState<RateUnit>(
+    initial?.defaultRateUnit ?? "hour",
+  );
+  const [budget, setBudget] = useState(
+    initial?.budgetMinor != null && initial.budgetCurrency
+      ? minorToMajor(initial.budgetMinor, initial.budgetCurrency)
+      : "",
+  );
+  const [budgetCurrency, setBudgetCurrency] = useState(
+    initial?.budgetCurrency ?? "",
   );
   const [rateError, setRateError] = useState<string | null>(null);
 
@@ -95,6 +109,21 @@ export function ProjectForm({
       }
       defaultRateCurrency = code;
     }
+    let budgetMinor: number | null = null;
+    let budgetCurrencyCode: string | null = null;
+    if (budget.trim()) {
+      const code = budgetCurrency.trim().toUpperCase() || defaultRateCurrency || "";
+      if (!/^[A-Z]{3}$/.test(code)) {
+        setRateError("Pick a currency for the budget");
+        return;
+      }
+      budgetMinor = majorToMinor(budget, code);
+      if (budgetMinor === null) {
+        setRateError(`That budget has more decimal places than ${code} allows`);
+        return;
+      }
+      budgetCurrencyCode = code;
+    }
     const data: ProjectFormValues = {
       name,
       clientId,
@@ -102,6 +131,9 @@ export function ProjectForm({
       dueDate: dueDate ? new Date(`${dueDate}T00:00:00.000Z`) : null,
       defaultRateMinor,
       defaultRateCurrency,
+      defaultRateUnit: rateUnit,
+      budgetMinor,
+      budgetCurrency: budgetCurrencyCode,
     };
     if (projectId) {
       update.mutate({ projectId, data });
@@ -170,9 +202,35 @@ export function ProjectForm({
           <RateFields
             rate={rate}
             currency={rateCurrency}
+            unit={rateUnit}
             onRateChange={setRate}
             onCurrencyChange={setRateCurrency}
+            onUnitChange={setRateUnit}
           />
+
+          <div className="flex gap-4">
+            <div className="flex flex-1 flex-col gap-2">
+              <Label htmlFor="budget">Project budget (optional)</Label>
+              <Input
+                id="budget"
+                inputMode="decimal"
+                placeholder="20000"
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+              />
+            </div>
+            <div className="flex w-28 flex-col gap-2">
+              <Label htmlFor="budgetCurrency">Currency</Label>
+              <Input
+                id="budgetCurrency"
+                maxLength={3}
+                placeholder="EUR"
+                className="uppercase"
+                value={budgetCurrency}
+                onChange={(e) => setBudgetCurrency(e.target.value)}
+              />
+            </div>
+          </div>
           {rateError ? (
             <p role="alert" className="text-sm text-destructive">
               {rateError}

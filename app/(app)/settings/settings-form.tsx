@@ -26,6 +26,7 @@ export function SettingsForm({
     name: string;
     address: string | null;
     currency: string;
+    hoursPerDay: number;
     standardRatePct: string | null;
     vatNumber: string | null;
   };
@@ -36,6 +37,7 @@ export function SettingsForm({
   const [name, setName] = useState(initial.name);
   const [address, setAddress] = useState(initial.address ?? "");
   const [currency, setCurrency] = useState(initial.currency);
+  const [hoursPerDay, setHoursPerDay] = useState(String(initial.hoursPerDay));
   const [standardRatePct, setStandardRatePct] = useState(
     initial.standardRatePct ?? "",
   );
@@ -69,10 +71,15 @@ export function SettingsForm({
           <form
             onSubmit={(event) => {
               event.preventDefault();
+              const parsedHours = Number(hoursPerDay);
               update.mutate({
                 name,
                 address: address.trim() || null,
                 currency,
+                hoursPerDay:
+                  Number.isInteger(parsedHours) && parsedHours >= 1
+                    ? parsedHours
+                    : 8,
                 standardRatePct: standardRatePct.trim() || null,
                 vatNumber: vatNumber.trim() || null,
               });
@@ -126,6 +133,22 @@ export function SettingsForm({
                   rate, never guessed for you
                 </p>
               </div>
+            </div>
+            <div className="flex w-44 flex-col gap-2">
+              <Label htmlFor="hoursPerDay">Hours per day</Label>
+              <Input
+                id="hoursPerDay"
+                type="number"
+                min="1"
+                max="24"
+                step="1"
+                value={hoursPerDay}
+                onChange={(e) => setHoursPerDay(e.target.value)}
+              />
+              <p className="text-sm text-muted-foreground">
+                Turns a day rate into an hourly rate (a {hoursPerDay || "8"}-hour
+                day)
+              </p>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="businessVat">VAT number</Label>

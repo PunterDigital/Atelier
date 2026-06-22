@@ -6,10 +6,11 @@ import { notFound } from "next/navigation";
 import { StatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatMoney } from "@/lib/format";
 import { caller } from "@/server/trpc/server";
 
 import { ArchiveButton } from "./archive-button";
+import { MemberRates } from "./member-rates";
 import { NoteComposer } from "./note-composer";
 
 export const metadata: Metadata = {
@@ -31,12 +32,13 @@ const activityLabels: Record<string, string> = {
 
 async function load(clientId: string) {
   try {
-    const [client, activity, projects] = await Promise.all([
+    const [client, activity, projects, budget] = await Promise.all([
       caller.clients.get({ clientId }),
       caller.clients.activity({ clientId }),
       caller.projects.list({ clientId }),
+      caller.reports.clientBudget({ clientId }),
     ]);
-    return { client, activity, projects };
+    return { client, activity, projects, budget };
   } catch (error) {
     if (error instanceof TRPCError && error.code === "NOT_FOUND") {
       notFound();
@@ -51,7 +53,7 @@ export default async function ClientDetailPage({
   params: Promise<{ clientId: string }>;
 }) {
   const { clientId } = await params;
-  const { client, activity, projects } = await load(clientId);
+  const { client, activity, projects, budget } = await load(clientId);
   const contacts = client.contacts as Contact[];
 
   return (
@@ -154,6 +156,53 @@ export default async function ClientDetailPage({
               )}
             </CardContent>
           </Card>
+
+          {budget ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Budget</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2">
+                <div className="flex items-baseline justify-between text-sm">
+                  <span className="text-muted-foreground">
+                    {formatMoney(budget.spentMinor, budget.currency)} of{" "}
+                    {formatMoney(budget.budgetMinor, budget.currency)}
+                  </span>
+                  <span
+                    className={
+                      budget.state === "over"
+                        ? "font-semibold text-destructive"
+                        : budget.state === "near"
+                          ? "font-semibold text-[var(--warning-subtle-fg)]"
+                          : "text-muted-foreground"
+                    }
+                  >
+                    {Math.round(budget.pct * 100)}%
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={
+                      budget.state === "over"
+                        ? "h-full bg-destructive"
+                        : budget.state === "near"
+                          ? "h-full bg-[var(--warning-subtle-fg)]"
+                          : "h-full bg-primary"
+                    }
+                    style={{ width: `${Math.min(100, Math.round(budget.pct * 100))}%` }}
+                  />
+                </div>
+                {budget.currencyMismatch.length > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    Excludes work tracked in{" "}
+                    {budget.currencyMismatch.join(", ")} (not converted).
+                  </p>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
+
+          <MemberRates clientId={client.id} />
 
           <Card>
             <CardHeader>

@@ -6,6 +6,7 @@ import { expensesRouter } from "./expenses";
 import { healthRouter } from "./health";
 import { invoicesRouter } from "./invoices";
 import { projectsRouter } from "./projects";
+import { reportsRouter } from "./reports";
 import { tasksRouter } from "./tasks";
 import { teamRouter } from "./team";
 import { timeRouter } from "./time";
@@ -21,6 +22,7 @@ export const appRouter = createTRPCRouter({
   expenses: expensesRouter,
   team: teamRouter,
   dashboard: dashboardRouter,
+  reports: reportsRouter,
 });
 
 export type AppRouter = typeof appRouter;

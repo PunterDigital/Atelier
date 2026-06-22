@@ -23,6 +23,15 @@ export const projectInputSchema = z.object({
     .regex(/^[A-Z]{3}$/)
     .nullable()
     .optional(),
+  defaultRateUnit: z.enum(["hour", "day"]).optional(),
+  budgetMinor: z.number().int().nonnegative().nullable().optional(),
+  budgetCurrency: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{3}$/)
+    .nullable()
+    .optional(),
 });
 
 export type ProjectInput = z.infer<typeof projectInputSchema>;
@@ -79,6 +88,9 @@ export async function getProject(db: Db, businessId: string, projectId: string) 
       clientName: schema.client.name,
       defaultRateMinor: schema.project.defaultRateMinor,
       defaultRateCurrency: schema.project.defaultRateCurrency,
+      defaultRateUnit: schema.project.defaultRateUnit,
+      budgetMinor: schema.project.budgetMinor,
+      budgetCurrency: schema.project.budgetCurrency,
     })
     .from(schema.project)
     .innerJoin(schema.client, eq(schema.project.clientId, schema.client.id))
@@ -113,6 +125,9 @@ export async function createProject(
         dueDate: input.dueDate ?? null,
         defaultRateMinor: input.defaultRateMinor ?? null,
         defaultRateCurrency: input.defaultRateCurrency ?? null,
+        defaultRateUnit: input.defaultRateUnit ?? "hour",
+        budgetMinor: input.budgetMinor ?? null,
+        budgetCurrency: input.budgetCurrency ?? null,
       })
       .returning();
     await tx.insert(schema.activity).values({
@@ -144,6 +159,9 @@ export async function updateProject(
       dueDate: input.dueDate ?? null,
       defaultRateMinor: input.defaultRateMinor ?? null,
       defaultRateCurrency: input.defaultRateCurrency ?? null,
+      defaultRateUnit: input.defaultRateUnit ?? "hour",
+      budgetMinor: input.budgetMinor ?? null,
+      budgetCurrency: input.budgetCurrency ?? null,
       updatedAt: new Date(),
     })
     .where(
