@@ -684,6 +684,26 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
   );
 
   server.registerTool(
+    "set_invoice_notes",
+    {
+      title: "Set invoice notes",
+      description:
+        "Set the free-text notes printed at the foot of a draft invoice (just above the footer). Replaces any existing notes; pass an empty string to clear them. Draft invoices only.",
+      inputSchema: {
+        invoiceId: z.string().uuid(),
+        notes: z
+          .string()
+          .max(2000)
+          .describe("Free-text notes. Empty string clears them."),
+      },
+    },
+    ({ invoiceId, notes }) =>
+      runTool(async () =>
+        toolJson(await caller.invoices.setNotes({ invoiceId, notes })),
+      ),
+  );
+
+  server.registerTool(
     "issue_invoice",
     {
       title: "Issue invoice",
@@ -705,6 +725,41 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
     ({ invoiceId }) =>
       runTool(async () =>
         toolJson(await caller.invoices.markPaid({ invoiceId })),
+      ),
+  );
+
+  server.registerTool(
+    "void_invoice",
+    {
+      title: "Void invoice",
+      description:
+        "Void a sent or overdue invoice (e.g. to re-issue a corrected copy). The invoice keeps its number but no longer counts as revenue. Only sent/overdue invoices can be voided; paid is locked and drafts are edited. Optionally record a reason.",
+      inputSchema: {
+        invoiceId: z.string().uuid(),
+        reason: z
+          .string()
+          .max(500)
+          .optional()
+          .describe("Why it was voided, e.g. \"client address changed\"."),
+      },
+    },
+    ({ invoiceId, reason }) =>
+      runTool(async () =>
+        toolJson(await caller.invoices.void({ invoiceId, reason })),
+      ),
+  );
+
+  server.registerTool(
+    "duplicate_invoice",
+    {
+      title: "Duplicate invoice",
+      description:
+        "Copy an invoice into a new editable draft with the same client, currency, tax setup and lines. The copy has no number or issue date and its lines are detached from the source's time entries.",
+      inputSchema: { invoiceId: z.string().uuid() },
+    },
+    ({ invoiceId }) =>
+      runTool(async () =>
+        toolJson(await caller.invoices.duplicate({ invoiceId })),
       ),
   );
 

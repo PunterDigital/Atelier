@@ -46,12 +46,20 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   title: { fontSize: 22, fontFamily: "Helvetica-Bold", textAlign: "right" },
-  titleTotal: {
-    fontSize: 13,
+  balanceBox: { marginTop: 22, alignItems: "flex-end" },
+  balanceCaption: {
+    fontSize: 8,
     fontFamily: "Helvetica-Bold",
-    color: colors.primary,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 3,
     textAlign: "right",
-    marginTop: 2,
+  },
+  balanceAmount: {
+    fontSize: 18,
+    fontFamily: "Helvetica-Bold",
+    textAlign: "right",
   },
   paidBadge: {
     fontSize: 10,
@@ -59,6 +67,31 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textAlign: "right",
     marginTop: 2,
+  },
+  voidBadge: {
+    fontSize: 12,
+    fontFamily: "Helvetica-Bold",
+    color: "#B91C1C",
+    textAlign: "right",
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  // Large diagonal stamp across the page so a printed voided invoice is
+  // unmistakable. Low opacity keeps the content underneath legible.
+  voidWatermark: {
+    position: "absolute",
+    top: 300,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    transform: "rotate(-24deg)",
+  },
+  voidWatermarkText: {
+    fontSize: 150,
+    fontFamily: "Helvetica-Bold",
+    color: "#B91C1C",
+    opacity: 0.12,
+    letterSpacing: 10,
   },
   metaBlock: {
     flexDirection: "row",
@@ -120,7 +153,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   taxNote: { marginTop: 18, fontSize: 9, color: colors.textMuted },
-  notes: { marginTop: 10, fontSize: 9, color: colors.textMuted },
+  notesBlock: { marginTop: 14 },
+  notesCaption: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    color: colors.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 3,
+  },
+  notes: { fontSize: 9, color: colors.textMuted },
   logo: { maxWidth: 180, height: 48, objectFit: "contain", marginBottom: 10 },
   footer: {
     position: "absolute",
@@ -147,6 +189,11 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
       producer="Clerq"
     >
       <Page size="A4" style={styles.page}>
+        {data.isVoid ? (
+          <View style={styles.voidWatermark} fixed>
+            <Text style={styles.voidWatermarkText}>VOID</Text>
+          </View>
+        ) : null}
         <View style={styles.header}>
           <View>
             {data.logoDataUrl ? (
@@ -167,14 +214,18 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
           </View>
           <View>
             <Text style={styles.title}>{data.title}</Text>
-            <Text style={[styles.titleTotal, { color: data.brandColor }]}>
-              {data.totalLabel}
-            </Text>
+            <View style={styles.balanceBox}>
+              <Text style={styles.balanceCaption}>Balance Due</Text>
+              <Text style={[styles.balanceAmount, { color: data.brandColor }]}>
+                {data.balanceDueLabel}
+              </Text>
+            </View>
             {data.isPaid ? (
               <Text style={[styles.paidBadge, { color: data.brandColor }]}>
                 Paid
               </Text>
             ) : null}
+            {data.isVoid ? <Text style={styles.voidBadge}>VOID</Text> : null}
           </View>
         </View>
 
@@ -257,7 +308,16 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
         </View>
 
         {data.taxNote ? <Text style={styles.taxNote}>{data.taxNote}</Text> : null}
-        {data.notes ? <Text style={styles.notes}>{data.notes}</Text> : null}
+        {data.notes ? (
+          <View style={styles.notesBlock}>
+            <Text style={styles.notesCaption}>Notes</Text>
+            {data.notes.split("\n").map((line, i) => (
+              <Text key={i} style={styles.notes}>
+                {line || " "}
+              </Text>
+            ))}
+          </View>
+        ) : null}
 
         {/* Not `fixed`: a fixed element repeats on every page (it was
             wrongly showing on page 1 of a multi-page invoice). Absolutely

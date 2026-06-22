@@ -16,6 +16,7 @@ import {
   addManualLine,
   deleteInvoiceLine,
   generateLinesFromUnbilledTime,
+  setInvoiceNotes,
 } from "./generate";
 import { createDraftInvoice, issueInvoice } from "./invoices";
 
@@ -208,6 +209,42 @@ describe("generate lines from unbilled time (integration)", () => {
     for (const line of lines) {
       await deleteInvoiceLine(db, business.id, line.id);
     }
+  });
+
+  it("sets and clears free-text notes on a draft, but not once issued", async () => {
+    const draft = await createDraftInvoice(db, business.id, {
+      clientId: client.id,
+      currency: "EUR",
+      taxTreatment: "zero_rated",
+    });
+    const invoiceId = (draft as { id: string }).id;
+
+    const saved = await setInvoiceNotes(
+      db,
+      business.id,
+      invoiceId,
+      "  Payment due within 14 days.\nThank you!  ",
+    );
+    // Trimmed at the edges, inner newline preserved for multi-line notes.
+    expect(saved?.notes).toBe("Payment due within 14 days.\nThank you!");
+
+    // An all-whitespace value clears the notes.
+    const cleared = await setInvoiceNotes(db, business.id, invoiceId, "   ");
+    expect(cleared?.notes).toBeNull();
+
+    // Another business cannot touch it.
+    expect(await setInvoiceNotes(db, "00000000-0000-0000-0000-000000000000", invoiceId, "x")).toBeNull();
+
+    // Once issued, notes are frozen like the rest of the document.
+    await setInvoiceNotes(db, business.id, invoiceId, "Final note");
+    const issued = await issueInvoice(
+      db,
+      business.id,
+      invoiceId,
+      new Date("2026-06-15T12:00:00Z"),
+    );
+    expect(issued.ok).toBe(true);
+    expect(await setInvoiceNotes(db, business.id, invoiceId, "too late")).toBeNull();
   });
 
   it("refuses to add generated lines to an issued invoice", async () => {

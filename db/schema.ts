@@ -471,15 +471,20 @@ export const invoice = pgTable(
       .references(() => client.id),
     projectId: uuid("project_id").references(() => project.id),
     status: text("status", {
-      enum: ["draft", "sent", "paid", "overdue"],
+      enum: ["draft", "sent", "paid", "overdue", "void"],
     })
       .notNull()
       .default("draft"),
-    // "YYYY-NNNN", unique per business; null while draft.
+    // "YYYY-NNNN", unique per business; null while draft. A voided invoice
+    // keeps its number - it stays a real document in the sequence (no gaps).
     number: text("number"),
     year: integer("year"),
     currency: text("currency").notNull(),
     issueDate: timestamp("issue_date", { withTimezone: true }),
+    // Set when a sent/overdue invoice is voided; the optional reason is what
+    // the user typed (e.g. "client address changed"), kept for the record.
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    voidReason: text("void_reason"),
     dueDate: timestamp("due_date", { withTimezone: true }),
     // Optional billing period this invoice covers (e.g. a fortnight of work),
     // printed alongside the issue and due dates. Both set or both null.
@@ -582,6 +587,7 @@ export const activity = pgTable(
         "client_archived",
         "client_unarchived",
         "project_created",
+        "invoice_voided",
       ],
     }).notNull(),
     payload: jsonb("payload").notNull().default({}),

@@ -8,16 +8,19 @@ import {
   addManualLine,
   deleteInvoiceLine,
   generateLinesFromUnbilledTime,
+  setInvoiceNotes,
 } from "@/modules/billing/generate";
 import {
   configureNextInvoiceNumber,
   createDraftInvoice,
+  duplicateInvoice,
   issueInvoice,
 } from "@/modules/billing/invoices";
 import {
   getInvoice,
   listInvoices,
   markInvoicePaid,
+  voidInvoice,
 } from "@/modules/billing/lifecycle";
 
 import { createTRPCRouter, permissionProcedure } from "../init";
@@ -168,6 +171,31 @@ export const invoicesRouter = createTRPCRouter({
       return result.invoice;
     }),
 
+  // Free-text notes shown at the foot of the invoice. Draft-only, so a
+  // null result means there is no draft to edit.
+  setNotes: permissionProcedure("invoices.edit")
+    .input(
+      z.object({
+        invoiceId: z.string().uuid(),
+        notes: z.string().max(2000),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const updated = await setInvoiceNotes(
+        getDb(),
+        ctx.businessId,
+        input.invoiceId,
+        input.notes,
+      );
+      if (!updated) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Only draft invoices can be edited",
+        });
+      }
+      return updated;
+    }),
+
   issue: permissionProcedure("invoices.issue")
     .input(z.object({ invoiceId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
@@ -191,6 +219,36 @@ export const invoicesRouter = createTRPCRouter({
     .input(z.object({ invoiceId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) =>
       found(await markInvoicePaid(getDb(), ctx.businessId, input.invoiceId)),
+    ),
+
+  // Voids a sent/overdue invoice (e.g. to re-issue a corrected copy). The
+  // number is kept; only sent/overdue can be voided, so found() turns a
+  // missing or wrong-status invoice into a clean NOT_FOUND.
+  void: permissionProcedure("invoices.void")
+    .input(
+      z.object({
+        invoiceId: z.string().uuid(),
+        reason: z.string().trim().max(500).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) =>
+      found(
+        await voidInvoice(
+          getDb(),
+          ctx.businessId,
+          ctx.session.user.id,
+          input.invoiceId,
+          input.reason,
+        ),
+      ),
+    ),
+
+  // Copies any invoice into a fresh editable draft (no number/status carried
+  // over, lines detached from the source's time entries).
+  duplicate: permissionProcedure("invoices.create")
+    .input(z.object({ invoiceId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) =>
+      found(await duplicateInvoice(getDb(), ctx.businessId, input.invoiceId)),
     ),
 
   configureNextNumber: permissionProcedure("invoices.configure")

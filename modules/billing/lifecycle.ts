@@ -4,7 +4,7 @@
 // so reads are the source of truth and stay cheap and scoped. paid is a
 // terminal state set explicitly.
 
-import { and, desc, eq, lt } from "drizzle-orm";
+import { and, desc, eq, inArray, lt } from "drizzle-orm";
 
 import type { Db } from "@/db";
 import { schema } from "@/db";
@@ -114,4 +114,50 @@ export async function markInvoicePaid(
     )
     .returning();
   return updatedOverdue ?? null;
+}
+
+// sent or overdue -> void. A voided invoice keeps its number (it remains a
+// real document in the sequence) but no longer counts as revenue. void is
+// terminal: paid invoices stay locked (money moved against them) and drafts
+// are edited, not voided. The status guard is in SQL so a concurrent
+// transition cannot double-apply, and the void is logged to the client's
+// activity thread - both in one transaction.
+export async function voidInvoice(
+  db: Db,
+  businessId: string,
+  userId: string,
+  invoiceId: string,
+  reason?: string | null,
+) {
+  const trimmedReason = reason?.trim() || null;
+  return db.transaction(async (tx) => {
+    const now = new Date();
+    const [updated] = await tx
+      .update(schema.invoice)
+      .set({
+        status: "void",
+        voidedAt: now,
+        voidReason: trimmedReason,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(schema.invoice.businessId, businessId),
+          eq(schema.invoice.id, invoiceId),
+          inArray(schema.invoice.status, ["sent", "overdue"]),
+        ),
+      )
+      .returning();
+    if (!updated) {
+      return null;
+    }
+    await tx.insert(schema.activity).values({
+      businessId,
+      clientId: updated.clientId,
+      userId,
+      type: "invoice_voided",
+      payload: { number: updated.number, reason: trimmedReason },
+    });
+    return updated;
+  });
 }

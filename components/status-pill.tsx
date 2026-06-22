@@ -66,6 +66,9 @@ const invoiceStyles = {
   sent: "bg-[var(--status-sent-bg)] text-[var(--status-sent-fg)]",
   paid: "bg-[var(--status-paid-bg)] text-[var(--status-paid-fg)]",
   overdue: "bg-[var(--status-overdue-bg)] text-[var(--status-overdue-fg)]",
+  // Voided: muted/struck-through, reusing the neutral draft tokens - a void
+  // is a closed-out document, not an active state.
+  void: "bg-[var(--status-draft-bg)] text-[var(--status-draft-fg)] line-through",
 } as const;
 
 const invoiceLabels = {
@@ -73,6 +76,7 @@ const invoiceLabels = {
   sent: "Sent",
   paid: "Paid",
   overdue: "Overdue",
+  void: "Void",
 } as const;
 
 export type InvoiceStatus = keyof typeof invoiceStyles;

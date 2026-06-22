@@ -13,7 +13,7 @@
 // plain integer arithmetic - profit can be negative, so it must not run
 // through roundHalfUpDiv (which rejects negatives).
 
-import { and, eq, gte, isNotNull, lt, ne } from "drizzle-orm";
+import { and, eq, gte, isNotNull, lt, notInArray } from "drizzle-orm";
 
 import type { Db } from "@/db";
 import { schema } from "@/db";
@@ -100,10 +100,11 @@ export async function profitSummary(
   businessId: string,
   range: ProfitRange = {},
 ): Promise<ProfitReport> {
-  // Issued invoices (status is never draft once issued).
+  // Issued invoices (status is never draft once issued). Voided invoices are
+  // excluded: the number is kept for the record but it is not revenue.
   const invoiceScope = [
     eq(schema.invoice.businessId, businessId),
-    ne(schema.invoice.status, "draft"),
+    notInArray(schema.invoice.status, ["draft", "void"]),
   ];
   if (range.from) invoiceScope.push(gte(schema.invoice.issueDate, range.from));
   if (range.to) invoiceScope.push(lt(schema.invoice.issueDate, range.to));
@@ -136,7 +137,7 @@ export async function profitSummary(
   const labourScope = [
     eq(schema.timeEntry.businessId, businessId),
     isNotNull(schema.timeEntry.internalCostMinor),
-    ne(schema.invoice.status, "draft"),
+    notInArray(schema.invoice.status, ["draft", "void"]),
   ];
   if (range.from) labourScope.push(gte(schema.invoice.issueDate, range.from));
   if (range.to) labourScope.push(lt(schema.invoice.issueDate, range.to));

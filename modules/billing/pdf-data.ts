@@ -2,7 +2,7 @@
 // built here so it is unit-testable without rendering. The PDF layer
 // only lays out what this produces.
 
-import { formatDateFull, formatMoney } from "@/lib/format";
+import { formatDateFull, formatMoney, formatMoneyCode } from "@/lib/format";
 
 // Postal addresses are stored verbatim, newline-separated; the PDF lays
 // them out one line per row, trimmed and with blank lines dropped.
@@ -17,7 +17,7 @@ function addressLines(address: string | null | undefined): string[] {
 
 type InvoiceRecord = {
   number: string | null;
-  status: "draft" | "sent" | "paid" | "overdue";
+  status: "draft" | "sent" | "paid" | "overdue" | "void";
   currency: string;
   issueDate: Date | null;
   dueDate: Date | null;
@@ -50,6 +50,7 @@ export type InvoicePdfData = {
   title: string;
   isDraft: boolean;
   isPaid: boolean;
+  isVoid: boolean;
   brandColor: string;
   logoDataUrl: string | null;
   footerNote: string | null;
@@ -73,6 +74,9 @@ export type InvoicePdfData = {
   taxRowLabel: string;
   taxAmountLabel: string;
   totalLabel: string;
+  // The headline amount due, shown prominently as "Balance Due" in the PDF
+  // header, formatted with the currency code after it ("10,000.00 EUR").
+  balanceDueLabel: string;
   taxNote: string | null;
   notes: string | null;
 };
@@ -101,6 +105,7 @@ export function buildInvoicePdfData(input: {
     title: isDraft ? "Draft invoice" : `Invoice ${invoice.number}`,
     isDraft,
     isPaid: invoice.status === "paid",
+    isVoid: invoice.status === "void",
     brandColor: business.brandColor || DEFAULT_BRAND_COLOR,
     logoDataUrl: business.logoDataUrl ?? null,
     footerNote: business.footerNote ?? null,
@@ -148,6 +153,7 @@ export function buildInvoicePdfData(input: {
         : "VAT",
     taxAmountLabel: formatMoney(invoice.taxMinor, invoice.currency),
     totalLabel: formatMoney(invoice.totalMinor, invoice.currency),
+    balanceDueLabel: formatMoneyCode(invoice.totalMinor, invoice.currency),
     taxNote: invoice.taxNote,
     notes: invoice.notes,
   };
