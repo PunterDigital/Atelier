@@ -171,6 +171,65 @@ export async function duplicateInvoice(
   });
 }
 
+// Edits the dated metadata of a draft: the issue date used (and dated) when
+// it is issued, the due date, and the optional billing period. Draft-only,
+// like every other invoice edit. Each field is set to exactly what is passed
+// (omit nothing - the caller sends the full set), so clearing is explicit.
+// Returns the updated invoice, or null when there is no draft to edit.
+export async function updateInvoiceDetails(
+  db: Db,
+  businessId: string,
+  invoiceId: string,
+  input: {
+    issueDate: Date | null;
+    dueDate: Date | null;
+    periodStart: Date | null;
+    periodEnd: Date | null;
+  },
+) {
+  const [updated] = await db
+    .update(schema.invoice)
+    .set({
+      issueDate: input.issueDate,
+      dueDate: input.dueDate,
+      periodStart: input.periodStart,
+      periodEnd: input.periodEnd,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(schema.invoice.businessId, businessId),
+        eq(schema.invoice.id, invoiceId),
+        eq(schema.invoice.status, "draft"),
+      ),
+    )
+    .returning();
+  return updated ?? null;
+}
+
+// Deletes a draft outright. Only drafts can be deleted - issued invoices are
+// documents in the sequence (void them instead). The line cascade drops the
+// invoice's lines, which releases their time entries back to the unbilled pool
+// (timeEntry.invoiceLineId is ON DELETE SET NULL). Returns the deleted id, or
+// null when there is no draft to delete.
+export async function deleteDraftInvoice(
+  db: Db,
+  businessId: string,
+  invoiceId: string,
+) {
+  const [deleted] = await db
+    .delete(schema.invoice)
+    .where(
+      and(
+        eq(schema.invoice.businessId, businessId),
+        eq(schema.invoice.id, invoiceId),
+        eq(schema.invoice.status, "draft"),
+      ),
+    )
+    .returning({ id: schema.invoice.id });
+  return deleted ?? null;
+}
+
 export type IssueResult =
   | { ok: true; invoice: typeof schema.invoice.$inferSelect }
   | {
@@ -181,17 +240,18 @@ export type IssueResult =
 
 // Issues a draft: allocates the next number for (business, issue year)
 // under a row lock and stamps number, year, issue date and status in the
-// same transaction. Reverse-charge invoices cannot be issued unless both
-// parties' VAT numbers exist - the spec mandates them printed (Section 4)
-// and an EU reverse-charge invoice without them is not a valid document.
+// same transaction. A draft can carry a chosen issue date (set on the draft,
+// e.g. to backdate a re-issued copy); when present it wins over the caller's
+// default and drives the numbering year. Reverse-charge invoices cannot be
+// issued unless both parties' VAT numbers exist - the spec mandates them
+// printed (Section 4) and an EU reverse-charge invoice without them is not a
+// valid document.
 export async function issueInvoice(
   db: Db,
   businessId: string,
   invoiceId: string,
   issueDate: Date = new Date(),
 ): Promise<IssueResult> {
-  const year = issueDate.getUTCFullYear();
-
   return db.transaction(async (tx) => {
     const [draft] = await tx
       .select({
@@ -199,6 +259,7 @@ export async function issueInvoice(
         status: schema.invoice.status,
         taxTreatment: schema.invoice.taxTreatment,
         clientId: schema.invoice.clientId,
+        issueDate: schema.invoice.issueDate,
       })
       .from(schema.invoice)
       .where(
@@ -211,6 +272,11 @@ export async function issueInvoice(
     if (!draft || draft.status !== "draft") {
       return { ok: false as const, reason: "not_found" as const };
     }
+
+    // A date chosen on the draft takes precedence; the year follows it so the
+    // number lands in the right annual sequence.
+    const effectiveIssueDate = draft.issueDate ?? issueDate;
+    const year = effectiveIssueDate.getUTCFullYear();
 
     if (draft.taxTreatment === "reverse_charge") {
       const [businessRow] = await tx
@@ -268,7 +334,7 @@ export async function issueInvoice(
         status: "sent",
         number: formatInvoiceNumber(year, allocated),
         year,
-        issueDate,
+        issueDate: effectiveIssueDate,
         updatedAt: new Date(),
       })
       .where(eq(schema.invoice.id, invoiceId))

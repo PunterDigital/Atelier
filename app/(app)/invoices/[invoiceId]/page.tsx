@@ -10,6 +10,7 @@ import { formatDate, formatMoney } from "@/lib/format";
 import { caller } from "@/server/trpc/server";
 
 import { AddLineForm } from "./add-line-form";
+import { DetailsForm } from "./details-form";
 import { GeneratePanel } from "./generate-panel";
 import { InvoiceActions, RemoveLineButton } from "./invoice-actions";
 import { NotesForm } from "./notes-form";
@@ -58,7 +59,7 @@ export default async function InvoiceDetailPage({
             >
               {client.name}
             </Link>
-            {invoice.issueDate
+            {!isDraft && invoice.issueDate
               ? ` - issued ${formatDate(invoice.issueDate)}`
               : null}
             {invoice.dueDate ? ` - due ${formatDate(invoice.dueDate)}` : null}
@@ -147,6 +148,13 @@ export default async function InvoiceDetailPage({
 
           {isDraft ? (
             <>
+              <DetailsForm
+                invoiceId={invoice.id}
+                issueDate={invoice.issueDate}
+                dueDate={invoice.dueDate}
+                periodStart={invoice.periodStart}
+                periodEnd={invoice.periodEnd}
+              />
               <AddLineForm invoiceId={invoice.id} currency={invoice.currency} />
               <GeneratePanel
                 invoiceId={invoice.id}

@@ -14,9 +14,11 @@ import { addManualLine } from "./generate";
 import {
   configureNextInvoiceNumber,
   createDraftInvoice,
+  deleteDraftInvoice,
   duplicateInvoice,
   formatInvoiceNumber,
   issueInvoice,
+  updateInvoiceDetails,
 } from "./invoices";
 
 const fixture = JSON.parse(
@@ -278,6 +280,67 @@ describe("duplicating an invoice", () => {
   it("does not duplicate another business's invoice", async () => {
     const source = await draft(businessB.id, clientB.id);
     expect(await duplicateInvoice(db, businessA.id, source.id)).toBeNull();
+  });
+});
+
+describe("deleting a draft", () => {
+  it("deletes a draft, but never an issued or foreign invoice", async () => {
+    const d = await draft(businessA.id, clientA.id);
+    // Foreign business cannot delete it.
+    expect(await deleteDraftInvoice(db, businessB.id, d.id)).toBeNull();
+
+    // Owning business deletes the draft, and it is gone.
+    expect(await deleteDraftInvoice(db, businessA.id, d.id)).not.toBeNull();
+    const [gone] = await db
+      .select()
+      .from(schema.invoice)
+      .where(eq(schema.invoice.id, d.id));
+    expect(gone).toBeUndefined();
+
+    // Issued invoices are documents - they cannot be deleted.
+    const toIssue = await draft(businessA.id, clientA.id);
+    await issueOk(businessA.id, toIssue.id, new Date("2026-05-02T12:00:00Z"));
+    expect(await deleteDraftInvoice(db, businessA.id, toIssue.id)).toBeNull();
+  });
+});
+
+describe("editable draft details", () => {
+  const noDates = {
+    issueDate: null,
+    dueDate: null,
+    periodStart: null,
+    periodEnd: null,
+  };
+
+  it("issues at the draft's chosen issue date and numbers by that year", async () => {
+    const d = await draft(businessA.id, clientA.id);
+    const updated = await updateInvoiceDetails(db, businessA.id, d.id, {
+      ...noDates,
+      issueDate: new Date("2025-03-04T00:00:00Z"),
+      dueDate: new Date("2025-04-04T00:00:00Z"),
+    });
+    expect(updated?.issueDate).toEqual(new Date("2025-03-04T00:00:00Z"));
+    expect(updated?.dueDate).toEqual(new Date("2025-04-04T00:00:00Z"));
+
+    // Issuing with no explicit date falls back to the date chosen on the
+    // draft, and the number lands in that year's sequence.
+    const issued = await issueOk(businessA.id, d.id);
+    expect(issued?.issueDate).toEqual(new Date("2025-03-04T00:00:00Z"));
+    expect(issued?.year).toBe(2025);
+    expect(issued?.number?.startsWith("2025-")).toBe(true);
+  });
+
+  it("only edits drafts, and only within the business", async () => {
+    const d = await draft(businessA.id, clientA.id);
+    // Foreign business cannot edit it.
+    expect(
+      await updateInvoiceDetails(db, businessB.id, d.id, noDates),
+    ).toBeNull();
+    // Once issued, the dated metadata is frozen like the rest.
+    await issueOk(businessA.id, d.id, new Date("2026-05-01T12:00:00Z"));
+    expect(
+      await updateInvoiceDetails(db, businessA.id, d.id, noDates),
+    ).toBeNull();
   });
 });
 

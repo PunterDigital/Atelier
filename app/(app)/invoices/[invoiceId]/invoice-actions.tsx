@@ -41,12 +41,15 @@ export function InvoiceActions({
   if (status === "draft") {
     return (
       <div className="flex flex-col items-end gap-1">
-        <Button
-          disabled={!hasLines || issue.isPending}
-          onClick={() => issue.mutate({ invoiceId })}
-        >
-          {issue.isPending ? "Issuing..." : "Issue invoice"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <DeleteDraftButton invoiceId={invoiceId} />
+          <Button
+            disabled={!hasLines || issue.isPending}
+            onClick={() => issue.mutate({ invoiceId })}
+          >
+            {issue.isPending ? "Issuing..." : "Issue invoice"}
+          </Button>
+        </div>
         <p className="text-xs text-muted-foreground">
           {hasLines
             ? "Issuing assigns the number - it cannot be undone"
@@ -109,6 +112,73 @@ function DuplicateButton({ invoiceId }: { invoiceId: string }) {
     >
       {duplicate.isPending ? "Duplicating..." : "Duplicate"}
     </Button>
+  );
+}
+
+// Deletes a draft for good (drafts aren't documents). Two-step confirm so a
+// stray click can't discard work; on success it returns to the invoice list.
+function DeleteDraftButton({ invoiceId }: { invoiceId: string }) {
+  const router = useRouter();
+  const trpc = useTRPC();
+  const [open, setOpen] = useState(false);
+  const remove = useMutation(
+    trpc.invoices.delete.mutationOptions({
+      onSuccess: () => {
+        setOpen(false);
+        router.push("/invoices");
+        router.refresh();
+      },
+    }),
+  );
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (remove.isPending) return;
+        setOpen(next);
+        if (!next) remove.reset();
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button
+          variant="ghost"
+          className="text-destructive hover:text-destructive"
+        >
+          Delete draft
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete this draft?</DialogTitle>
+          <DialogDescription>
+            This permanently deletes the draft. Any time billed on it returns to
+            unbilled. This cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        {remove.error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {remove.error.message}
+          </p>
+        ) : null}
+        <DialogFooter>
+          <Button
+            variant="ghost"
+            disabled={remove.isPending}
+            onClick={() => setOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={remove.isPending}
+            onClick={() => remove.mutate({ invoiceId })}
+          >
+            {remove.isPending ? "Deleting..." : "Delete draft"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
