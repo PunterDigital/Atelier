@@ -684,6 +684,44 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
   );
 
   server.registerTool(
+    "set_invoice_details",
+    {
+      title: "Set invoice dates",
+      description:
+        "Set the dated metadata of a draft invoice: the issue date (used and printed when it is issued - omit to issue at today's date), the due date, and the optional billing period. Each field replaces the current value; pass null to clear. Set both billing-period ends together or neither. Draft invoices only.",
+      inputSchema: {
+        invoiceId: z.string().uuid(),
+        issueDate: z.string().datetime().nullable().optional().describe(ISO),
+        dueDate: z.string().datetime().nullable().optional().describe(ISO),
+        periodStart: z
+          .string()
+          .datetime()
+          .nullable()
+          .optional()
+          .describe(`Start of the billing period. ${ISO} Set both ends or neither.`),
+        periodEnd: z
+          .string()
+          .datetime()
+          .nullable()
+          .optional()
+          .describe(`End of the billing period. ${ISO}`),
+      },
+    },
+    ({ invoiceId, issueDate, dueDate, periodStart, periodEnd }) =>
+      runTool(async () =>
+        toolJson(
+          await caller.invoices.updateDetails({
+            invoiceId,
+            issueDate: issueDate ? new Date(issueDate) : null,
+            dueDate: dueDate ? new Date(dueDate) : null,
+            periodStart: periodStart ? new Date(periodStart) : null,
+            periodEnd: periodEnd ? new Date(periodEnd) : null,
+          }),
+        ),
+      ),
+  );
+
+  server.registerTool(
     "set_invoice_notes",
     {
       title: "Set invoice notes",

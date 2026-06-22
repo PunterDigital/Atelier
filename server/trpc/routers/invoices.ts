@@ -15,6 +15,7 @@ import {
   createDraftInvoice,
   duplicateInvoice,
   issueInvoice,
+  updateInvoiceDetails,
 } from "@/modules/billing/invoices";
 import {
   getInvoice,
@@ -169,6 +170,55 @@ export const invoicesRouter = createTRPCRouter({
         });
       }
       return result.invoice;
+    }),
+
+  // Editable dated metadata on a draft: issue date (used and dated at issue
+  // time), due date, billing period. Draft-only, so a null result means
+  // there is no draft to edit.
+  updateDetails: permissionProcedure("invoices.edit")
+    .input(
+      z
+        .object({
+          invoiceId: z.string().uuid(),
+          issueDate: z.date().nullable(),
+          dueDate: z.date().nullable(),
+          periodStart: z.date().nullable(),
+          periodEnd: z.date().nullable(),
+        })
+        // A billing period is a range: both ends together and in order, so a
+        // half-set period can never reach the PDF (mirrors createDraft).
+        .refine(
+          (v) =>
+            (v.periodStart == null) === (v.periodEnd == null) &&
+            (v.periodStart == null ||
+              v.periodEnd == null ||
+              v.periodStart <= v.periodEnd),
+          {
+            message:
+              "Give both billing-period dates, with the start on or before the end",
+            path: ["periodEnd"],
+          },
+        ),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const updated = await updateInvoiceDetails(
+        getDb(),
+        ctx.businessId,
+        input.invoiceId,
+        {
+          issueDate: input.issueDate,
+          dueDate: input.dueDate,
+          periodStart: input.periodStart,
+          periodEnd: input.periodEnd,
+        },
+      );
+      if (!updated) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Only draft invoices can be edited",
+        });
+      }
+      return updated;
     }),
 
   // Free-text notes shown at the foot of the invoice. Draft-only, so a
