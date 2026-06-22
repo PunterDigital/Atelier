@@ -25,13 +25,13 @@ export default async function AppLayout({
   if (!membership) {
     redirect("/onboarding");
   }
-  const business = await caller.business.current();
+  const businesses = await caller.business.list();
 
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
-        <Topbar businessName={business.name} userName={session.user.name} />
+        <Topbar businesses={businesses} userName={session.user.name} />
         <main className="mx-auto w-full max-w-[var(--content-max)] flex-1 px-6 py-8">
           {children}
         </main>
