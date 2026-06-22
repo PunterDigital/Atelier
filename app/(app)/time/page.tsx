@@ -115,8 +115,12 @@ export default async function TimesheetPage({
                         </Link>
                         <p className="truncate text-sm text-muted-foreground">
                           {entry.projectName} - {entry.clientName}
-                          {entry.note ? ` - ${entry.note}` : ""}
                         </p>
+                        {entry.note ? (
+                          <p className="mt-0.5 whitespace-pre-line text-sm text-muted-foreground">
+                            {entry.note}
+                          </p>
+                        ) : null}
                       </div>
                       {!entry.billable ? (
                         <span className="shrink-0 rounded-full bg-[var(--status-draft-bg)] px-2 py-px text-xs font-semibold text-[var(--status-draft-fg)]">

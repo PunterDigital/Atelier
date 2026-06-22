@@ -74,7 +74,7 @@ export const timeRouter = createTRPCRouter({
     .input(
       z.object({
         entryId: z.string().uuid(),
-        note: z.string().trim().max(1000).nullable(),
+        note: z.string().trim().max(10_000).nullable(),
       }),
     )
     .mutation(async ({ ctx, input }) =>
