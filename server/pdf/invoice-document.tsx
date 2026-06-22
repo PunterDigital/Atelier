@@ -202,7 +202,9 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
         {data.lines.map((line, index) => (
           <View key={index} style={styles.row} wrap={false}>
             <View style={styles.cellDescription}>
-              <Text>{line.description}</Text>
+              {line.description.split("\n").map((descLine, i) => (
+                <Text key={i}>{descLine || " "}</Text>
+              ))}
               {line.quantityLabel ? (
                 <Text style={styles.lineNote}>{line.quantityLabel}</Text>
               ) : null}
