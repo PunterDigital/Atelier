@@ -1,5 +1,6 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
+import { ZodError } from "zod";
 
 import { PERMISSION_META, type Permission } from "@/modules/authz";
 import { getAuth, type Session } from "@/server/auth";
@@ -17,6 +18,24 @@ export type TRPCContext = Awaited<ReturnType<typeof createTRPCContext>>;
 
 const t = initTRPC.context<TRPCContext>().create({
   transformer: superjson,
+  // Input validation failures arrive as a ZodError wrapped in the TRPCError's
+  // cause. By default tRPC stringifies the whole issue array into `message`,
+  // which then leaks as raw JSON into any UI that renders `error.message`.
+  // Surface the first issue's human-readable message instead, and expose the
+  // structured issues under `data.zodError` for forms that want field detail.
+  errorFormatter({ shape, error }) {
+    if (error.cause instanceof ZodError) {
+      const [firstIssue] = error.cause.issues;
+      if (firstIssue) {
+        return {
+          ...shape,
+          message: firstIssue.message,
+          data: { ...shape.data, zodError: error.cause.issues },
+        };
+      }
+    }
+    return shape;
+  },
 });
 
 export const createTRPCRouter = t.router;

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { CurrencySelect } from "@/components/currency-select";
+import type { CurrencyOption } from "@/lib/currencies";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,10 +21,12 @@ type Treatment = "standard" | "zero_rated" | "reverse_charge";
 export function NewInvoiceForm({
   clients,
   defaultCurrency,
+  currencyOptions,
   standardRateConfigured,
 }: {
   clients: { id: string; name: string }[];
   defaultCurrency: string;
+  currencyOptions: CurrencyOption[];
   standardRateConfigured: boolean;
 }) {
   const router = useRouter();
@@ -84,6 +87,7 @@ export function NewInvoiceForm({
                 required
                 value={currency}
                 onChange={setCurrency}
+                options={currencyOptions}
               />
             </div>
             <div className="flex flex-1 flex-col gap-2">

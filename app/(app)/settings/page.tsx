@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { listCurrencyOptions } from "@/lib/currencies";
 import { caller } from "@/server/trpc/server";
 
 import { BrandingForm } from "./branding-form";
@@ -29,6 +30,7 @@ export default async function SettingsPage() {
       <h1 className="text-2xl">Settings</h1>
       <SettingsForm
         initial={settings}
+        currencyOptions={listCurrencyOptions()}
         currentYear={currentYear}
       />
       <BrandingForm

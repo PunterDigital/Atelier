@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { CurrencySelect } from "@/components/currency-select";
+import type { CurrencyOption } from "@/lib/currencies";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,6 +21,7 @@ import { useTRPC } from "@/server/trpc/client";
 
 export function SettingsForm({
   initial,
+  currencyOptions,
   currentYear,
 }: {
   initial: {
@@ -30,6 +32,7 @@ export function SettingsForm({
     standardRatePct: string | null;
     vatNumber: string | null;
   };
+  currencyOptions: CurrencyOption[];
   currentYear: number;
 }) {
   const router = useRouter();
@@ -117,6 +120,7 @@ export function SettingsForm({
                   required
                   value={currency}
                   onChange={setCurrency}
+                  options={currencyOptions}
                 />
               </div>
               <div className="flex flex-1 flex-col gap-2">
