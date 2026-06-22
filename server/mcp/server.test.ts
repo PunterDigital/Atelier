@@ -39,8 +39,7 @@ function buildFakeCaller(recorded: Recorded[]) {
       list: rec("clients.list", [{ id: "c1", name: "Northwind" }]),
       get: rec("clients.get", (input: { clientId: string }) => ({
         id: input.clientId,
-        name: "Northwind",
-        company: "Northwind Ltd",
+        name: "Northwind Ltd",
         contacts: [{ name: "Old Contact" }],
         notes: "be nice",
         vatNumber: "GB123",
@@ -230,7 +229,7 @@ describe("Clerq MCP server", () => {
       { name: "New Contact", email: "new@northwind.test" },
     ]);
     // Preserved from the fetched client, not dropped.
-    expect(input.data.name).toBe("Northwind");
+    expect(input.data.name).toBe("Northwind Ltd");
     expect(input.data.vatNumber).toBe("GB123");
   });
 

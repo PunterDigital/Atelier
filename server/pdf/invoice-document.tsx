@@ -169,9 +169,6 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
           <View style={styles.metaColumn}>
             <Text style={styles.metaCaption}>Billed to</Text>
             <Text style={styles.metaLine}>{data.clientName}</Text>
-            {data.clientCompany ? (
-              <Text style={styles.metaLine}>{data.clientCompany}</Text>
-            ) : null}
             {data.clientVatNumber ? (
               <Text style={styles.metaMuted}>VAT {data.clientVatNumber}</Text>
             ) : null}

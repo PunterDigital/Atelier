@@ -72,11 +72,6 @@ export default async function ClientsPage({
                     </span>
                   ) : null}
                 </div>
-                {client.company ? (
-                  <div className="truncate text-sm text-muted-foreground">
-                    {client.company}
-                  </div>
-                ) : null}
               </div>
               <span className="shrink-0 text-sm text-muted-foreground">
                 Added {formatDate(client.createdAt)}

@@ -118,29 +118,27 @@ describe("clients service - bulk import", () => {
     const first = await importClients(db, businessA.id, userA, [
       { name: "HARBOR & CO", contacts: [] },
       {
-        name: "Brightfern",
-        company: "Brightfern Ltd",
+        name: "Brightfern Ltd",
         contacts: [{ name: "Iris", email: "iris@brightfern.test" }],
         vatNumber: "GB987654321",
       },
-      { name: "Brightfern", contacts: [] },
+      { name: "Brightfern Ltd", contacts: [] },
     ]);
     expect(first.created).toBe(1);
-    expect(first.skipped).toEqual(["HARBOR & CO", "Brightfern"]);
+    expect(first.skipped).toEqual(["HARBOR & CO", "Brightfern Ltd"]);
 
-    const imported = await getClientByName(businessA.id, "Brightfern");
-    expect(imported?.company).toBe("Brightfern Ltd");
+    const imported = await getClientByName(businessA.id, "Brightfern Ltd");
     expect(imported?.vatNumber).toBe("GB987654321");
 
     // Re-running the same import creates nothing.
     const second = await importClients(db, businessA.id, userA, [
-      { name: "Brightfern", contacts: [] },
+      { name: "Brightfern Ltd", contacts: [] },
     ]);
     expect(second.created).toBe(0);
 
     // The other business is untouched and could import the same names.
     const forB = await listClients(db, businessB.id);
-    expect(forB.some((c) => c.name === "Brightfern")).toBe(false);
+    expect(forB.some((c) => c.name === "Brightfern Ltd")).toBe(false);
   });
 });
 
@@ -153,7 +151,6 @@ describe("clients service - lifecycle", () => {
   it("creates, updates, archives and records the activity thread", async () => {
     const created = await createClient(db, businessA.id, userA, {
       name: "Studio Brightwood",
-      company: "Brightwood s.r.o.",
       contacts: [{ name: "Mara", email: "mara@brightwood.test" }],
       notes: "Met at the spring meetup",
     });
@@ -161,7 +158,6 @@ describe("clients service - lifecycle", () => {
 
     const updated = await updateClient(db, businessA.id, userA, created.id, {
       name: "Studio Brightwood",
-      company: "Brightwood s.r.o.",
       contacts: [
         { name: "Mara", email: "mara@brightwood.test", role: "CTO" },
       ],

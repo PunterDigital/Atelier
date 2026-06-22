@@ -16,7 +16,6 @@ export const contactSchema = z.object({
 
 export const clientInputSchema = z.object({
   name: z.string().trim().min(1).max(200),
-  company: z.string().trim().max(200).optional(),
   contacts: z.array(contactSchema).max(50).default([]),
   notes: z.string().trim().max(10_000).optional(),
   // Stored verbatim; validated only for shape. Required at issue time for
@@ -79,7 +78,6 @@ export async function createClient(
       .values({
         businessId,
         name: input.name,
-        company: input.company ?? null,
         contacts: input.contacts,
         notes: input.notes ?? null,
         vatNumber: input.vatNumber || null,
@@ -110,7 +108,6 @@ export async function updateClient(
       .update(schema.client)
       .set({
         name: input.name,
-        company: input.company ?? null,
         contacts: input.contacts,
         notes: input.notes ?? null,
         vatNumber: input.vatNumber || null,

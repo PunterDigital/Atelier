@@ -44,7 +44,6 @@ export type InvoicePdfData = {
   businessAddressLines: string[];
   businessVatNumber: string | null;
   clientName: string;
-  clientCompany: string | null;
   clientVatNumber: string | null;
   issueDateLabel: string | null;
   dueDateLabel: string | null;
@@ -72,7 +71,7 @@ export function buildInvoicePdfData(input: {
     logoDataUrl?: string | null;
     footerNote?: string | null;
   };
-  client: { name: string; company: string | null; vatNumber: string | null };
+  client: { name: string; vatNumber: string | null };
 }): InvoicePdfData {
   const { invoice, business, client } = input;
   const isDraft = invoice.status === "draft";
@@ -93,7 +92,6 @@ export function buildInvoicePdfData(input: {
       : [],
     businessVatNumber: business.vatNumber,
     clientName: client.name,
-    clientCompany: client.company,
     clientVatNumber: client.vatNumber,
     issueDateLabel: invoice.issueDate
       ? formatDateFull(invoice.issueDate)

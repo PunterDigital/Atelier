@@ -77,30 +77,28 @@ async function main() {
   // reverse-charge invoices; two get archived to show that state.
   const clientSpecs: {
     name: string;
-    company: string;
     contact: { name: string; email: string; role: string };
     rate: number;
     vatNumber?: string;
     notes?: string;
     archived?: boolean;
   }[] = [
-    { name: "Globex Corporation", company: "Globex Corporation", contact: { name: "Hank Scorpio", email: "hank@globex.test", role: "VP Operations" }, rate: 18500, vatNumber: "GB123456789", notes: "Retainer renews each January. Prefers a monthly summary." },
-    { name: "Initech", company: "Initech LLC", contact: { name: "Bill Lumbergh", email: "bill@initech.test", role: "Division Manager" }, rate: 16000, notes: "Needs cover sheets on every report." },
-    { name: "Soylent Industries", company: "Soylent Industries", contact: { name: "Dana Cole", email: "dana@soylent.test", role: "Head of Product" }, rate: 21000 },
-    { name: "Umbrella Health", company: "Umbrella Health Group", contact: { name: "Rana Okafor", email: "rana@umbrella.test", role: "CTO" }, rate: 22500, vatNumber: "DE811234567", notes: "Security review required before each release." },
-    { name: "Stark Solutions", company: "Stark Solutions Ltd", contact: { name: "Pepper Vance", email: "pepper@stark.test", role: "COO" }, rate: 24000, notes: "Fast payer. Loves a tidy changelog." },
-    { name: "Wayne Enterprises", company: "Wayne Enterprises", contact: { name: "Lucius Reed", email: "lucius@wayne.test", role: "R&D Director" }, rate: 20000 },
-    { name: "Hooli", company: "Hooli Inc", contact: { name: "Gavin Park", email: "gavin@hooli.test", role: "Platform Lead" }, rate: 17500 },
-    { name: "Pied Piper", company: "Pied Piper", contact: { name: "Richard Bell", email: "richard@piedpiper.test", role: "Founder" }, rate: 14000, notes: "Early-stage. Watching budget closely." },
-    { name: "Cyberdyne Systems", company: "Cyberdyne Systems", contact: { name: "Miles Tran", email: "miles@cyberdyne.test", role: "Engineering" }, rate: 19000, notes: "Engagement wrapped Q1.", archived: true },
-    { name: "Vandelay Imports", company: "Vandelay Imports", contact: { name: "Art Vandelay", email: "art@vandelay.test", role: "Owner" }, rate: 12500, notes: "One-off site. Closed out.", archived: true },
+    { name: "Globex Corporation", contact: { name: "Hank Scorpio", email: "hank@globex.test", role: "VP Operations" }, rate: 18500, vatNumber: "GB123456789", notes: "Retainer renews each January. Prefers a monthly summary." },
+    { name: "Initech LLC", contact: { name: "Bill Lumbergh", email: "bill@initech.test", role: "Division Manager" }, rate: 16000, notes: "Needs cover sheets on every report." },
+    { name: "Soylent Industries", contact: { name: "Dana Cole", email: "dana@soylent.test", role: "Head of Product" }, rate: 21000 },
+    { name: "Umbrella Health Group", contact: { name: "Rana Okafor", email: "rana@umbrella.test", role: "CTO" }, rate: 22500, vatNumber: "DE811234567", notes: "Security review required before each release." },
+    { name: "Stark Solutions Ltd", contact: { name: "Pepper Vance", email: "pepper@stark.test", role: "COO" }, rate: 24000, notes: "Fast payer. Loves a tidy changelog." },
+    { name: "Wayne Enterprises", contact: { name: "Lucius Reed", email: "lucius@wayne.test", role: "R&D Director" }, rate: 20000 },
+    { name: "Hooli Inc", contact: { name: "Gavin Park", email: "gavin@hooli.test", role: "Platform Lead" }, rate: 17500 },
+    { name: "Pied Piper", contact: { name: "Richard Bell", email: "richard@piedpiper.test", role: "Founder" }, rate: 14000, notes: "Early-stage. Watching budget closely." },
+    { name: "Cyberdyne Systems", contact: { name: "Miles Tran", email: "miles@cyberdyne.test", role: "Engineering" }, rate: 19000, notes: "Engagement wrapped Q1.", archived: true },
+    { name: "Vandelay Imports", contact: { name: "Art Vandelay", email: "art@vandelay.test", role: "Owner" }, rate: 12500, notes: "One-off site. Closed out.", archived: true },
   ];
 
   const clients: (Row & { name: string; rate: number; archived?: boolean })[] = [];
   for (const c of clientSpecs) {
     const created = (await createClient(db, biz, user.id, {
       name: c.name,
-      company: c.company,
       contacts: [c.contact],
       notes: c.notes,
       vatNumber: c.vatNumber ?? null,

@@ -172,8 +172,10 @@ export const client = pgTable(
     businessId: uuid("business_id")
       .notNull()
       .references(() => business.id),
+    // The client's name - the company or organisation you invoice. Individual
+    // people live in `contacts`; there is deliberately no separate company
+    // field, since the name already is the company.
     name: text("name").notNull(),
-    company: text("company"),
     contacts: jsonb("contacts").notNull().default([]),
     notes: text("notes"),
     // Required on reverse-charge invoices: the spec mandates both
