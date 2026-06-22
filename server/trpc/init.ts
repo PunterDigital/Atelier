@@ -31,9 +31,9 @@ export const authedProcedure = publicProcedure.use(({ ctx, next }) => {
 });
 
 // The tenancy boundary: every business-scoped procedure derives business_id
-// from the caller's membership, never from client input. Until multi-entity
-// switching lands (Phase 4), the active business is the user's oldest
-// membership - deterministic, and correct for the single-business case.
+// from the caller's active membership, never from client input. The active
+// business is the one the user has switched to (their userActiveBusiness
+// pointer), falling back to their oldest membership - see getActiveMembership.
 export const businessProcedure = authedProcedure.use(async ({ ctx, next }) => {
   const active = await getActiveMembership(ctx.session.user.id);
   if (!active) {

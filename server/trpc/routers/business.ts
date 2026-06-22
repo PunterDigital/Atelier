@@ -1,7 +1,9 @@
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { getDb, schema } from "@/db";
+import { getUserBusinesses, setActiveBusiness } from "@/server/membership";
 import {
   authedProcedure,
   businessProcedure,
@@ -57,8 +59,43 @@ export const businessRouter = createTRPCRouter({
           userId: ctx.session.user.id,
           role: "owner",
         });
+        // Switch to the business just created: making a new one and then
+        // having to hunt for it in the switcher would be a surprise. The
+        // pointer is upserted so this also covers the user's very first
+        // business (onboarding) and any later one.
+        await tx
+          .insert(schema.userActiveBusiness)
+          .values({ userId: ctx.session.user.id, businessId: created.id })
+          .onConflictDoUpdate({
+            target: schema.userActiveBusiness.userId,
+            set: { businessId: created.id, updatedAt: new Date() },
+          });
         return created;
       });
+    }),
+
+  // Every business the signed-in user can act in, for the switcher, with the
+  // active one flagged. Sits behind businessProcedure: only a user who already
+  // belongs to a business reaches the switcher, and this never leaks businesses
+  // the user is not a member of.
+  list: businessProcedure.query(async ({ ctx }) => {
+    return getUserBusinesses(ctx.session.user.id);
+  }),
+
+  // Make `businessId` the user's active business. Guarded by membership in
+  // setActiveBusiness, so a forged id for a business the user is not part of is
+  // rejected rather than silently switched to.
+  switch: authedProcedure
+    .input(z.object({ businessId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const ok = await setActiveBusiness(ctx.session.user.id, input.businessId);
+      if (!ok) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are not a member of that business",
+        });
+      }
+      return { businessId: input.businessId };
     }),
 
   current: businessProcedure.query(async ({ ctx }) => {

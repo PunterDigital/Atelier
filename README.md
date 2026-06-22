@@ -22,6 +22,9 @@ tracking, expenses and invoicing in one connected flow.
   never touch money
 - **Teams and roles:** small-team memberships with roles and permissions,
   everything scoped per business
+- **Multiple businesses per account:** one login can own and belong to several
+  businesses, with a topbar switcher to move between them - clean separation,
+  no second account needed
 - **CSV import** with interactive column mapping for migrating clients in
 - **Auth:** email/password (Better Auth), optional Google SSO via env config,
   server-side database sessions
