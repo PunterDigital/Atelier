@@ -23,7 +23,6 @@ export default async function EditClientPage({
     const client = await caller.clients.get({ clientId });
     initial = {
       name: client.name,
-      company: client.company ?? undefined,
       contacts: client.contacts as ClientFormValues["contacts"],
       notes: client.notes ?? undefined,
       vatNumber: client.vatNumber,

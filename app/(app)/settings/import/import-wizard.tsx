@@ -21,7 +21,6 @@ const selectClassName =
 
 const FIELDS = [
   { key: "name", label: "Client name", required: true },
-  { key: "company", label: "Company", required: false },
   { key: "contactName", label: "Contact name", required: false },
   { key: "contactEmail", label: "Contact email", required: false },
   { key: "vatNumber", label: "VAT number", required: false },
@@ -43,8 +42,12 @@ function guessMapping(headers: string[]): Mapping {
       mapping[key] = index;
     }
   };
-  assign("name", find("client name", "client", "name"));
-  assign("company", find("company", "organisation", "organization"));
+  // The client name is the company, so a company/organisation column maps to
+  // it too - exports that only have that column still import cleanly.
+  assign(
+    "name",
+    find("client name", "client", "name", "company", "organisation", "organization"),
+  );
   assign("contactEmail", find("email"));
   assign("contactName", find("contact name", "contact"));
   assign("vatNumber", find("vat", "tax id", "tax number"));
@@ -54,7 +57,6 @@ function guessMapping(headers: string[]): Mapping {
 
 type ImportRow = {
   name: string;
-  company: string | undefined;
   contacts: { name: string; email: string | undefined }[];
   vatNumber: string | null;
   notes: string | undefined;
@@ -88,7 +90,6 @@ function buildRows(data: string[][], mapping: Mapping): ImportRow[] {
           : [];
       return {
         name,
-        company: pick(row, "company") || undefined,
         contacts: contact,
         vatNumber: pick(row, "vatNumber") || null,
         notes: pick(row, "notes") || undefined,
@@ -175,7 +176,7 @@ export function ImportWizard() {
           <textarea
             aria-label="Or paste CSV rows"
             rows={4}
-            placeholder={"name,company,email\nNorthwind Studio,Northwind s.r.o.,petra@northwind.test"}
+            placeholder={"name,email\nNorthwind Studio s.r.o.,petra@northwind.test"}
             value={pasted}
             onChange={(e) => {
               setPasted(e.target.value);
@@ -242,9 +243,6 @@ export function ImportWizard() {
                   className="flex items-baseline gap-3 border-b px-3 py-2 text-sm last:border-b-0"
                 >
                   <span className="font-medium">{row.name}</span>
-                  {row.company ? (
-                    <span className="text-muted-foreground">{row.company}</span>
-                  ) : null}
                   {row.contacts[0]?.email ? (
                     <span className="text-muted-foreground">
                       {row.contacts[0].email}

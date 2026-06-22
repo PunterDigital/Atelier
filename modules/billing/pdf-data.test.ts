@@ -35,8 +35,7 @@ const business = {
   vatNumber: "GB123456789",
 };
 const client = {
-  name: "Northwind Studio",
-  company: "Northwind Studio s.r.o.",
+  name: "Northwind Studio s.r.o.",
   vatNumber: "CZ12345678",
 };
 

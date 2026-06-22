@@ -1,6 +1,6 @@
 {
-  "id": "d0093366-e8f9-441e-bc02-20f93cfc694d",
-  "prevId": "888fa4d9-b3eb-4cf9-91c3-8109110c26e7",
+  "id": "e4e0a482-2b22-4cdd-a1a2-2f40e86b24a3",
+  "prevId": "d0093366-e8f9-441e-bc02-20f93cfc694d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -770,12 +770,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "company": {
-          "name": "company",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "contacts": {
           "name": "contacts",

@@ -53,16 +53,14 @@ async function main() {
   });
 
   const northwind = await createClient(db, business.id, user.id, {
-    name: "Northwind Studio",
-    company: "Northwind Studio s.r.o.",
+    name: "Northwind Studio s.r.o.",
     contacts: [{ name: "Petra Svobodova", email: "petra@northwind.test", role: "Founder" }],
     notes: "Referred by a former colleague - prefers async updates",
     defaultRateMinor: 6200,
     defaultRateCurrency: "EUR",
   });
   const lumen = await createClient(db, business.id, user.id, {
-    name: "Lumen Labs",
-    company: "Lumen Labs Ltd",
+    name: "Lumen Labs Ltd",
     contacts: [{ name: "Owen Hart", email: "owen@lumenlabs.test", role: "CTO" }],
     defaultRateMinor: 7500,
     defaultRateCurrency: "GBP",

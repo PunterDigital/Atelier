@@ -152,6 +152,24 @@ export const businessMemberPermission = pgTable(
   ],
 );
 
+// Which business a user is currently acting in. A user can belong to several
+// businesses through business_member (a clean separation of concerns - one
+// account, several entities); this row records the one their requests resolve
+// to until they switch. Scope is per account, not per device: switching
+// carries across logins. The resolver falls back to the oldest membership when
+// this is absent or stale (the pointed-at business no longer has a membership),
+// so a deleted or left business can never strand the user. business_id is here
+// both as the pointer and to keep the structural tenancy convention.
+export const userActiveBusiness = pgTable("user_active_business", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  businessId: uuid("business_id")
+    .notNull()
+    .references(() => business.id, { onDelete: "cascade" }),
+  ...timestamps,
+});
+
 export const client = pgTable(
   "client",
   {
@@ -159,8 +177,10 @@ export const client = pgTable(
     businessId: uuid("business_id")
       .notNull()
       .references(() => business.id),
+    // The client's name - the company or organisation you invoice. Individual
+    // people live in `contacts`; there is deliberately no separate company
+    // field, since the name already is the company.
     name: text("name").notNull(),
-    company: text("company"),
     contacts: jsonb("contacts").notNull().default([]),
     notes: text("notes"),
     // Required on reverse-charge invoices: the spec mandates both

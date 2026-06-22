@@ -52,8 +52,7 @@ describe("invoice PDF rendering", () => {
         vatNumber: "GB123456789",
       },
       client: {
-        name: "Lumen Labs",
-        company: "Lumen Labs Ltd",
+        name: "Lumen Labs Ltd",
         vatNumber: "CZ12345678",
       },
     });

@@ -73,7 +73,6 @@ export async function GET(
   const [clientRow] = await db
     .select({
       name: schema.client.name,
-      company: schema.client.company,
       vatNumber: schema.client.vatNumber,
     })
     .from(schema.client)

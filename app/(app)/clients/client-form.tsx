@@ -17,7 +17,6 @@ type Contact = { name: string; email?: string; role?: string };
 
 export type ClientFormValues = {
   name: string;
-  company?: string;
   contacts: Contact[];
   notes?: string;
   vatNumber?: string | null;
@@ -38,7 +37,6 @@ export function ClientForm({
   const router = useRouter();
   const trpc = useTRPC();
   const [name, setName] = useState(initial?.name ?? "");
-  const [company, setCompany] = useState(initial?.company ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [contacts, setContacts] = useState<Contact[]>(initial?.contacts ?? []);
   const [rate, setRate] = useState(
@@ -122,7 +120,6 @@ export function ClientForm({
     }
     const data: ClientFormValues = {
       name,
-      company: company || undefined,
       notes: notes || undefined,
       vatNumber: vatNumber.trim() || null,
       defaultRateMinor,
@@ -149,24 +146,15 @@ export function ClientForm({
     <Card>
       <CardContent>
         <form onSubmit={submit} className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              required
-              placeholder="Mara Novak"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
           <div className="flex gap-4">
             <div className="flex flex-1 flex-col gap-2">
-              <Label htmlFor="company">Company</Label>
+              <Label htmlFor="name">Name</Label>
               <Input
-                id="company"
+                id="name"
+                required
                 placeholder="Brightwood s.r.o."
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
             </div>
             <div className="flex w-44 flex-col gap-2">

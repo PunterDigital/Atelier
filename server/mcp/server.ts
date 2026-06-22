@@ -29,8 +29,9 @@ const contactField = z.object({
 // Shared shape for create/update client. Mirrors clientInputSchema; the caller
 // re-validates, so this is the model-facing surface, not the source of truth.
 const clientFields = {
-  name: z.string().describe("Client display name."),
-  company: z.string().optional(),
+  name: z
+    .string()
+    .describe("Client display name - the company or organisation you invoice."),
   contacts: z.array(contactField).optional().describe("People at the client."),
   notes: z.string().optional().describe("Freeform notes about the client."),
   vatNumber: z
@@ -165,7 +166,6 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
           clientId,
           data: {
             name: existing.name,
-            company: existing.company ?? undefined,
             contacts,
             notes: existing.notes ?? undefined,
             vatNumber: existing.vatNumber,

@@ -68,9 +68,6 @@ export default async function ClientDetailPage({
               </span>
             ) : null}
           </div>
-          {client.company ? (
-            <p className="text-muted-foreground">{client.company}</p>
-          ) : null}
         </div>
         <Button variant="outline" asChild>
           <Link href={`/clients/${client.id}/edit`}>Edit</Link>
