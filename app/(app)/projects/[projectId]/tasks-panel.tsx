@@ -44,6 +44,9 @@ const COLUMNS: { id: TaskStatus; title: string }[] = [
 const selectClassName =
   "h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40";
 
+const noteTextareaClassName =
+  "w-full resize-y rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40";
+
 function estimateToMinutes(hoursText: string): number | null {
   if (!hoursText.trim()) {
     return null;
@@ -587,17 +590,18 @@ function TimeSection({ taskId }: { taskId: string }) {
                       note: noteDraft.text.trim() || null,
                     });
                   }}
-                  className="flex items-center gap-2"
+                  className="flex flex-col items-end gap-2"
                 >
-                  <Input
+                  <textarea
                     aria-label="Entry note"
                     autoFocus
-                    placeholder="What happened during this time"
+                    rows={3}
+                    placeholder="What happened during this time - one item per line if you like"
                     value={noteDraft.text}
                     onChange={(e) =>
                       setNoteDraft({ entryId: entry.id, text: e.target.value })
                     }
-                    className="h-7 text-sm"
+                    className={noteTextareaClassName}
                   />
                   <Button
                     type="submit"
@@ -609,7 +613,9 @@ function TimeSection({ taskId }: { taskId: string }) {
                   </Button>
                 </form>
               ) : entry.note ? (
-                <p className="text-xs text-muted-foreground">{entry.note}</p>
+                <p className="whitespace-pre-line text-xs text-muted-foreground">
+                  {entry.note}
+                </p>
               ) : null}
             </li>
           ))}
@@ -678,12 +684,13 @@ function TimeSection({ taskId }: { taskId: string }) {
             {log.isPending ? "Logging..." : "Log time"}
           </Button>
         </div>
-        <Input
+        <textarea
           aria-label="Note for this entry"
-          placeholder="Optional note - what this time covered"
+          rows={3}
+          placeholder="Optional note - what this time covered. Use a new line for each thing you did."
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="h-8"
+          className={noteTextareaClassName}
         />
       </form>
       {log.error ? (
