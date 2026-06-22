@@ -2,12 +2,28 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { authClient } from "@/lib/auth-client";
 
 import styles from "../auth.module.css";
 import { AuthToggle, GoogleButton } from "../auth-shell";
+
+// The hostname is a browser-only value that never changes within a session, so
+// there is nothing to subscribe to.
+const subscribeToHost = () => () => {};
+
+// Terms/privacy consent is only required on the hosted app. Read the host
+// through useSyncExternalStore so the server snapshot (and first client paint)
+// is false - matching, so no hydration mismatch - and the client then resolves
+// the real hostname. This keeps the host detection out of an effect.
+function useRequireConsent() {
+  return useSyncExternalStore(
+    subscribeToHost,
+    () => window.location.hostname === "app.useclerq.net",
+    () => false,
+  );
+}
 
 export function SignUpForm({
   googleEnabled,
@@ -25,14 +41,8 @@ export function SignUpForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  // Terms/privacy consent is only required on the hosted app. We detect the
-  // host client-side (defaulting to false) to avoid a hydration mismatch.
-  const [requireConsent, setRequireConsent] = useState(false);
+  const requireConsent = useRequireConsent();
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-
-  useEffect(() => {
-    setRequireConsent(window.location.hostname === "app.useclerq.net");
-  }, []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
