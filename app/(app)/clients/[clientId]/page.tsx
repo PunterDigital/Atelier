@@ -201,6 +201,33 @@ export default async function ClientDetailPage({
 
           <MemberRates clientId={client.id} />
 
+          {client.address || client.companyNumber || client.vatNumber ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Details</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3 text-sm">
+                {client.address ? (
+                  <p className="whitespace-pre-wrap text-muted-foreground">
+                    {client.address}
+                  </p>
+                ) : null}
+                {client.companyNumber ? (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">Company no.</span>
+                    <span className="tabular">{client.companyNumber}</span>
+                  </div>
+                ) : null}
+                {client.vatNumber ? (
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted-foreground">VAT</span>
+                    <span className="tabular">{client.vatNumber}</span>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
               <CardTitle>Contacts</CardTitle>

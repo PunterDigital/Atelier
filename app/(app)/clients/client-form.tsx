@@ -19,6 +19,8 @@ export type ClientFormValues = {
   name: string;
   contacts: Contact[];
   notes?: string;
+  address?: string | null;
+  companyNumber?: string | null;
   vatNumber?: string | null;
   defaultRateMinor?: number | null;
   defaultRateCurrency?: string | null;
@@ -60,6 +62,10 @@ export function ClientForm({
   );
   const [rateError, setRateError] = useState<string | null>(null);
   const [vatNumber, setVatNumber] = useState(initial?.vatNumber ?? "");
+  const [companyNumber, setCompanyNumber] = useState(
+    initial?.companyNumber ?? "",
+  );
+  const [address, setAddress] = useState(initial?.address ?? "");
 
   const create = useMutation(
     trpc.clients.create.mutationOptions({
@@ -121,6 +127,8 @@ export function ClientForm({
     const data: ClientFormValues = {
       name,
       notes: notes || undefined,
+      address: address.trim() || null,
+      companyNumber: companyNumber.trim() || null,
       vatNumber: vatNumber.trim() || null,
       defaultRateMinor,
       defaultRateCurrency,
@@ -157,7 +165,16 @@ export function ClientForm({
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
-            <div className="flex w-44 flex-col gap-2">
+            <div className="flex w-40 flex-col gap-2">
+              <Label htmlFor="companyNumber">Company number</Label>
+              <Input
+                id="companyNumber"
+                placeholder="12345678"
+                value={companyNumber}
+                onChange={(e) => setCompanyNumber(e.target.value)}
+              />
+            </div>
+            <div className="flex w-40 flex-col gap-2">
               <Label htmlFor="vatNumber">VAT number</Label>
               <Input
                 id="vatNumber"
@@ -166,6 +183,21 @@ export function ClientForm({
                 onChange={(e) => setVatNumber(e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="address">Address</Label>
+            <textarea
+              id="address"
+              rows={3}
+              placeholder={"12 Harbour Street\nBristol BS1 4QA"}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              className="rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40"
+            />
+            <p className="text-xs text-muted-foreground">
+              Printed on invoices in the &ldquo;Billed to&rdquo; block.
+            </p>
           </div>
 
           <div className="flex flex-col gap-2">

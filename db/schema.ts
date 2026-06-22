@@ -183,6 +183,12 @@ export const client = pgTable(
     name: text("name").notNull(),
     contacts: jsonb("contacts").notNull().default([]),
     notes: text("notes"),
+    // Postal address as entered, newline-separated; printed on invoices in
+    // the "Billed to" block. Mirrors business.address.
+    address: text("address"),
+    // Company / registration number (e.g. Companies House number, IČO).
+    // Printed under the client on invoices when set.
+    companyNumber: text("company_number"),
     // Required on reverse-charge invoices: the spec mandates both
     // parties' VAT numbers printed (Section 4).
     vatNumber: text("vat_number"),
@@ -475,6 +481,10 @@ export const invoice = pgTable(
     currency: text("currency").notNull(),
     issueDate: timestamp("issue_date", { withTimezone: true }),
     dueDate: timestamp("due_date", { withTimezone: true }),
+    // Optional billing period this invoice covers (e.g. a fortnight of work),
+    // printed alongside the issue and due dates. Both set or both null.
+    periodStart: timestamp("period_start", { withTimezone: true }),
+    periodEnd: timestamp("period_end", { withTimezone: true }),
     taxTreatment: text("tax_treatment", {
       enum: ["standard", "zero_rated", "reverse_charge"],
     }).notNull(),

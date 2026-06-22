@@ -4,12 +4,25 @@
 
 import { formatDateFull, formatMoney } from "@/lib/format";
 
+// Postal addresses are stored verbatim, newline-separated; the PDF lays
+// them out one line per row, trimmed and with blank lines dropped.
+function addressLines(address: string | null | undefined): string[] {
+  return address
+    ? address
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+    : [];
+}
+
 type InvoiceRecord = {
   number: string | null;
   status: "draft" | "sent" | "paid" | "overdue";
   currency: string;
   issueDate: Date | null;
   dueDate: Date | null;
+  periodStart: Date | null;
+  periodEnd: Date | null;
   taxTreatment: "standard" | "zero_rated" | "reverse_charge";
   taxRatePercent: string;
   taxNote: string | null;
@@ -44,9 +57,12 @@ export type InvoicePdfData = {
   businessAddressLines: string[];
   businessVatNumber: string | null;
   clientName: string;
+  clientAddressLines: string[];
+  clientCompanyNumber: string | null;
   clientVatNumber: string | null;
   issueDateLabel: string | null;
   dueDateLabel: string | null;
+  periodLabel: string | null;
   lines: {
     description: string;
     quantityLabel: string | null;
@@ -71,7 +87,12 @@ export function buildInvoicePdfData(input: {
     logoDataUrl?: string | null;
     footerNote?: string | null;
   };
-  client: { name: string; vatNumber: string | null };
+  client: {
+    name: string;
+    address: string | null;
+    companyNumber: string | null;
+    vatNumber: string | null;
+  };
 }): InvoicePdfData {
   const { invoice, business, client } = input;
   const isDraft = invoice.status === "draft";
@@ -84,19 +105,24 @@ export function buildInvoicePdfData(input: {
     logoDataUrl: business.logoDataUrl ?? null,
     footerNote: business.footerNote ?? null,
     businessName: business.name,
-    businessAddressLines: business.address
-      ? business.address
-          .split("\n")
-          .map((line) => line.trim())
-          .filter(Boolean)
-      : [],
+    businessAddressLines: addressLines(business.address),
     businessVatNumber: business.vatNumber,
     clientName: client.name,
+    clientAddressLines: addressLines(client.address),
+    clientCompanyNumber: client.companyNumber,
     clientVatNumber: client.vatNumber,
     issueDateLabel: invoice.issueDate
       ? formatDateFull(invoice.issueDate)
       : null,
     dueDateLabel: invoice.dueDate ? formatDateFull(invoice.dueDate) : null,
+    // Both dates are set together (the form requires the pair), so a single
+    // range label is enough; guard on both for safety.
+    periodLabel:
+      invoice.periodStart && invoice.periodEnd
+        ? `${formatDateFull(invoice.periodStart)} - ${formatDateFull(
+            invoice.periodEnd,
+          )}`
+        : null,
     lines: invoice.lines.map((line) => ({
       description: line.description,
       quantityLabel:

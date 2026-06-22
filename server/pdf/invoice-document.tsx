@@ -46,6 +46,13 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   title: { fontSize: 22, fontFamily: "Helvetica-Bold", textAlign: "right" },
+  titleTotal: {
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    color: colors.primary,
+    textAlign: "right",
+    marginTop: 2,
+  },
   paidBadge: {
     fontSize: 10,
     fontFamily: "Helvetica-Bold",
@@ -160,6 +167,9 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
           </View>
           <View>
             <Text style={styles.title}>{data.title}</Text>
+            <Text style={[styles.titleTotal, { color: data.brandColor }]}>
+              {data.totalLabel}
+            </Text>
             {data.isPaid ? (
               <Text style={[styles.paidBadge, { color: data.brandColor }]}>
                 Paid
@@ -172,6 +182,16 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
           <View style={styles.metaColumn}>
             <Text style={styles.metaCaption}>Billed to</Text>
             <Text style={styles.metaLine}>{data.clientName}</Text>
+            {data.clientAddressLines.map((line, index) => (
+              <Text key={index} style={styles.metaMuted}>
+                {line}
+              </Text>
+            ))}
+            {data.clientCompanyNumber ? (
+              <Text style={styles.metaMuted}>
+                Company no. {data.clientCompanyNumber}
+              </Text>
+            ) : null}
             {data.clientVatNumber ? (
               <Text style={styles.metaMuted}>VAT {data.clientVatNumber}</Text>
             ) : null}
@@ -187,6 +207,14 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
               <>
                 <Text style={[styles.metaCaption, { marginTop: 8 }]}>Due</Text>
                 <Text style={styles.metaLine}>{data.dueDateLabel}</Text>
+              </>
+            ) : null}
+            {data.periodLabel ? (
+              <>
+                <Text style={[styles.metaCaption, { marginTop: 8 }]}>
+                  Billing period
+                </Text>
+                <Text style={styles.metaLine}>{data.periodLabel}</Text>
               </>
             ) : null}
           </View>
@@ -231,8 +259,12 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
         {data.taxNote ? <Text style={styles.taxNote}>{data.taxNote}</Text> : null}
         {data.notes ? <Text style={styles.notes}>{data.notes}</Text> : null}
 
+        {/* Not `fixed`: a fixed element repeats on every page (it was
+            wrongly showing on page 1 of a multi-page invoice). Absolutely
+            positioned and placed last, it renders once, pinned to the bottom
+            of the final page - the very bottom of the invoice. */}
         {data.footerNote ? (
-          <View style={styles.footer} fixed>
+          <View style={styles.footer}>
             {data.footerNote.split("\n").map((line, i) => (
               <Text key={i} style={styles.footerLine}>
                 {line || " "}

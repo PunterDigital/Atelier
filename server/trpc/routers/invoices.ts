@@ -54,7 +54,22 @@ export const invoicesRouter = createTRPCRouter({
           .regex(/^[A-Z]{3}$/),
         taxTreatment: treatmentSchema,
         dueDate: z.date().nullable().optional(),
-      }),
+        periodStart: z.date().nullable().optional(),
+        periodEnd: z.date().nullable().optional(),
+      })
+        // A billing period is a range: require both ends together and in
+        // order, so a half-set period can never reach the PDF.
+        .refine(
+          (v) =>
+            (v.periodStart == null) === (v.periodEnd == null) &&
+            (v.periodStart == null ||
+              v.periodEnd == null ||
+              v.periodStart <= v.periodEnd),
+          {
+            message: "Give both billing-period dates, with the start on or before the end",
+            path: ["periodEnd"],
+          },
+        ),
     )
     .mutation(async ({ ctx, input }) => {
       // The standard rate comes from tax_config only - the engine fails
@@ -81,6 +96,8 @@ export const invoicesRouter = createTRPCRouter({
           taxTreatment: input.taxTreatment,
           standardRatePercent: taxConfig.standardRatePct,
           dueDate: input.dueDate ?? null,
+          periodStart: input.periodStart ?? null,
+          periodEnd: input.periodEnd ?? null,
         }),
       );
     }),

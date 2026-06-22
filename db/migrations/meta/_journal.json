@@ -120,6 +120,13 @@
       "when": 1782123773638,
       "tag": "0016_client_member_rates",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1782131167336,
+      "tag": "0017_famous_ghost_rider",
+      "breakpoints": true
     }
   ]
 }
