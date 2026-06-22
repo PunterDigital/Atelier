@@ -28,6 +28,9 @@ export default async function EditProjectPage({
       dueDate: project.dueDate,
       defaultRateMinor: project.defaultRateMinor,
       defaultRateCurrency: project.defaultRateCurrency,
+      defaultRateUnit: project.defaultRateUnit,
+      budgetMinor: project.budgetMinor,
+      budgetCurrency: project.budgetCurrency,
     };
   } catch (error) {
     if (error instanceof TRPCError && error.code === "NOT_FOUND") {

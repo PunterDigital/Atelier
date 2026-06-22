@@ -42,6 +42,11 @@ export const business = pgTable("business", {
   // ISO 4217 code for the business's base currency. Stored as data only -
   // all interpretation (conversion, rounding) belongs to the billing module.
   currency: text("currency").notNull(),
+  // Working hours in a billing day - the divisor that turns a day rate into
+  // an effective hourly rate (time is tracked in seconds, so day rates only
+  // make sense relative to a day length). Business policy, read by the time
+  // module at entry creation.
+  hoursPerDay: integer("hours_per_day").notNull().default(8),
   taxConfig: jsonb("tax_config").notNull().default({}),
   branding: jsonb("branding").notNull().default({}),
   ...timestamps,
@@ -181,10 +186,20 @@ export const client = pgTable(
     // Required on reverse-charge invoices: the spec mandates both
     // parties' VAT numbers printed (Section 4).
     vatNumber: text("vat_number"),
-    // Default hourly rate in the currency's minor unit (integer, per the
-    // billing spec). Stored as data; resolution happens in modules/time.
+    // Default rate in the currency's minor unit (integer, per the billing
+    // spec). Stored as data; resolution happens in modules/time. The unit
+    // says whether the amount is per hour or per day; a day rate is divided
+    // by the business hoursPerDay into an effective hourly rate at entry
+    // creation. Used when the owner works the client solo.
     defaultRateMinor: integer("default_rate_minor"),
     defaultRateCurrency: text("default_rate_currency"),
+    defaultRateUnit: text("default_rate_unit", { enum: ["hour", "day"] })
+      .notNull()
+      .default("hour"),
+    // Optional overall budget for the whole client engagement, in minor
+    // units. Tracked and warned against (never enforced) by modules/reports.
+    budgetMinor: integer("budget_minor"),
+    budgetCurrency: text("budget_currency"),
     // Soft archive: archived clients keep their history and stay linkable
     // from old projects/invoices, they just leave the default lists.
     archivedAt: timestamp("archived_at", { withTimezone: true }),
@@ -213,13 +228,66 @@ export const project = pgTable(
       .default("active"),
     dueDate: timestamp("due_date", { withTimezone: true }),
     // Overrides the client default when set (billing spec rate precedence).
+    // Unit + day-rate handling mirror the client default.
     defaultRateMinor: integer("default_rate_minor"),
     defaultRateCurrency: text("default_rate_currency"),
+    defaultRateUnit: text("default_rate_unit", { enum: ["hour", "day"] })
+      .notNull()
+      .default("hour"),
+    // Optional budget for this project, tracked like the client budget.
+    budgetMinor: integer("budget_minor"),
+    budgetCurrency: text("budget_currency"),
     ...timestamps,
   },
   (table) => [
     index("project_business_id_idx").on(table.businessId),
     index("project_client_id_idx").on(table.clientId),
+  ],
+);
+
+// Per-client team-member pricing. A member added to a client carries the rate
+// they are billed out at on that client's work (hour or day, like the client
+// default), an optional internal cost (what the business actually pays them -
+// margin-sensitive, exposed only with reports.viewProfit), and an optional
+// per-member budget. The (client, user) pair is unique: one rate row per
+// member per client. userId is the join key to time_entry.userId; the service
+// validates the user is a member of the business before writing.
+export const clientMemberRate = pgTable(
+  "client_member_rate",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => business.id),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => client.id),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    billRateMinor: integer("bill_rate_minor").notNull(),
+    billRateCurrency: text("bill_rate_currency").notNull(),
+    billRateUnit: text("bill_rate_unit", { enum: ["hour", "day"] })
+      .notNull()
+      .default("hour"),
+    // What the business pays the member (their cost), for profit tracking.
+    internalCostMinor: integer("internal_cost_minor"),
+    internalCostCurrency: text("internal_cost_currency"),
+    internalCostUnit: text("internal_cost_unit", { enum: ["hour", "day"] })
+      .notNull()
+      .default("hour"),
+    budgetMinor: integer("budget_minor"),
+    budgetCurrency: text("budget_currency"),
+    ...timestamps,
+  },
+  (table) => [
+    unique("client_member_rate_client_user_unique").on(
+      table.clientId,
+      table.userId,
+    ),
+    index("client_member_rate_business_id_idx").on(table.businessId),
+    index("client_member_rate_client_id_idx").on(table.clientId),
+    index("client_member_rate_user_id_idx").on(table.userId),
   ],
 );
 
@@ -247,6 +315,12 @@ export const timeEntry = pgTable(
     billable: boolean("billable").notNull().default(true),
     rateMinor: integer("rate_minor"),
     rateCurrency: text("rate_currency"),
+    // The effective hourly internal cost (what the business pays the worker),
+    // resolved from the client-member rate at creation and frozen here the
+    // same way rateMinor is - so later rate changes never restate past profit.
+    // Null when there's no internal cost (e.g. the owner working solo).
+    internalCostMinor: integer("internal_cost_minor"),
+    internalCostCurrency: text("internal_cost_currency"),
     note: text("note"),
     // Set when the entry is billed on an invoice line; removing that line
     // nulls it, returning the entry to the unbilled pool (spec Section 7).

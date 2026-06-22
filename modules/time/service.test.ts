@@ -200,6 +200,123 @@ describe("time service - rate resolution (billing spec Section 7)", () => {
   });
 });
 
+describe("time service - day rates and member rates", () => {
+  // A client billed per day; with the default 8h day, EUR 240/day -> EUR 30/h.
+  let dayClientTask: { id: string };
+  // userA has a per-client member rate here: bill EUR 320/day, cost EUR 280/day.
+  let memberClientTask: { id: string };
+
+  beforeAll(async () => {
+    const dayClient = await createClient(db, businessA.id, userA, {
+      name: "Day-rate client",
+      contacts: [],
+    });
+    await db
+      .update(schema.client)
+      .set({
+        defaultRateMinor: 24000,
+        defaultRateCurrency: "EUR",
+        defaultRateUnit: "day",
+      })
+      .where(eq(schema.client.id, dayClient.id));
+    const dayProject = (await createProject(db, businessA.id, userA, {
+      name: "Day project",
+      clientId: dayClient.id,
+      status: "active",
+    })) as { id: string };
+    dayClientTask = (await createTask(db, businessA.id, dayProject.id, {
+      title: "Day task",
+      status: "todo",
+    })) as { id: string };
+
+    const memberClient = await createClient(db, businessA.id, userA, {
+      name: "Member-rate client",
+      contacts: [],
+    });
+    // A client default that the member rate should override.
+    await db
+      .update(schema.client)
+      .set({ defaultRateMinor: 5000, defaultRateCurrency: "GBP" })
+      .where(eq(schema.client.id, memberClient.id));
+    await db.insert(schema.clientMemberRate).values({
+      businessId: businessA.id,
+      clientId: memberClient.id,
+      userId: userA,
+      billRateMinor: 32000,
+      billRateCurrency: "EUR",
+      billRateUnit: "day",
+      internalCostMinor: 28000,
+      internalCostCurrency: "EUR",
+      internalCostUnit: "day",
+    });
+    const memberProject = (await createProject(db, businessA.id, userA, {
+      name: "Member project",
+      clientId: memberClient.id,
+      status: "active",
+    })) as { id: string };
+    memberClientTask = (await createTask(db, businessA.id, memberProject.id, {
+      title: "Member task",
+      status: "todo",
+    })) as { id: string };
+  });
+
+  it("converts a client day rate to an effective hourly rate", async () => {
+    const entry = await logManualEntry(db, businessA.id, userA, {
+      taskId: dayClientTask.id,
+      startedAt: new Date("2026-06-10T09:00:00Z"),
+      durationSeconds: 3600,
+      billable: true,
+    });
+    // EUR 240.00/day over the default 8h day -> EUR 30.00/h.
+    expect(entry?.rateMinor).toBe(3000);
+    expect(entry?.rateCurrency).toBe("EUR");
+    // No member rate here, so no internal cost is recorded.
+    expect(entry?.internalCostMinor).toBeNull();
+  });
+
+  it("uses the member rate over the client default and freezes the cost", async () => {
+    const entry = await logManualEntry(db, businessA.id, userA, {
+      taskId: memberClientTask.id,
+      startedAt: new Date("2026-06-10T10:00:00Z"),
+      durationSeconds: 3600,
+      billable: true,
+    });
+    // Bill EUR 320.00/day -> 40.00/h; cost EUR 280.00/day -> 35.00/h.
+    expect(entry?.rateMinor).toBe(4000);
+    expect(entry?.rateCurrency).toBe("EUR");
+    expect(entry?.internalCostMinor).toBe(3500);
+    expect(entry?.internalCostCurrency).toBe("EUR");
+  });
+
+  it("keeps the member internal cost even under a manual bill-rate override", async () => {
+    const entry = await logManualEntry(db, businessA.id, userA, {
+      taskId: memberClientTask.id,
+      startedAt: new Date("2026-06-10T11:00:00Z"),
+      durationSeconds: 3600,
+      billable: true,
+      rateMinor: 9999,
+      rateCurrency: "EUR",
+    });
+    expect(entry?.rateMinor).toBe(9999);
+    // The override changes what's billed, not what the worker costs.
+    expect(entry?.internalCostMinor).toBe(3500);
+  });
+
+  it("does not apply a member rate from another business", async () => {
+    // userB has no member rate on businessA's member client (and isn't even a
+    // member of it). Their entry there would fail tenancy anyway; assert the
+    // member rate is scoped to its own business by checking userB on businessB
+    // gets no internal cost while userA on businessA does.
+    const entry = await logManualEntry(db, businessB.id, userB, {
+      taskId: taskB.id,
+      startedAt: new Date("2026-06-10T12:00:00Z"),
+      durationSeconds: 3600,
+      billable: true,
+    });
+    expect(entry?.internalCostMinor).toBeNull();
+  });
+});
+
 describe("time service - week listing", () => {
   it("returns only the caller's closed entries inside the window", async () => {
     const weekStart = new Date("2026-06-01T00:00:00Z");

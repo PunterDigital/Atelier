@@ -99,7 +99,9 @@ export default async function InvoiceDetailPage({
                       className="flex items-start gap-3 border-b py-3 last:border-b-0"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{line.description}</p>
+                        <p className="whitespace-pre-line text-sm font-medium">
+                          {line.description}
+                        </p>
                         <p className="text-sm text-muted-foreground tabular">
                           {line.quantity
                             ? `${Number(line.quantity).toFixed(2)} h`

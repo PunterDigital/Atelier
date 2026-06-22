@@ -17,6 +17,7 @@ const CLIENTS_FULL = [
   "clients.create",
   "clients.edit",
   "clients.archive",
+  "clients.manageRates",
 ] satisfies Permission[];
 
 const PROJECTS_FULL = [
@@ -93,6 +94,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "invoices.configure",
     ...EXPENSES_FULL,
     "dashboard.view",
+    // Finance owns the P&L view (income, expenses, what the business pays out).
+    "reports.viewProfit",
     "settings.view",
     "team.view",
   ],

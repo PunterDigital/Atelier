@@ -28,6 +28,9 @@ export default async function EditClientPage({
       vatNumber: client.vatNumber,
       defaultRateMinor: client.defaultRateMinor,
       defaultRateCurrency: client.defaultRateCurrency,
+      defaultRateUnit: client.defaultRateUnit,
+      budgetMinor: client.budgetMinor,
+      budgetCurrency: client.budgetCurrency,
     };
   } catch (error) {
     if (error instanceof TRPCError && error.code === "NOT_FOUND") {

@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Db } from "@/db";
@@ -14,6 +14,20 @@ export const contactSchema = z.object({
   role: z.string().trim().max(100).optional(),
 });
 
+// Shared rate-shape helpers: an optional ISO 4217 code and the hour/day unit.
+const rateCurrencySchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z]{3}$/)
+  .nullable()
+  .optional();
+
+// Optional on the wire; callers that omit it get "hour" applied in the
+// service. Kept optional (not .default) so it stays optional in the inferred
+// input type and existing object-literal callers don't have to pass it.
+const rateUnitSchema = z.enum(["hour", "day"]).optional();
+
 export const clientInputSchema = z.object({
   name: z.string().trim().min(1).max(200),
   contacts: z.array(contactSchema).max(50).default([]),
@@ -21,19 +35,41 @@ export const clientInputSchema = z.object({
   // Stored verbatim; validated only for shape. Required at issue time for
   // reverse-charge invoices (spec Section 4).
   vatNumber: z.string().trim().max(30).nullable().optional(),
-  // Default hourly rate, minor units + ISO 4217 code. Data only - the
-  // time module resolves it, the billing module interprets it.
+  // Default rate, minor units + ISO 4217 code. Data only - the time module
+  // resolves it, the billing module interprets it. The unit marks whether the
+  // amount is per hour or per day (a day rate is divided by the business
+  // hoursPerDay into an effective hourly rate at entry creation).
   defaultRateMinor: z.number().int().nonnegative().nullable().optional(),
-  defaultRateCurrency: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .regex(/^[A-Z]{3}$/)
-    .nullable()
-    .optional(),
+  defaultRateCurrency: rateCurrencySchema,
+  defaultRateUnit: rateUnitSchema,
+  // Optional overall budget for the engagement (minor units + currency).
+  budgetMinor: z.number().int().nonnegative().nullable().optional(),
+  budgetCurrency: rateCurrencySchema,
 });
 
 export type ClientInput = z.infer<typeof clientInputSchema>;
+
+// One member's pricing on a client: a required bill rate (hour or day) plus an
+// optional internal cost and budget. The currency/unit shapes mirror the
+// client default. internalCost* is margin-sensitive - the router only accepts
+// and returns it for callers with reports.viewProfit.
+export const memberRateInputSchema = z.object({
+  userId: z.string().min(1),
+  billRateMinor: z.number().int().nonnegative(),
+  billRateCurrency: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{3}$/),
+  billRateUnit: rateUnitSchema,
+  internalCostMinor: z.number().int().nonnegative().nullable().optional(),
+  internalCostCurrency: rateCurrencySchema,
+  internalCostUnit: rateUnitSchema,
+  budgetMinor: z.number().int().nonnegative().nullable().optional(),
+  budgetCurrency: rateCurrencySchema,
+});
+
+export type MemberRateInput = z.infer<typeof memberRateInputSchema>;
 
 export async function listClients(
   db: Db,
@@ -83,6 +119,9 @@ export async function createClient(
         vatNumber: input.vatNumber || null,
         defaultRateMinor: input.defaultRateMinor ?? null,
         defaultRateCurrency: input.defaultRateCurrency ?? null,
+        defaultRateUnit: input.defaultRateUnit ?? "hour",
+        budgetMinor: input.budgetMinor ?? null,
+        budgetCurrency: input.budgetCurrency ?? null,
       })
       .returning();
     await tx.insert(schema.activity).values({
@@ -113,6 +152,9 @@ export async function updateClient(
         vatNumber: input.vatNumber || null,
         defaultRateMinor: input.defaultRateMinor ?? null,
         defaultRateCurrency: input.defaultRateCurrency ?? null,
+        defaultRateUnit: input.defaultRateUnit ?? "hour",
+        budgetMinor: input.budgetMinor ?? null,
+        budgetCurrency: input.budgetCurrency ?? null,
         updatedAt: new Date(),
       })
       .where(
@@ -256,6 +298,140 @@ export async function importClients(
     created += 1;
   }
   return { created, skipped };
+}
+
+// Per-client member rates, oldest first. Returns the raw rows including the
+// internal cost; the router strips internal-cost fields for callers without
+// reports.viewProfit, so it never leaks margin data to the wrong roles.
+export async function listMemberRates(
+  db: Db,
+  businessId: string,
+  clientId: string,
+) {
+  return db
+    .select({
+      id: schema.clientMemberRate.id,
+      userId: schema.clientMemberRate.userId,
+      name: schema.user.name,
+      email: schema.user.email,
+      billRateMinor: schema.clientMemberRate.billRateMinor,
+      billRateCurrency: schema.clientMemberRate.billRateCurrency,
+      billRateUnit: schema.clientMemberRate.billRateUnit,
+      internalCostMinor: schema.clientMemberRate.internalCostMinor,
+      internalCostCurrency: schema.clientMemberRate.internalCostCurrency,
+      internalCostUnit: schema.clientMemberRate.internalCostUnit,
+      budgetMinor: schema.clientMemberRate.budgetMinor,
+      budgetCurrency: schema.clientMemberRate.budgetCurrency,
+    })
+    .from(schema.clientMemberRate)
+    .innerJoin(schema.user, eq(schema.clientMemberRate.userId, schema.user.id))
+    .where(
+      and(
+        eq(schema.clientMemberRate.businessId, businessId),
+        eq(schema.clientMemberRate.clientId, clientId),
+      ),
+    )
+    .orderBy(asc(schema.clientMemberRate.createdAt));
+}
+
+type MemberRateResult =
+  | { ok: true; rate: typeof schema.clientMemberRate.$inferSelect }
+  | { ok: false; reason: "client_not_found" | "not_member" };
+
+// Upsert one member's rate on a client. Validates the client belongs to the
+// business and the user is a member of it - a foreign client or non-member is
+// rejected, never silently written. Keyed on (clientId, userId): re-setting
+// updates in place. `internalCost` is only persisted when the caller passed it
+// (the router gates that on reports.viewProfit), so a bill-rate-only edit by a
+// member without profit access never wipes an existing internal cost.
+export async function setMemberRate(
+  db: Db,
+  businessId: string,
+  clientId: string,
+  input: MemberRateInput,
+  opts: { allowInternalCost: boolean },
+): Promise<MemberRateResult> {
+  return db.transaction(async (tx) => {
+    const [client] = await tx
+      .select({ id: schema.client.id })
+      .from(schema.client)
+      .where(
+        and(
+          eq(schema.client.businessId, businessId),
+          eq(schema.client.id, clientId),
+        ),
+      );
+    if (!client) return { ok: false, reason: "client_not_found" };
+
+    const [member] = await tx
+      .select({ id: schema.businessMember.id })
+      .from(schema.businessMember)
+      .where(
+        and(
+          eq(schema.businessMember.businessId, businessId),
+          eq(schema.businessMember.userId, input.userId),
+        ),
+      );
+    if (!member) return { ok: false, reason: "not_member" };
+
+    const internalCostFields = opts.allowInternalCost
+      ? {
+          internalCostMinor: input.internalCostMinor ?? null,
+          internalCostCurrency: input.internalCostCurrency ?? null,
+          internalCostUnit: input.internalCostUnit ?? "hour",
+        }
+      : {};
+
+    const [rate] = await tx
+      .insert(schema.clientMemberRate)
+      .values({
+        businessId,
+        clientId,
+        userId: input.userId,
+        billRateMinor: input.billRateMinor,
+        billRateCurrency: input.billRateCurrency,
+        billRateUnit: input.billRateUnit ?? "hour",
+        budgetMinor: input.budgetMinor ?? null,
+        budgetCurrency: input.budgetCurrency ?? null,
+        ...internalCostFields,
+      })
+      .onConflictDoUpdate({
+        target: [
+          schema.clientMemberRate.clientId,
+          schema.clientMemberRate.userId,
+        ],
+        set: {
+          billRateMinor: input.billRateMinor,
+          billRateCurrency: input.billRateCurrency,
+          billRateUnit: input.billRateUnit ?? "hour",
+          budgetMinor: input.budgetMinor ?? null,
+          budgetCurrency: input.budgetCurrency ?? null,
+          ...internalCostFields,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return { ok: true, rate };
+  });
+}
+
+export async function removeMemberRate(
+  db: Db,
+  businessId: string,
+  clientId: string,
+  userId: string,
+) {
+  const [deleted] = await db
+    .delete(schema.clientMemberRate)
+    .where(
+      and(
+        eq(schema.clientMemberRate.businessId, businessId),
+        eq(schema.clientMemberRate.clientId, clientId),
+        eq(schema.clientMemberRate.userId, userId),
+      ),
+    )
+    .returning();
+  return deleted ?? null;
 }
 
 export async function addNote(

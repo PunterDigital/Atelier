@@ -11,11 +11,41 @@ import {
   importClients,
   listActivity,
   listClients,
+  listMemberRates,
+  memberRateInputSchema,
+  removeMemberRate,
+  setMemberRate,
   unarchiveClient,
   updateClient,
 } from "@/modules/clients/service";
 
 import { createTRPCRouter, permissionProcedure } from "../init";
+
+// Internal cost is margin-sensitive: only callers who can view profit see it.
+// Keeps the public fields; drops the internal-cost ones unless allowed.
+type MemberRateRow = Awaited<ReturnType<typeof listMemberRates>>[number];
+
+function publicMemberRate(row: MemberRateRow, canSeeCost: boolean) {
+  const base = {
+    id: row.id,
+    userId: row.userId,
+    name: row.name,
+    email: row.email,
+    billRateMinor: row.billRateMinor,
+    billRateCurrency: row.billRateCurrency,
+    billRateUnit: row.billRateUnit,
+    budgetMinor: row.budgetMinor,
+    budgetCurrency: row.budgetCurrency,
+  };
+  return canSeeCost
+    ? {
+        ...base,
+        internalCostMinor: row.internalCostMinor,
+        internalCostCurrency: row.internalCostCurrency,
+        internalCostUnit: row.internalCostUnit,
+      }
+    : base;
+}
 
 const clientIdInput = z.object({ clientId: z.string().uuid() });
 
@@ -118,6 +148,57 @@ export const clientsRouter = createTRPCRouter({
           ctx.session.user.id,
           input.clientId,
           input.text,
+        ),
+      ),
+    ),
+
+  // Per-client team-member rates. Viewing requires only clients.view (rates
+  // appear on the client page), but internal cost is hidden without
+  // reports.viewProfit. Editing requires clients.manageRates.
+  listMemberRates: permissionProcedure("clients.view")
+    .input(clientIdInput)
+    .query(async ({ ctx, input }) => {
+      const canSeeCost = ctx.permissions.has("reports.viewProfit");
+      const rows = await listMemberRates(
+        getDb(),
+        ctx.businessId,
+        input.clientId,
+      );
+      return rows.map((row) => publicMemberRate(row, canSeeCost));
+    }),
+
+  setMemberRate: permissionProcedure("clients.manageRates")
+    .input(clientIdInput.extend({ data: memberRateInputSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const result = await setMemberRate(
+        getDb(),
+        ctx.businessId,
+        input.clientId,
+        input.data,
+        // Only persist internal cost when the caller is allowed to set it.
+        { allowInternalCost: ctx.permissions.has("reports.viewProfit") },
+      );
+      if (!result.ok) {
+        throw new TRPCError({
+          code: result.reason === "client_not_found" ? "NOT_FOUND" : "BAD_REQUEST",
+          message:
+            result.reason === "client_not_found"
+              ? "No such client"
+              : "That person isn't on your team",
+        });
+      }
+      return result.rate;
+    }),
+
+  removeMemberRate: permissionProcedure("clients.manageRates")
+    .input(clientIdInput.extend({ userId: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) =>
+      found(
+        await removeMemberRate(
+          getDb(),
+          ctx.businessId,
+          input.clientId,
+          input.userId,
         ),
       ),
     ),

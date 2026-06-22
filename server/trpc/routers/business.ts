@@ -116,6 +116,7 @@ export const businessRouter = createTRPCRouter({
         name: schema.business.name,
         address: schema.business.address,
         currency: schema.business.currency,
+        hoursPerDay: schema.business.hoursPerDay,
         taxConfig: schema.business.taxConfig,
         branding: schema.business.branding,
       })
@@ -130,6 +131,7 @@ export const businessRouter = createTRPCRouter({
       name: row.name,
       address: row.address,
       currency: row.currency,
+      hoursPerDay: row.hoursPerDay,
       standardRatePct: taxConfig.standardRatePct ?? null,
       vatNumber: taxConfig.vatNumber ?? null,
       logoDataUrl: branding.logoDataUrl ?? null,
@@ -147,6 +149,8 @@ export const businessRouter = createTRPCRouter({
           .trim()
           .toUpperCase()
           .regex(/^[A-Z]{3}$/, "Use a three-letter currency code like EUR"),
+        // Working hours per billing day - the day-rate divisor (1..24).
+        hoursPerDay: z.number().int().min(1).max(24).default(8),
         // Stored verbatim into tax_config; the tax engine consumes it as
         // a decimal string (spec Section 4) and never defaults it.
         standardRatePct: z
@@ -165,6 +169,7 @@ export const businessRouter = createTRPCRouter({
           name: input.name,
           address: input.address,
           currency: input.currency,
+          hoursPerDay: input.hoursPerDay,
           taxConfig: {
             ...(input.standardRatePct
               ? { standardRatePct: input.standardRatePct }

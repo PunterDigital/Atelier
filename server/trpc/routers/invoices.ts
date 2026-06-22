@@ -133,7 +133,7 @@ export const invoicesRouter = createTRPCRouter({
     .input(
       z.object({
         invoiceId: z.string().uuid(),
-        description: z.string().trim().min(1).max(1000),
+        description: z.string().trim().min(1),
         amountMajor: z.string().trim().regex(/^\d+(\.\d+)?$/, "Enter a plain amount like 1500 or 1500.00"),
       }),
     )

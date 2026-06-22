@@ -20,6 +20,27 @@ export function roundHalfUpDiv(numerator: bigint, denominator: bigint): bigint {
   return (2n * numerator + denominator) / (2n * denominator);
 }
 
+// A rate is entered per hour or per day. Time is tracked in seconds, so a
+// day rate is only meaningful relative to a day length: dividing it by the
+// business's hoursPerDay yields the effective hourly rate the rest of the
+// money model (lineTotalMinorFromSeconds, profit) works in. The division
+// rounds half-up once, here, and is then frozen on the time entry - so this
+// is the first of two deliberate rounding points for day-rate work (the line
+// total is the second), mirroring the FX double-rounding in generate.ts.
+export function toEffectiveHourlyMinor(
+  amountMinor: number,
+  unit: "hour" | "day",
+  hoursPerDay: number,
+): number {
+  if (unit === "hour") {
+    return amountMinor;
+  }
+  if (!Number.isInteger(hoursPerDay) || hoursPerDay < 1) {
+    throw new Error("toEffectiveHourlyMinor: hoursPerDay must be >= 1");
+  }
+  return Number(roundHalfUpDiv(BigInt(amountMinor), BigInt(hoursPerDay)));
+}
+
 // Rounding point 1 (time-based line): exact seconds at a per-hour rate in
 // minor units. hours = seconds / 3600 in decimal, rounded once at the
 // line total. Spec example: 70min at EUR 31.00/h -> 3617 (EUR 36.17).

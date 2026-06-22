@@ -15,6 +15,7 @@ export const PERMISSIONS = [
   "clients.create",
   "clients.edit",
   "clients.archive",
+  "clients.manageRates",
   // Projects
   "projects.view",
   "projects.create",
@@ -45,6 +46,8 @@ export const PERMISSIONS = [
   "expenses.delete",
   // Insights
   "dashboard.view",
+  // Reports
+  "reports.viewProfit",
   // Team
   "team.view",
   "team.invite",
@@ -74,6 +77,7 @@ export const PERMISSION_GROUPS = [
   "Invoices",
   "Expenses",
   "Insights",
+  "Reports",
   "Team",
   "Settings",
 ] as const;
@@ -103,6 +107,12 @@ export const PERMISSION_META: Record<
     group: "Clients",
     label: "Archive clients",
     description: "Archive and restore clients.",
+  },
+  "clients.manageRates": {
+    group: "Clients",
+    label: "Manage client rates",
+    description:
+      "Set the client's default rate, budgets and per-member bill rates.",
   },
   "projects.view": {
     group: "Projects",
@@ -223,6 +233,12 @@ export const PERMISSION_META: Record<
     group: "Insights",
     label: "View dashboard",
     description: "See the business dashboard and its financial summary.",
+  },
+  "reports.viewProfit": {
+    group: "Reports",
+    label: "View profit & costs",
+    description:
+      "See the profit report and team internal costs (what the business pays its members).",
   },
   "team.view": {
     group: "Team",

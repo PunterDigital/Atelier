@@ -62,12 +62,14 @@ export function AddLineForm({
         >
           <div className="flex min-w-48 flex-1 flex-col gap-2">
             <Label htmlFor="line-description">Description</Label>
-            <Input
+            <textarea
               id="line-description"
               required
+              rows={2}
               placeholder="Discovery workshop (fixed fee)"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              className="rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40"
             />
           </div>
           <div className="flex w-36 flex-col gap-2">

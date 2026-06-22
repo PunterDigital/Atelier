@@ -10,6 +10,7 @@ import {
   roundHalfUpDiv,
   subtotalMinor,
   taxMinor,
+  toEffectiveHourlyMinor,
 } from "./money";
 
 const fixture = JSON.parse(
@@ -90,5 +91,32 @@ describe("money core guardrails", () => {
   it("rejects non-integer line totals in subtotals", () => {
     expect(() => subtotalMinor([100, 0.5])).toThrow();
     expect(() => subtotalMinor([100, -1])).toThrow();
+  });
+});
+
+describe("toEffectiveHourlyMinor (day-rate conversion)", () => {
+  it("returns an hourly rate unchanged", () => {
+    expect(toEffectiveHourlyMinor(3100, "hour", 8)).toBe(3100);
+  });
+
+  it("divides a day rate by hours-per-day (exact)", () => {
+    // EUR 240.00/day over an 8h day -> EUR 30.00/h
+    expect(toEffectiveHourlyMinor(24000, "day", 8)).toBe(3000);
+    // EUR 310.00/day over an 8h day -> EUR 38.75/h
+    expect(toEffectiveHourlyMinor(31000, "day", 8)).toBe(3875);
+  });
+
+  it("rounds half-up when the division is not exact", () => {
+    // EUR 240.00/day over a 7h day -> 3428.57.. -> 3429
+    expect(toEffectiveHourlyMinor(24000, "day", 7)).toBe(3429);
+  });
+
+  it("ignores hours-per-day for an hourly rate", () => {
+    expect(toEffectiveHourlyMinor(5000, "hour", 7)).toBe(5000);
+  });
+
+  it("rejects a non-positive hours-per-day for a day rate", () => {
+    expect(() => toEffectiveHourlyMinor(24000, "day", 0)).toThrow();
+    expect(() => toEffectiveHourlyMinor(24000, "day", -8)).toThrow();
   });
 });

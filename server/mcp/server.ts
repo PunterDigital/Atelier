@@ -17,6 +17,9 @@ const currencyField = z
   .regex(/^[A-Za-z]{3}$/, "Three-letter ISO 4217 code")
   .describe(CURRENCY);
 
+// hour|day, optional - the service defaults absent values to "hour".
+const rateUnitField = z.enum(["hour", "day"]).optional();
+
 const contactField = z.object({
   name: z.string().describe("Contact's full name."),
   email: z.string().email().optional(),
@@ -42,8 +45,21 @@ const clientFields = {
     .nonnegative()
     .nullable()
     .optional()
-    .describe(`Default hourly rate. ${MINOR}`),
+    .describe(
+      `Default rate used when the owner works the client solo. ${MINOR} Per the unit in defaultRateUnit.`,
+    ),
   defaultRateCurrency: currencyField.nullable().optional(),
+  defaultRateUnit: rateUnitField.describe(
+    'Whether defaultRateMinor is per "hour" or per "day". Defaults to hour; a day rate is divided by the business hours-per-day into an effective hourly rate.',
+  ),
+  budgetMinor: z
+    .number()
+    .int()
+    .nonnegative()
+    .nullable()
+    .optional()
+    .describe(`Optional overall budget for the client engagement. ${MINOR}`),
+  budgetCurrency: currencyField.nullable().optional(),
 };
 
 const taskStatus = z
@@ -155,6 +171,9 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
             vatNumber: existing.vatNumber,
             defaultRateMinor: existing.defaultRateMinor,
             defaultRateCurrency: existing.defaultRateCurrency,
+            defaultRateUnit: existing.defaultRateUnit,
+            budgetMinor: existing.budgetMinor,
+            budgetCurrency: existing.budgetCurrency,
           },
         });
         return toolJson(updated);
@@ -213,6 +232,70 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
       ),
   );
 
+  server.registerTool(
+    "list_client_member_rates",
+    {
+      title: "List client member rates",
+      description:
+        "List the per-client bill rates for team members on a client. Internal cost fields are included only if you have permission to view profit.",
+      inputSchema: { clientId: z.string().uuid() },
+    },
+    ({ clientId }) =>
+      runTool(async () =>
+        toolJson(await caller.clients.listMemberRates({ clientId })),
+      ),
+  );
+
+  server.registerTool(
+    "set_client_member_rate",
+    {
+      title: "Set client member rate",
+      description:
+        "Set (or update) a team member's bill rate, optional internal cost and optional budget on a client. Keyed by (client, user); re-setting overwrites. Internal cost is only stored if you can view profit.",
+      inputSchema: {
+        clientId: z.string().uuid(),
+        userId: z.string().describe("The team member's user id."),
+        billRateMinor: z.number().int().nonnegative().describe(`Bill rate. ${MINOR}`),
+        billRateCurrency: currencyField,
+        billRateUnit: rateUnitField.describe('Per "hour" or "day". Defaults to hour.'),
+        internalCostMinor: z
+          .number()
+          .int()
+          .nonnegative()
+          .nullable()
+          .optional()
+          .describe(`What the business pays the member (their cost). ${MINOR}`),
+        internalCostCurrency: currencyField.nullable().optional(),
+        internalCostUnit: rateUnitField,
+        budgetMinor: z
+          .number()
+          .int()
+          .nonnegative()
+          .nullable()
+          .optional()
+          .describe(`Optional budget for this member on the client. ${MINOR}`),
+        budgetCurrency: currencyField.nullable().optional(),
+      },
+    },
+    ({ clientId, ...data }) =>
+      runTool(async () =>
+        toolJson(await caller.clients.setMemberRate({ clientId, data })),
+      ),
+  );
+
+  server.registerTool(
+    "remove_client_member_rate",
+    {
+      title: "Remove client member rate",
+      description: "Remove a team member's rate from a client.",
+      inputSchema: { clientId: z.string().uuid(), userId: z.string() },
+    },
+    ({ clientId, userId }) =>
+      runTool(async () =>
+        toolJson(await caller.clients.removeMemberRate({ clientId, userId })),
+      ),
+  );
+
   // --- Projects -----------------------------------------------------------
   server.registerTool(
     "list_projects",
@@ -259,6 +342,17 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
           .optional()
           .describe(`Overrides the client rate. ${MINOR}`),
         defaultRateCurrency: currencyField.nullable().optional(),
+        defaultRateUnit: rateUnitField.describe(
+          'Whether defaultRateMinor is per "hour" or per "day". Defaults to hour.',
+        ),
+        budgetMinor: z
+          .number()
+          .int()
+          .nonnegative()
+          .nullable()
+          .optional()
+          .describe(`Optional budget for this project. ${MINOR}`),
+        budgetCurrency: currencyField.nullable().optional(),
       },
     },
     ({ dueDate, ...rest }) =>
@@ -286,6 +380,9 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
         dueDate: z.string().datetime().nullable().optional().describe(ISO),
         defaultRateMinor: z.number().int().nonnegative().nullable().optional(),
         defaultRateCurrency: currencyField.nullable().optional(),
+        defaultRateUnit: rateUnitField,
+        budgetMinor: z.number().int().nonnegative().nullable().optional(),
+        budgetCurrency: currencyField.nullable().optional(),
       },
     },
     ({ projectId, dueDate, ...rest }) =>
@@ -711,6 +808,37 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
           expiresInSeconds: 15 * 60,
         });
       }),
+  );
+
+  // --- Reports ------------------------------------------------------------
+  server.registerTool(
+    "get_profit_summary",
+    {
+      title: "Get profit summary",
+      description:
+        "Profit = income - expenses - internal labour cost, reported as per-currency buckets on two bases: 'cash' (paid invoices, paid expenses, cost of time billed on paid invoices) and 'accrual' (issued invoices, all expenses, cost of all billed time). Amounts are in minor units and never converted across currencies. Requires permission to view profit.",
+      inputSchema: {
+        from: z
+          .string()
+          .datetime()
+          .optional()
+          .describe(`Only count from this date (inclusive). ${ISO}`),
+        to: z
+          .string()
+          .datetime()
+          .optional()
+          .describe(`Only count before this date (exclusive). ${ISO}`),
+      },
+    },
+    ({ from, to }) =>
+      runTool(async () =>
+        toolJson(
+          await caller.reports.profit({
+            from: from ? new Date(from) : undefined,
+            to: to ? new Date(to) : undefined,
+          }),
+        ),
+      ),
   );
 
   // --- Team ---------------------------------------------------------------
