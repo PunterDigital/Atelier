@@ -25,7 +25,7 @@ export const manualEntrySchema = z.object({
     .positive()
     .max(7 * 24 * 3600),
   billable: z.boolean().default(true),
-  note: z.string().trim().max(1000).optional(),
+  note: z.string().trim().max(10_000).optional(),
   // Manual override; when absent the project/client default applies.
   rateMinor: z.number().int().nonnegative().nullable().optional(),
   rateCurrency: z
