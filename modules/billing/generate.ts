@@ -423,6 +423,30 @@ export async function addManualLine(
   });
 }
 
+// Free-text notes printed at the foot of the invoice, just above the footer.
+// Draft-only, like every other invoice edit; an empty/whitespace value clears
+// them. Returns the updated invoice, or null when there is no draft to edit.
+export async function setInvoiceNotes(
+  db: Db,
+  businessId: string,
+  invoiceId: string,
+  notes: string,
+) {
+  const trimmed = notes.trim();
+  const [updated] = await db
+    .update(schema.invoice)
+    .set({ notes: trimmed || null, updatedAt: new Date() })
+    .where(
+      and(
+        eq(schema.invoice.businessId, businessId),
+        eq(schema.invoice.id, invoiceId),
+        eq(schema.invoice.status, "draft"),
+      ),
+    )
+    .returning();
+  return updated ?? null;
+}
+
 // Removing a draft line releases its entries back to the unbilled pool
 // (the FK is ON DELETE SET NULL) and recomputes totals.
 export async function deleteInvoiceLine(

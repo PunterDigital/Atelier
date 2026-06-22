@@ -127,6 +127,13 @@
       "when": 1782131167336,
       "tag": "0017_famous_ghost_rider",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1782134381093,
+      "tag": "0018_chemical_morlocks",
+      "breakpoints": true
     }
   ]
 }

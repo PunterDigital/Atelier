@@ -12,6 +12,7 @@ import { caller } from "@/server/trpc/server";
 import { AddLineForm } from "./add-line-form";
 import { GeneratePanel } from "./generate-panel";
 import { InvoiceActions, RemoveLineButton } from "./invoice-actions";
+import { NotesForm } from "./notes-form";
 
 export const metadata: Metadata = {
   title: "Invoice - Clerq",
@@ -65,6 +66,12 @@ export default async function InvoiceDetailPage({
               ? ` - period ${formatDate(invoice.periodStart)} to ${formatDate(invoice.periodEnd)}`
               : null}
           </p>
+          {invoice.status === "void" ? (
+            <p className="text-sm text-destructive">
+              Voided{invoice.voidedAt ? ` ${formatDate(invoice.voidedAt)}` : ""}
+              {invoice.voidReason ? ` - ${invoice.voidReason}` : ""}
+            </p>
+          ) : null}
         </div>
         <div className="flex items-start gap-2">
           {/* The document exists once issued; drafts are edited, not sent */}
@@ -146,7 +153,19 @@ export default async function InvoiceDetailPage({
                 invoiceCurrency={invoice.currency}
                 projects={projects.map((p) => ({ id: p.id, name: p.name }))}
               />
+              <NotesForm invoiceId={invoice.id} initialNotes={invoice.notes} />
             </>
+          ) : invoice.notes ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="whitespace-pre-line text-sm text-muted-foreground">
+                  {invoice.notes}
+                </p>
+              </CardContent>
+            </Card>
           ) : null}
         </div>
 

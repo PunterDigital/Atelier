@@ -10,9 +10,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { schema, type Db } from "@/db";
 import { createClient } from "@/modules/clients/service";
 
+import { addManualLine } from "./generate";
 import {
   configureNextInvoiceNumber,
   createDraftInvoice,
+  duplicateInvoice,
   formatInvoiceNumber,
   issueInvoice,
 } from "./invoices";
@@ -224,6 +226,58 @@ describe("configurable sequence start (spec Section 6 feedback)", () => {
     expect(
       (await configureNextInvoiceNumber(db, businessC.id, 2026, 10000)).ok,
     ).toBe(false);
+  });
+});
+
+describe("duplicating an invoice", () => {
+  it("copies an issued invoice into a fresh draft with its lines", async () => {
+    const source = await draft(businessA.id, clientA.id);
+    const withLine = await addManualLine(db, businessA.id, {
+      invoiceId: source.id,
+      description: "Fixed-fee work",
+      amountMajor: "1500",
+    });
+    expect(withLine.ok).toBe(true);
+    const issued = await issueOk(
+      businessA.id,
+      source.id,
+      new Date("2026-10-01T12:00:00Z"),
+    );
+    expect(issued?.status).toBe("sent");
+
+    const copy = await duplicateInvoice(db, businessA.id, source.id);
+    expect(copy).not.toBeNull();
+    // A new editable document: no number, no issue date, draft status.
+    expect(copy?.id).not.toBe(source.id);
+    expect(copy?.status).toBe("draft");
+    expect(copy?.number).toBeNull();
+    expect(copy?.issueDate).toBeNull();
+    // Same client/currency/tax setup and totals as the source.
+    expect(copy?.clientId).toBe(clientA.id);
+    expect(copy?.currency).toBe("EUR");
+    expect(copy?.totalMinor).toBe(issued?.totalMinor);
+
+    // Lines are copied content, on the new invoice, not shared rows.
+    const copyLines = await db
+      .select()
+      .from(schema.invoiceLine)
+      .where(eq(schema.invoiceLine.invoiceId, copy!.id));
+    expect(copyLines).toHaveLength(1);
+    expect(copyLines[0].description).toBe("Fixed-fee work");
+    expect(copyLines[0].totalMinor).toBe(150000);
+
+    // The source invoice still has its own (separate) line.
+    const sourceLines = await db
+      .select()
+      .from(schema.invoiceLine)
+      .where(eq(schema.invoiceLine.invoiceId, source.id));
+    expect(sourceLines).toHaveLength(1);
+    expect(sourceLines[0].id).not.toBe(copyLines[0].id);
+  });
+
+  it("does not duplicate another business's invoice", async () => {
+    const source = await draft(businessB.id, clientB.id);
+    expect(await duplicateInvoice(db, businessA.id, source.id)).toBeNull();
   });
 });
 

@@ -64,6 +64,7 @@ describe("invoice PDF view model", () => {
     expect(data.taxRowLabel).toBe("VAT (21%)");
     expect(data.taxAmountLabel).toBe("€146.48");
     expect(data.totalLabel).toBe("€843.98");
+    expect(data.balanceDueLabel).toBe("843.98 EUR");
   });
 
   it("labels drafts as drafts and fixed lines without quantity", () => {
@@ -91,6 +92,17 @@ describe("invoice PDF view model", () => {
     expect(data.issueDateLabel).toBeNull();
     expect(data.lines[0].quantityLabel).toBeNull();
     expect(data.lines[0].totalLabel).toBe("€1,500.00");
+  });
+
+  it("flags a voided invoice while keeping its number and title", () => {
+    const data = buildInvoicePdfData({
+      invoice: { ...baseInvoice, status: "void" },
+      business,
+      client,
+    });
+    expect(data.isVoid).toBe(true);
+    expect(data.isPaid).toBe(false);
+    expect(data.title).toBe("Invoice 2026-0100");
   });
 
   it("renders a billing period as a single range label when both dates are set", () => {

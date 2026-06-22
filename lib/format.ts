@@ -1,4 +1,4 @@
-import { minorToMajor } from "@/modules/billing/currency";
+import { minorToMajor, minorUnitDigits } from "@/modules/billing/currency";
 
 // Human, abbreviated dates per the design system's content rules
 // ("14 Jun", "14 Jun 2026").
@@ -57,6 +57,19 @@ export function formatMoney(minor: number, currency: string): string {
     style: "currency",
     currency,
   }).format(major);
+}
+
+// Money with the ISO code after the amount ("10,000.00 EUR") rather than a
+// symbol - used where the currency must be unambiguous, like the invoice's
+// Balance Due block. Grouped, with the currency's exact minor-unit digits.
+export function formatMoneyCode(minor: number, currency: string): string {
+  const major = Number(minorToMajor(minor, currency));
+  const digits = minorUnitDigits(currency);
+  const amount = new Intl.NumberFormat("en-GB", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(major);
+  return `${amount} ${currency.toUpperCase()}`;
 }
 
 // Compact h:mm for task cards ("0:00", "2:30") - always visible even at

@@ -48,6 +48,7 @@ const INVOICES_OPS = [
   "invoices.edit",
   "invoices.issue",
   "invoices.markPaid",
+  "invoices.void",
 ] satisfies Permission[];
 
 const EXPENSES_FULL = [

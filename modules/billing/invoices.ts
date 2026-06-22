@@ -85,6 +85,92 @@ export async function createDraftInvoice(
   return created;
 }
 
+// Copies an invoice (any status) into a fresh draft: a new editable document
+// with the same client, project, currency, tax setup and lines, but no number,
+// issue date or status carried over. The copied lines are detached from the
+// source's time entries - duplication never re-points an entry's invoiceLineId,
+// so the original invoice keeps its full traceability. Totals are recomputed
+// from the copied lines (identical to the source, since the tax setup is the
+// same). Returns the new draft, or null if the source is not found.
+export async function duplicateInvoice(
+  db: Db,
+  businessId: string,
+  invoiceId: string,
+) {
+  return db.transaction(async (tx) => {
+    const [source] = await tx
+      .select()
+      .from(schema.invoice)
+      .where(
+        and(
+          eq(schema.invoice.businessId, businessId),
+          eq(schema.invoice.id, invoiceId),
+        ),
+      );
+    if (!source) {
+      return null;
+    }
+    const sourceLines = await tx
+      .select()
+      .from(schema.invoiceLine)
+      .where(eq(schema.invoiceLine.invoiceId, invoiceId))
+      .orderBy(schema.invoiceLine.position);
+
+    const [draft] = await tx
+      .insert(schema.invoice)
+      .values({
+        businessId,
+        clientId: source.clientId,
+        projectId: source.projectId,
+        currency: source.currency,
+        taxTreatment: source.taxTreatment,
+        taxRatePercent: source.taxRatePercent,
+        taxNote: source.taxNote,
+        dueDate: source.dueDate,
+        periodStart: source.periodStart,
+        periodEnd: source.periodEnd,
+        notes: source.notes,
+      })
+      .returning();
+
+    if (sourceLines.length > 0) {
+      await tx.insert(schema.invoiceLine).values(
+        sourceLines.map((line) => ({
+          businessId,
+          invoiceId: draft.id,
+          position: line.position,
+          description: line.description,
+          quantity: line.quantity,
+          unitPriceMinor: line.unitPriceMinor,
+          totalMinor: line.totalMinor,
+          sourceCurrency: line.sourceCurrency,
+          sourceTotalMinor: line.sourceTotalMinor,
+          fxRate: line.fxRate,
+          fxSource: line.fxSource,
+        })),
+      );
+    }
+
+    const totals = invoiceTotals({
+      lineTotalsMinor: sourceLines.map((l) => l.totalMinor),
+      treatment: source.taxTreatment,
+      standardRatePercent:
+        source.taxTreatment === "standard" ? source.taxRatePercent : undefined,
+    });
+    const [updated] = await tx
+      .update(schema.invoice)
+      .set({
+        subtotalMinor: totals.subtotalMinor,
+        taxMinor: totals.taxMinor,
+        totalMinor: totals.totalMinor,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.invoice.id, draft.id))
+      .returning();
+    return updated;
+  });
+}
+
 export type IssueResult =
   | { ok: true; invoice: typeof schema.invoice.$inferSelect }
   | {
