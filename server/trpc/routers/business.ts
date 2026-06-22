@@ -153,7 +153,7 @@ export const businessRouter = createTRPCRouter({
           .trim()
           .regex(/^#[0-9a-fA-F]{6}$/, "Pick a colour like #228E80")
           .nullable(),
-        footerNote: z.string().trim().max(280).nullable(),
+        footerNote: z.string().trim().max(2000).nullable(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
