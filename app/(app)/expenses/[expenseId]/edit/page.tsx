@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { isReceiptScanConfigured } from "@/modules/expenses/ocr";
 import { caller } from "@/server/trpc/server";
 
 import { ExpenseForm } from "../../expense-form";
@@ -33,6 +34,7 @@ export default async function EditExpensePage({
       <h1 className="text-2xl">Edit expense</h1>
       <ExpenseForm
         defaultCurrency={expense.currency}
+        scanEnabled={isReceiptScanConfigured()}
         initial={{
           id: expense.id,
           description: expense.description,

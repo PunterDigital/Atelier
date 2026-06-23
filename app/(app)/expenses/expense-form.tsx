@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
+import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
@@ -8,7 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { majorToMinor, minorToMajor } from "@/modules/billing/currency";
+import {
+  majorToMinor,
+  minorToMajor,
+  minorUnitDigits,
+} from "@/modules/billing/currency";
 import { useTRPC } from "@/server/trpc/client";
 
 // Mirror the receipt cap the server enforces, so we can warn before encoding
@@ -40,9 +45,13 @@ type NewReceipt = { dataUrl: string; filename: string; mimeType: ReceiptMime };
 export function ExpenseForm({
   initial,
   defaultCurrency,
+  scanEnabled = false,
 }: {
   initial?: ExpenseInitial;
   defaultCurrency: string;
+  // True when the instance has Groq receipt scanning configured. When false
+  // the "Scan with AI" button is never shown.
+  scanEnabled?: boolean;
 }) {
   const router = useRouter();
   const trpc = useTRPC();
@@ -82,6 +91,52 @@ export function ExpenseForm({
   );
   const mutation = initial ? update : create;
 
+  // True while a PDF receipt is being rasterized to an image before scanning.
+  const [converting, setConverting] = useState(false);
+  const [convertError, setConvertError] = useState<string | null>(null);
+
+  // Receipt scanning: hand the picked image to Groq and pre-fill whatever it
+  // confidently reads. Only non-null fields overwrite the form, so a partial
+  // read never wipes something the user already typed.
+  const scan = useMutation(
+    trpc.expenses.scanReceipt.mutationOptions({
+      onSuccess: (result) => {
+        if (result.description) setDescription(result.description);
+        const nextCurrency = result.currency ?? currency;
+        if (result.currency) setCurrency(result.currency);
+        if (result.amount !== null) {
+          setAmount(result.amount.toFixed(minorUnitDigits(nextCurrency)));
+        }
+        if (result.vendor) setVendor(result.vendor);
+        if (result.category) setCategory(result.category);
+        if (result.notes) setNotes(result.notes);
+      },
+    }),
+  );
+
+  // Kick off a scan for the freshly picked receipt. Images go straight to the
+  // scan endpoint; PDFs are rasterized to a JPEG in the browser first, since
+  // Groq vision reads images, not PDFs.
+  async function runScan(picked: NewReceipt) {
+    setConvertError(null);
+    if (picked.mimeType !== "application/pdf") {
+      scan.mutate({ dataUrl: picked.dataUrl, mimeType: picked.mimeType });
+      return;
+    }
+    setConverting(true);
+    try {
+      const { pdfFirstPageToImage } = await import("@/lib/pdf-to-image");
+      const image = await pdfFirstPageToImage(picked.dataUrl);
+      scan.mutate(image);
+    } catch {
+      setConvertError(
+        "Could not read that PDF - try uploading a PNG or JPEG instead.",
+      );
+    } finally {
+      setConverting(false);
+    }
+  }
+
   const currencyOk = /^[A-Za-z]{3}$/.test(currency);
   const amountMinor = currencyOk ? majorToMinor(amount, currency) : null;
   const amountOk = amountMinor !== null && amountMinor > 0;
@@ -97,6 +152,9 @@ export function ExpenseForm({
       setReceiptError("Receipt is too large - keep it under ~1.5MB");
       return;
     }
+    // A different receipt invalidates any prior scan result/error.
+    scan.reset();
+    setConvertError(null);
     const reader = new FileReader();
     reader.onload = () =>
       setReceipt({
@@ -111,6 +169,8 @@ export function ExpenseForm({
   function clearReceipt() {
     setReceipt(initial?.receiptFilename ? "remove" : "keep");
     setReceiptError(null);
+    scan.reset();
+    setConvertError(null);
     if (fileInput.current) fileInput.current.value = "";
   }
 
@@ -145,6 +205,13 @@ export function ExpenseForm({
   const pickedFilename =
     receipt !== "keep" && receipt !== "remove" ? receipt.filename : null;
   const showsStoredReceipt = receipt === "keep" && initial?.receiptFilename;
+
+  // Scanning needs a freshly picked receipt in hand (we send its bytes). The
+  // stored-receipt case has no client-side bytes to scan. PNG/JPEG go straight
+  // up; PDFs are rasterized to an image at scan time (see runScan).
+  const scannableReceipt =
+    scanEnabled && receipt !== "keep" && receipt !== "remove" ? receipt : null;
+  const scanBusy = converting || scan.isPending;
 
   return (
     <Card>
@@ -281,6 +348,44 @@ export function ExpenseForm({
               <p role="alert" className="text-sm text-destructive">
                 {receiptError}
               </p>
+            ) : null}
+
+            {scannableReceipt ? (
+              <div className="flex flex-col gap-2 pt-1">
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={scanBusy}
+                    onClick={() => runScan(scannableReceipt)}
+                  >
+                    <Sparkles className="size-4" />
+                    {converting
+                      ? "Reading PDF..."
+                      : scan.isPending
+                        ? "Scanning..."
+                        : "Scan with AI"}
+                  </Button>
+                </div>
+                {convertError ? (
+                  <p role="alert" className="text-sm text-destructive">
+                    {convertError}
+                  </p>
+                ) : scan.isSuccess ? (
+                  <p role="status" className="text-sm text-muted-foreground">
+                    Fields filled in from the receipt - check them before saving.
+                  </p>
+                ) : scan.error ? (
+                  <p role="alert" className="text-sm text-destructive">
+                    {scan.error.message}
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Read this receipt and fill in the fields automatically.
+                  </p>
+                )}
+              </div>
             ) : null}
           </div>
 
