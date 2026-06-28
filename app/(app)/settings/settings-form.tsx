@@ -112,8 +112,8 @@ export function SettingsForm({
                 Printed on your invoices, exactly as written here
               </p>
             </div>
-            <div className="flex gap-4">
-              <div className="flex w-64 flex-col gap-2">
+            <div className="flex flex-col gap-4 sm:flex-row">
+              <div className="flex flex-col gap-2 sm:w-64">
                 <Label htmlFor="currency">Base currency</Label>
                 <CurrencySelect
                   id="currency"

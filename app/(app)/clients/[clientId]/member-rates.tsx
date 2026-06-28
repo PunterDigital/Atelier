@@ -213,7 +213,7 @@ export function MemberRates({ clientId }: { clientId: string }) {
                 ))}
               </select>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <div className="flex flex-1 flex-col gap-2">
                 <Label htmlFor="memberBill">Bill rate</Label>
                 <Input
@@ -224,7 +224,7 @@ export function MemberRates({ clientId }: { clientId: string }) {
                   onChange={(e) => setBill(e.target.value)}
                 />
               </div>
-              <div className="flex w-24 flex-col gap-2">
+              <div className="flex flex-col gap-2 sm:w-24">
                 <Label htmlFor="memberUnit">Per</Label>
                 <select
                   id="memberUnit"
@@ -236,7 +236,7 @@ export function MemberRates({ clientId }: { clientId: string }) {
                   <option value="day">Day</option>
                 </select>
               </div>
-              <div className="flex w-24 flex-col gap-2">
+              <div className="flex flex-col gap-2 sm:w-24">
                 <Label htmlFor="memberCurrency">Currency</Label>
                 <Input
                   id="memberCurrency"
