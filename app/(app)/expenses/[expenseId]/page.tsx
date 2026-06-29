@@ -13,6 +13,7 @@ import {
   DeleteExpenseButton,
   TogglePaidButton,
 } from "./expense-actions";
+import { ReceiptLinks } from "./receipt-links";
 
 export const metadata: Metadata = {
   title: "Expense - Clerq",
@@ -120,23 +121,10 @@ export default async function ExpenseDetailPage({
                   {expense.receiptFilename ?? "receipt.pdf"}
                 </div>
               )}
-              <div className="flex gap-3 text-sm">
-                <a
-                  href={expense.receiptDataUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-primary underline-offset-4 hover:underline"
-                >
-                  Open
-                </a>
-                <a
-                  href={expense.receiptDataUrl}
-                  download={expense.receiptFilename ?? "receipt"}
-                  className="text-primary underline-offset-4 hover:underline"
-                >
-                  Download
-                </a>
-              </div>
+              <ReceiptLinks
+                dataUrl={expense.receiptDataUrl}
+                filename={expense.receiptFilename ?? "receipt"}
+              />
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
