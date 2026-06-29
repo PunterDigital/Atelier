@@ -154,7 +154,7 @@ export function ClientForm({
     <Card>
       <CardContent>
         <form onSubmit={submit} className="flex flex-col gap-5">
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
             <div className="flex flex-1 flex-col gap-2">
               <Label htmlFor="name">Name</Label>
               <Input
@@ -165,7 +165,7 @@ export function ClientForm({
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
-            <div className="flex w-40 flex-col gap-2">
+            <div className="flex flex-col gap-2 sm:w-40">
               <Label htmlFor="companyNumber">Company number</Label>
               <Input
                 id="companyNumber"
@@ -174,7 +174,7 @@ export function ClientForm({
                 onChange={(e) => setCompanyNumber(e.target.value)}
               />
             </div>
-            <div className="flex w-40 flex-col gap-2">
+            <div className="flex flex-col gap-2 sm:w-40">
               <Label htmlFor="vatNumber">VAT number</Label>
               <Input
                 id="vatNumber"
@@ -204,30 +204,35 @@ export function ClientForm({
             <Label>Contacts</Label>
             {contacts.map((contact, index) => (
               <div key={index} className="flex gap-2">
-                <Input
-                  aria-label="Contact name"
-                  placeholder="Name"
-                  value={contact.name}
-                  onChange={(e) => setContact(index, { name: e.target.value })}
-                />
-                <Input
-                  aria-label="Contact email"
-                  type="email"
-                  placeholder="Email"
-                  value={contact.email ?? ""}
-                  onChange={(e) => setContact(index, { email: e.target.value })}
-                />
-                <Input
-                  aria-label="Contact role"
-                  placeholder="Role"
-                  value={contact.role ?? ""}
-                  onChange={(e) => setContact(index, { role: e.target.value })}
-                />
+                <div className="flex flex-1 flex-col gap-2 sm:flex-row">
+                  <Input
+                    aria-label="Contact name"
+                    placeholder="Name"
+                    value={contact.name}
+                    onChange={(e) => setContact(index, { name: e.target.value })}
+                  />
+                  <Input
+                    aria-label="Contact email"
+                    type="email"
+                    placeholder="Email"
+                    value={contact.email ?? ""}
+                    onChange={(e) =>
+                      setContact(index, { email: e.target.value })
+                    }
+                  />
+                  <Input
+                    aria-label="Contact role"
+                    placeholder="Role"
+                    value={contact.role ?? ""}
+                    onChange={(e) => setContact(index, { role: e.target.value })}
+                  />
+                </div>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   aria-label="Remove contact"
+                  className="shrink-0"
                   onClick={() =>
                     setContacts((prev) => prev.filter((_, i) => i !== index))
                   }

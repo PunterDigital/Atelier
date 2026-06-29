@@ -1,30 +1,12 @@
 "use client";
 
-import {
-  Clock,
-  FolderKanban,
-  Home,
-  ReceiptText,
-  Settings,
-  TrendingUp,
-  Users,
-  Wallet,
-} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: Home },
-  { href: "/clients", label: "Clients", icon: Users },
-  { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/time", label: "Timesheet", icon: Clock },
-  { href: "/invoices", label: "Invoices", icon: ReceiptText },
-  { href: "/expenses", label: "Expenses", icon: Wallet },
-  { href: "/reports", label: "Reports", icon: TrendingUp },
-];
+import { isNavItemActive, navItems, settingsNavItem } from "./nav-items";
 
 // Spec: design system Sidebar - 244px rail, surface bg, hairline right
 // border, items radius-md, hover surface-muted, active primary-subtle.
@@ -49,10 +31,7 @@ export function Sidebar() {
           Workspace
         </div>
         {navItems.map((item) => {
-          const active =
-            item.href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(item.href);
+          const active = isNavItemActive(item.href, pathname);
           return (
             <Link
               key={item.href}
@@ -73,17 +52,19 @@ export function Sidebar() {
       </div>
       <div className="border-t pt-2.5">
         <Link
-          href="/settings"
-          aria-current={pathname.startsWith("/settings") ? "page" : undefined}
+          href={settingsNavItem.href}
+          aria-current={
+            isNavItemActive(settingsNavItem.href, pathname) ? "page" : undefined
+          }
           className={cn(
             "flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors",
             "hover:bg-muted hover:text-foreground",
-            pathname.startsWith("/settings") &&
+            isNavItemActive(settingsNavItem.href, pathname) &&
               "bg-[var(--primary-subtle)] font-semibold text-[var(--primary-subtle-fg)] hover:bg-[var(--primary-subtle)] hover:text-[var(--primary-subtle-fg)]",
           )}
         >
-          <Settings className="size-[18px] shrink-0" aria-hidden />
-          <span className="truncate">Settings</span>
+          <settingsNavItem.icon className="size-[18px] shrink-0" aria-hidden />
+          <span className="truncate">{settingsNavItem.label}</span>
         </Link>
       </div>
     </nav>

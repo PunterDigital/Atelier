@@ -1,8 +1,7 @@
-import Link from "next/link";
-
 import type { UserBusiness } from "@/server/membership";
 
 import { BusinessSwitcher } from "./business-switcher";
+import { MobileNav } from "./mobile-nav";
 import { SignOutButton } from "./sign-out-button";
 import { TimerChip } from "./timer-chip";
 
@@ -16,37 +15,12 @@ export function Topbar({
   userName: string;
 }) {
   return (
-    <header className="sticky top-0 z-10 flex h-[var(--topbar-height)] shrink-0 items-center gap-4 border-b bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] px-[22px] backdrop-blur-[10px] backdrop-saturate-[140%]">
+    <header className="sticky top-0 z-10 flex h-[var(--topbar-height)] shrink-0 items-center gap-2 border-b bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] px-3 backdrop-blur-[10px] backdrop-saturate-[140%] sm:gap-4 sm:px-[22px]">
+      {/* Hamburger opens the full navigation drawer where the sidebar is hidden */}
+      <MobileNav />
       <div className="flex min-w-0 flex-col">
         <BusinessSwitcher businesses={businesses} />
       </div>
-      {/* Compact nav where the sidebar is hidden */}
-      <nav className="flex items-center gap-1 md:hidden">
-        <Link
-          href="/"
-          className="rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          Dashboard
-        </Link>
-        <Link
-          href="/clients"
-          className="rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          Clients
-        </Link>
-        <Link
-          href="/projects"
-          className="rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          Projects
-        </Link>
-        <Link
-          href="/time"
-          className="rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          Time
-        </Link>
-      </nav>
       <div className="flex-1" />
       <div className="flex items-center gap-2.5">
         <TimerChip />

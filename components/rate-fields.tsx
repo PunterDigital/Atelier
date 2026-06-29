@@ -35,7 +35,7 @@ export function RateFields({
   const unitId = `${idPrefix}RateUnit`;
 
   return (
-    <div className="flex gap-4">
+    <div className="flex flex-col gap-4 sm:flex-row">
       <div className="flex flex-1 flex-col gap-2">
         <Label htmlFor={rateId}>{showUnit ? label : "Default hourly rate"}</Label>
         <Input
@@ -47,7 +47,7 @@ export function RateFields({
         />
       </div>
       {showUnit ? (
-        <div className="flex w-28 flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:w-28">
           <Label htmlFor={unitId}>Per</Label>
           <select
             id={unitId}
@@ -60,7 +60,7 @@ export function RateFields({
           </select>
         </div>
       ) : null}
-      <div className="flex w-28 flex-col gap-2">
+      <div className="flex flex-col gap-2 sm:w-28">
         <Label htmlFor={currencyId}>Currency</Label>
         <Input
           id={currencyId}
