@@ -4,6 +4,7 @@ import {
   Home,
   ReceiptText,
   Settings,
+  ShieldCheck,
   TrendingUp,
   Users,
   Wallet,
@@ -34,6 +35,15 @@ export const settingsNavItem: NavItem = {
   href: "/settings",
   label: "Settings",
   icon: Settings,
+};
+
+// Only rendered for platform admins (see app/(app)/layout.tsx) - it leads
+// outside this business's scope entirely, into the cross-tenant
+// app/system-admin route.
+export const systemAdminNavItem: NavItem = {
+  href: "/system-admin",
+  label: "System Administration",
+  icon: ShieldCheck,
 };
 
 // Whether a nav item should render as active for the current pathname. The

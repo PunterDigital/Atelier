@@ -10,17 +10,19 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-import { isNavItemActive, navItems, settingsNavItem } from "./nav-items";
+import { isNavItemActive, navItems, settingsNavItem, systemAdminNavItem } from "./nav-items";
 
 // The mobile navigation drawer. The desktop sidebar is hidden below `md`, so on
 // small screens the full workspace navigation lives behind this hamburger
 // button. Tapping any link closes the drawer so navigation feels immediate.
-export function MobileNav() {
+export function MobileNav({ isPlatformAdmin = false }: { isPlatformAdmin?: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   const close = () => setOpen(false);
-  const items = [...navItems, settingsNavItem];
+  const items = isPlatformAdmin
+    ? [...navItems, settingsNavItem, systemAdminNavItem]
+    : [...navItems, settingsNavItem];
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>

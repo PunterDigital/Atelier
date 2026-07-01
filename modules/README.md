@@ -12,7 +12,10 @@ each other's internals.
 | `time`      | time tracking, timesheets                      | shipped         |
 | `billing`   | invoices, currency, tax, numbering             | shipped (fixture-proven against BILLING-SPEC.md) |
 | `proposals` | proposals (later phase)                        | not started     |
+| `platform`  | cross-tenant stats and moderation for platform admins | shipped |
 
-Every piece of data access is scoped by `business_id`. The billing module
+Every piece of data access is scoped by `business_id` - except `platform`,
+which is the one deliberate exception: a platform admin's job is to see
+across every business, not one tenant's slice of it. The billing module
 is the provably-correct core: it is built test-first against
 `/fixtures/billing` and nothing in it ships without a fixture.
