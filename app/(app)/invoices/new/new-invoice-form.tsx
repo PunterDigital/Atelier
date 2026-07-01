@@ -36,6 +36,7 @@ export function NewInvoiceForm({
   const [treatment, setTreatment] = useState<Treatment>(
     standardRateConfigured ? "standard" : "reverse_charge",
   );
+  const [issueDate, setIssueDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
@@ -59,6 +60,9 @@ export function NewInvoiceForm({
               clientId,
               currency: currency.trim().toUpperCase(),
               taxTreatment: treatment,
+              issueDate: issueDate
+                ? new Date(`${issueDate}T00:00:00.000Z`)
+                : null,
               dueDate: dueDate ? new Date(`${dueDate}T00:00:00.000Z`) : null,
               periodStart: periodStart
                 ? new Date(`${periodStart}T00:00:00.000Z`)
@@ -87,26 +91,43 @@ export function NewInvoiceForm({
             </select>
           </div>
 
-          <div className="flex gap-4">
-            <div className="flex w-56 flex-col gap-2">
-              <Label htmlFor="currency">Currency</Label>
-              <CurrencySelect
-                id="currency"
-                required
-                value={currency}
-                onChange={setCurrency}
-                options={currencyOptions}
-              />
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-4">
+              <div className="flex w-56 flex-col gap-2">
+                <Label htmlFor="currency">Currency</Label>
+                <CurrencySelect
+                  id="currency"
+                  required
+                  value={currency}
+                  onChange={setCurrency}
+                  options={currencyOptions}
+                />
+              </div>
+              <div className="flex flex-1 flex-col gap-2">
+                <Label htmlFor="issueDate">Issue date</Label>
+                <Input
+                  id="issueDate"
+                  type="date"
+                  value={issueDate}
+                  onChange={(e) => setIssueDate(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-1 flex-col gap-2">
+                <Label htmlFor="dueDate">Due date</Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="flex flex-1 flex-col gap-2">
-              <Label htmlFor="dueDate">Due date</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Issue date is used (and printed) when you issue this draft -
+              leave it blank to issue at today&apos;s date, or set it to
+              backdate the invoice (e.g. a client already paid you before one
+              existed).
+            </p>
           </div>
 
           <div className="flex flex-col gap-2">

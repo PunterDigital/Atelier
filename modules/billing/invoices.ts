@@ -24,6 +24,7 @@ export async function createDraftInvoice(
     currency: string;
     taxTreatment: TaxTreatment;
     standardRatePercent?: string;
+    issueDate?: Date | null;
     dueDate?: Date | null;
     periodStart?: Date | null;
     periodEnd?: Date | null;
@@ -76,6 +77,7 @@ export async function createDraftInvoice(
       taxTreatment: input.taxTreatment,
       taxRatePercent: totals.taxRatePercent,
       taxNote: totals.taxNote,
+      issueDate: input.issueDate ?? null,
       dueDate: input.dueDate ?? null,
       periodStart: input.periodStart ?? null,
       periodEnd: input.periodEnd ?? null,

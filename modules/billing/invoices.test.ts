@@ -330,6 +330,20 @@ describe("editable draft details", () => {
     expect(issued?.number?.startsWith("2025-")).toBe(true);
   });
 
+  it("accepts a chosen issue date at creation, without a separate edit", async () => {
+    const created = await createDraftInvoice(db, businessA.id, {
+      clientId: clientA.id,
+      currency: "EUR",
+      taxTreatment: "zero_rated",
+      issueDate: new Date("2025-01-15T00:00:00Z"),
+    });
+    expect(created?.issueDate).toEqual(new Date("2025-01-15T00:00:00Z"));
+
+    const issued = await issueOk(businessA.id, created!.id);
+    expect(issued?.issueDate).toEqual(new Date("2025-01-15T00:00:00Z"));
+    expect(issued?.year).toBe(2025);
+  });
+
   it("only edits drafts, and only within the business", async () => {
     const d = await draft(businessA.id, clientA.id);
     // Foreign business cannot edit it.

@@ -58,6 +58,7 @@ export const invoicesRouter = createTRPCRouter({
           .toUpperCase()
           .regex(/^[A-Z]{3}$/),
         taxTreatment: treatmentSchema,
+        issueDate: z.date().nullable().optional(),
         dueDate: z.date().nullable().optional(),
         periodStart: z.date().nullable().optional(),
         periodEnd: z.date().nullable().optional(),
@@ -100,6 +101,7 @@ export const invoicesRouter = createTRPCRouter({
           currency: input.currency,
           taxTreatment: input.taxTreatment,
           standardRatePercent: taxConfig.standardRatePct,
+          issueDate: input.issueDate ?? null,
           dueDate: input.dueDate ?? null,
           periodStart: input.periodStart ?? null,
           periodEnd: input.periodEnd ?? null,
