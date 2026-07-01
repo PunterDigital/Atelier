@@ -1,4 +1,5 @@
 import { createTRPCRouter } from "../init";
+import { adminRouter } from "./admin";
 import { businessRouter } from "./business";
 import { clientsRouter } from "./clients";
 import { dashboardRouter } from "./dashboard";
@@ -23,6 +24,7 @@ export const appRouter = createTRPCRouter({
   team: teamRouter,
   dashboard: dashboardRouter,
   reports: reportsRouter,
+  admin: adminRouter,
 });
 
 export type AppRouter = typeof appRouter;

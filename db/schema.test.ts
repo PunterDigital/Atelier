@@ -15,6 +15,9 @@ import * as schema from "./schema";
 // - oauth_* are the Better Auth MCP plugin's OAuth tables; an access token
 //   carries a user_id, and that user reaches business data only through the
 //   business-scoped procedures, never directly
+// - platform_admin/user_suspension are platform-level infrastructure keyed by
+//   user_id, not business data (business_suspension is keyed by business_id,
+//   so it already satisfies the rule without an exemption)
 const exemptTables = [
   "business",
   "user",
@@ -24,6 +27,8 @@ const exemptTables = [
   "oauth_application",
   "oauth_access_token",
   "oauth_consent",
+  "platform_admin",
+  "user_suspension",
 ];
 
 const tables = Object.values(schema).filter((value) => is(value, PgTable));
