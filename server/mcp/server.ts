@@ -615,6 +615,14 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
         taxTreatment: z
           .enum(["standard", "zero_rated", "reverse_charge"])
           .describe("Tax treatment for the whole invoice."),
+        issueDate: z
+          .string()
+          .datetime()
+          .nullable()
+          .optional()
+          .describe(
+            `The issue date used (and printed) when this draft is issued - set this to backdate an invoice (e.g. a client paid before one existed). Omit or leave null to issue at today's date. ${ISO}`,
+          ),
         dueDate: z.string().datetime().nullable().optional().describe(ISO),
         periodStart: z
           .string()
@@ -632,11 +640,12 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
           .describe(`End of the billing period this invoice covers. ${ISO}`),
       },
     },
-    ({ dueDate, periodStart, periodEnd, ...rest }) =>
+    ({ issueDate, dueDate, periodStart, periodEnd, ...rest }) =>
       runTool(async () =>
         toolJson(
           await caller.invoices.createDraft({
             ...rest,
+            issueDate: issueDate ? new Date(issueDate) : null,
             dueDate: dueDate ? new Date(dueDate) : null,
             periodStart: periodStart ? new Date(periodStart) : null,
             periodEnd: periodEnd ? new Date(periodEnd) : null,
