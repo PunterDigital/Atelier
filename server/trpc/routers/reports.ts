@@ -7,6 +7,7 @@ import {
   projectBudgetStatus,
 } from "@/modules/reports/budgets";
 import { profitSummary } from "@/modules/reports/profit";
+import { profitTotalSummary } from "@/modules/reports/profit-total";
 
 import { createTRPCRouter, permissionProcedure } from "../init";
 
@@ -22,6 +23,22 @@ export const reportsRouter = createTRPCRouter({
     )
     .query(({ ctx, input }) =>
       profitSummary(getDb(), ctx.businessId, {
+        from: input?.from,
+        to: input?.to,
+      }),
+    ),
+
+  // Same accrual (invoice basis) scope as `profit`, but converted to the
+  // business's base currency at the rate in effect on each transaction's
+  // own date rather than left as separate per-currency rows.
+  profitTotal: permissionProcedure("reports.viewProfit")
+    .input(
+      z
+        .object({ from: z.date().optional(), to: z.date().optional() })
+        .optional(),
+    )
+    .query(({ ctx, input }) =>
+      profitTotalSummary(getDb(), ctx.businessId, {
         from: input?.from,
         to: input?.to,
       }),

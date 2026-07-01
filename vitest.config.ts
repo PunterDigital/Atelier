@@ -15,7 +15,7 @@ export default defineConfig({
           name: "unit",
           include: [
             "{app,server,db,design,jobs,lib}/**/*.test.{ts,tsx}",
-            "modules/{authz,clients,projects,time,proposals,expenses,team}/**/*.test.{ts,tsx}",
+            "modules/{authz,clients,projects,time,proposals,expenses,team,reports}/**/*.test.{ts,tsx}",
           ],
         },
       },
