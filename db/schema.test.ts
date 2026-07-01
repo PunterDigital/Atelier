@@ -15,6 +15,8 @@ import * as schema from "./schema";
 // - oauth_* are the Better Auth MCP plugin's OAuth tables; an access token
 //   carries a user_id, and that user reaches business data only through the
 //   business-scoped procedures, never directly
+// - instance_settings is self-hosted deployment config (e.g. update-check
+//   preference), a singleton with no business at all to scope it to
 const exemptTables = [
   "business",
   "user",
@@ -24,6 +26,7 @@ const exemptTables = [
   "oauth_application",
   "oauth_access_token",
   "oauth_consent",
+  "instance_settings",
 ];
 
 const tables = Object.values(schema).filter((value) => is(value, PgTable));

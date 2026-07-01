@@ -52,6 +52,18 @@ export const business = pgTable("business", {
   ...timestamps,
 });
 
+// Instance-wide configuration for a self-hosted deployment - not business
+// data, so it deliberately carries no business_id (see db/schema.test.ts's
+// tenancy exemptions). Singleton: every read/write targets the fixed
+// "singleton" id, so the table can never hold more than one row. Read as
+// "enabled" when the row doesn't exist yet (a fresh instance that has never
+// touched the setting), matching the column default.
+export const instanceSettings = pgTable("instance_settings", {
+  id: text("id").primaryKey().default("singleton"),
+  updateChecksEnabled: boolean("update_checks_enabled").notNull().default(true),
+  ...timestamps,
+});
+
 // Small teams from day one (ESC-3): users belong to one or more businesses
 // through memberships, never through a column on the auth user table.
 export const businessMember = pgTable(

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { Topbar } from "@/components/app-shell/topbar";
+import { UpdateBanner } from "@/components/app-shell/update-banner";
 import { getAuth } from "@/server/auth";
 import { getActiveMembership } from "@/server/membership";
 import { caller } from "@/server/trpc/server";
@@ -27,11 +28,24 @@ export default async function AppLayout({
   }
   const businesses = await caller.business.list();
 
+  // Update checking is owner/admin only (and skipped for the cloud instance,
+  // and for anyone who has turned it off) - fetched conditionally so the rest
+  // of the team never hits the permission gate.
+  const updateStatus = membership.permissions.has("settings.manageUpdates")
+    ? await caller.system.updateStatus()
+    : null;
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         <Topbar businesses={businesses} userName={session.user.name} />
+        {updateStatus?.checked && updateStatus.updateAvailable ? (
+          <UpdateBanner
+            currentVersion={updateStatus.currentVersion}
+            latestVersion={updateStatus.latestVersion}
+          />
+        ) : null}
         <main className="mx-auto w-full max-w-[var(--content-max)] flex-1 px-6 py-8">
           {children}
         </main>

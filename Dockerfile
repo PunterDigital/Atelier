@@ -23,6 +23,11 @@ RUN pnpm build
 RUN pnpm build:migrator
 
 FROM base AS runner
+# Set by the release workflow from the pushed git tag (e.g. "1.3.1", no "v"
+# prefix - see .github/workflows/release.yml). Empty for a local/source
+# build, which the update checker treats as "unknown" and never prompts for.
+ARG CLERQ_VERSION=""
+ENV CLERQ_VERSION=$CLERQ_VERSION
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs \
