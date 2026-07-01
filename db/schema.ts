@@ -573,6 +573,47 @@ export const invoiceSequence = pgTable(
   ],
 );
 
+// Platform administration: a small set of users who can view cross-tenant
+// statistics and moderate accounts, independent of any business membership.
+// Deliberately its own table rather than a flag on `user` - platform admin is
+// instance-level infrastructure (mirrors why userActiveBusiness is a table,
+// not a column). granted_by is null only for the very first admin, set by the
+// bootstrap script.
+export const platformAdmin = pgTable("platform_admin", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  grantedByUserId: text("granted_by_user_id").references(() => user.id),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+// Moderation state for a user account, kept off the Better Auth `user` table
+// (auth-schema.ts is instance-level infrastructure Better Auth owns) rather
+// than adding a column there. suspended_at is the flag - null means active,
+// mirroring expense.paidAt / invoice.voidedAt elsewhere in this schema.
+export const userSuspension = pgTable("user_suspension", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  suspendedAt: timestamp("suspended_at", { withTimezone: true }).notNull(),
+  reason: text("reason"),
+  suspendedByUserId: text("suspended_by_user_id").references(() => user.id),
+});
+
+// Moderation state for a business: suspending one blocks every member's
+// access through it (businessProcedure rejects with FORBIDDEN) without
+// touching its data - the data is preserved, just inaccessible.
+export const businessSuspension = pgTable("business_suspension", {
+  businessId: uuid("business_id")
+    .primaryKey()
+    .references(() => business.id, { onDelete: "cascade" }),
+  suspendedAt: timestamp("suspended_at", { withTimezone: true }).notNull(),
+  reason: text("reason"),
+  suspendedByUserId: text("suspended_by_user_id").references(() => user.id),
+});
+
 // The client activity thread: notes written by users plus automatic
 // lifecycle events. payload shape depends on type and is owned by
 // modules/clients. The enum is TypeScript-level only (the column is

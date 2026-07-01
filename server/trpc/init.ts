@@ -2,9 +2,20 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
+import { getDb } from "@/db";
 import { PERMISSION_META, type Permission } from "@/modules/authz";
+import {
+  getBusinessSuspension,
+  getUserSuspension,
+  isPlatformAdmin,
+} from "@/modules/platform/service";
 import { getAuth, type Session } from "@/server/auth";
 import { getActiveMembership } from "@/server/membership";
+
+function suspensionMessage(scope: "account" | "business", reason: string | null): string {
+  const subject = scope === "account" ? "Your account" : "This business";
+  return reason ? `${subject} has been suspended: ${reason}` : `${subject} has been suspended`;
+}
 
 export const createTRPCContext = async (opts: { headers: Headers }) => {
   const session = await getAuth().api.getSession({ headers: opts.headers });
@@ -42,9 +53,18 @@ export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
 export const publicProcedure = t.procedure;
 
-export const authedProcedure = publicProcedure.use(({ ctx, next }) => {
+export const authedProcedure = publicProcedure.use(async ({ ctx, next }) => {
   if (!ctx.session) {
     throw new TRPCError({ code: "UNAUTHORIZED", message: "Sign in first" });
+  }
+  // A moderation suspension is the lowest gate, below even tenancy: a
+  // suspended account can't act anywhere, not even to accept a fresh invite.
+  const suspension = await getUserSuspension(getDb(), ctx.session.user.id);
+  if (suspension) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: suspensionMessage("account", suspension.reason),
+    });
   }
   return next({ ctx: { ...ctx, session: ctx.session } });
 });
@@ -59,6 +79,13 @@ export const businessProcedure = authedProcedure.use(async ({ ctx, next }) => {
     throw new TRPCError({
       code: "FORBIDDEN",
       message: "Create a business first",
+    });
+  }
+  const businessSuspension = await getBusinessSuspension(getDb(), active.businessId);
+  if (businessSuspension) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: suspensionMessage("business", businessSuspension.reason),
     });
   }
   return next({
@@ -102,3 +129,17 @@ export const permissionProcedure = (permission: Permission) =>
     requirePermission(ctx.permissions, permission);
     return next({ ctx });
   });
+
+// Platform administration is a separate, cross-tenant capability - it builds
+// on authedProcedure (session + not-suspended), never on businessProcedure,
+// because a platform admin need not belong to any business at all.
+export const platformAdminProcedure = authedProcedure.use(async ({ ctx, next }) => {
+  const admin = await isPlatformAdmin(getDb(), ctx.session.user.id);
+  if (!admin) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Platform admin access required",
+    });
+  }
+  return next({ ctx: { ...ctx, isPlatformAdmin: true as const } });
+});

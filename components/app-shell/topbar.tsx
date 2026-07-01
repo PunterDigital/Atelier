@@ -10,14 +10,16 @@ import { TimerChip } from "./timer-chip";
 export function Topbar({
   businesses,
   userName,
+  isPlatformAdmin = false,
 }: {
   businesses: UserBusiness[];
   userName: string;
+  isPlatformAdmin?: boolean;
 }) {
   return (
     <header className="sticky top-0 z-10 flex h-[var(--topbar-height)] shrink-0 items-center gap-2 border-b bg-[color-mix(in_srgb,var(--surface)_80%,transparent)] px-3 backdrop-blur-[10px] backdrop-saturate-[140%] sm:gap-4 sm:px-[22px]">
       {/* Hamburger opens the full navigation drawer where the sidebar is hidden */}
-      <MobileNav />
+      <MobileNav isPlatformAdmin={isPlatformAdmin} />
       <div className="flex min-w-0 flex-col">
         <BusinessSwitcher businesses={businesses} />
       </div>

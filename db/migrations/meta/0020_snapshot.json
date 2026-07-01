@@ -1,6 +1,6 @@
 {
-  "id": "43e6004b-387c-4f56-9502-212e3d8ae199",
-  "prevId": "c99096f8-465a-42eb-94a4-67120a567972",
+  "id": "a4c5ca09-eaee-4932-a3ff-0d182ee48aa4",
+  "prevId": "43e6004b-387c-4f56-9502-212e3d8ae199",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1297,6 +1297,47 @@
           "onUpdate": "no action"
         }
       },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.instance_settings": {
+      "name": "instance_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "'singleton'"
+        },
+        "update_checks_enabled": {
+          "name": "update_checks_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
