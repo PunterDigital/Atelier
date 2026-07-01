@@ -6,11 +6,11 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-import { isNavItemActive, navItems, settingsNavItem } from "./nav-items";
+import { isNavItemActive, navItems, settingsNavItem, systemAdminNavItem } from "./nav-items";
 
 // Spec: design system Sidebar - 244px rail, surface bg, hairline right
 // border, items radius-md, hover surface-muted, active primary-subtle.
-export function Sidebar() {
+export function Sidebar({ isPlatformAdmin = false }: { isPlatformAdmin?: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -66,6 +66,15 @@ export function Sidebar() {
           <settingsNavItem.icon className="size-[18px] shrink-0" aria-hidden />
           <span className="truncate">{settingsNavItem.label}</span>
         </Link>
+        {isPlatformAdmin && (
+          <Link
+            href={systemAdminNavItem.href}
+            className="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <systemAdminNavItem.icon className="size-[18px] shrink-0" aria-hidden />
+            <span className="truncate">{systemAdminNavItem.label}</span>
+          </Link>
+        )}
       </div>
     </nav>
   );
