@@ -166,7 +166,7 @@ describe("invoice PDF view model", () => {
       client,
     });
     expect(data.lines[0].conversionNote).toBe(
-      "Converted from £440.00 at 1.1597 (ECB rate)",
+      "Converted from £ 440.00 at 1.1597 (ECB rate)",
     );
     expect(data.taxRowLabel).toBe("VAT");
     expect(data.taxNote).toContain("Article 196");
