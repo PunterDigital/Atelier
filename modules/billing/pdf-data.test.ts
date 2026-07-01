@@ -59,11 +59,11 @@ describe("invoice PDF view model", () => {
     expect(data.issueDateLabel).toBe("11 Jun 2026");
     expect(data.dueDateLabel).toBe("11 Jul 2026");
     expect(data.periodLabel).toBeNull();
-    expect(data.lines[0].quantityLabel).toBe("11.25 h x €62.00/h");
-    expect(data.lines[0].totalLabel).toBe("€697.50");
+    expect(data.lines[0].quantityLabel).toBe("11.25 h x € 62.00/h");
+    expect(data.lines[0].totalLabel).toBe("€ 697.50");
     expect(data.taxRowLabel).toBe("VAT (21%)");
-    expect(data.taxAmountLabel).toBe("€146.48");
-    expect(data.totalLabel).toBe("€843.98");
+    expect(data.taxAmountLabel).toBe("€ 146.48");
+    expect(data.totalLabel).toBe("€ 843.98");
     expect(data.balanceDueLabel).toBe("843.98 EUR");
   });
 
@@ -91,7 +91,7 @@ describe("invoice PDF view model", () => {
     expect(data.isDraft).toBe(true);
     expect(data.issueDateLabel).toBeNull();
     expect(data.lines[0].quantityLabel).toBeNull();
-    expect(data.lines[0].totalLabel).toBe("€1,500.00");
+    expect(data.lines[0].totalLabel).toBe("€ 1,500.00");
   });
 
   it("flags a voided invoice while keeping its number and title", () => {
