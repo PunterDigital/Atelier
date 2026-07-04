@@ -167,6 +167,7 @@ const PROBES: Record<Permission, (c: Caller) => Promise<unknown>> = {
     }),
   "settings.manageUpdates": (c) =>
     c.system.setUpdateChecksEnabled({ enabled: true }),
+  "data.export": (c) => c.dataExport.everything(),
 };
 
 let pglite: PGlite;

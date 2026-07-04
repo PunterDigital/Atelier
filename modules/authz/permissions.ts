@@ -60,6 +60,11 @@ export const PERMISSIONS = [
   "settings.edit",
   "branding.edit",
   "settings.manageUpdates",
+  // Exporting a full, portable copy of the business's data is a high-trust
+  // action (it dumps financials, receipts, internal costs and the team roster
+  // in one file), so it is its own permission rather than folded into
+  // settings.view - only owners and admins hold it by default.
+  "data.export",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -293,6 +298,12 @@ export const PERMISSION_META: Record<
     label: "Manage update checks",
     description:
       "See and dismiss available-update prompts, and turn checking for new Clerq versions on or off.",
+  },
+  "data.export": {
+    group: "Settings",
+    label: "Export all data",
+    description:
+      "Download a complete, portable copy of the business's data - clients, projects, tasks, time, invoices, expenses, team and settings.",
   },
 };
 

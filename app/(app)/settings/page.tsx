@@ -40,6 +40,10 @@ export default async function SettingsPage() {
     ? await caller.system.settings()
     : null;
 
+  // Exporting the whole business is a high-trust action (owner/admin only),
+  // so the card is shown only to callers who actually hold the permission.
+  const canExport = membership?.permissions.has("data.export") ?? false;
+
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-6">
       <h1 className="text-2xl">Settings</h1>
@@ -69,6 +73,25 @@ export default async function SettingsPage() {
           </Button>
         </CardContent>
       </Card>
+      {canExport ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Export your data</CardTitle>
+            <CardDescription>
+              Download everything in this business - clients, projects, tasks,
+              time, invoices, expenses, team and settings - as one portable
+              JSON file. Your data is yours to take with you, any time.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" asChild>
+              <a href="/api/export" download>
+                Export all data
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
       {systemSettings && !systemSettings.isCloudInstance ? (
         <SystemAdminForm
           initial={{
