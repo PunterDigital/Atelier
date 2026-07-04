@@ -13,6 +13,7 @@ each other's internals.
 | `billing`   | invoices, currency, tax, numbering             | shipped (fixture-proven against BILLING-SPEC.md) |
 | `proposals` | proposals (later phase)                        | not started     |
 | `platform`  | cross-tenant stats and moderation for platform admins | shipped |
+| `export`    | full, portable, business-scoped data export (anti-lock-in) | shipped ([format](../docs/DATA-EXPORT.md)) |
 
 Every piece of data access is scoped by `business_id` - except `platform`,
 which is the one deliberate exception: a platform admin's job is to see

@@ -4,6 +4,7 @@ import { businessRouter } from "./business";
 import { clientsRouter } from "./clients";
 import { dashboardRouter } from "./dashboard";
 import { expensesRouter } from "./expenses";
+import { exportRouter } from "./export";
 import { healthRouter } from "./health";
 import { invoicesRouter } from "./invoices";
 import { projectsRouter } from "./projects";
@@ -27,6 +28,7 @@ export const appRouter = createTRPCRouter({
   reports: reportsRouter,
   system: systemRouter,
   admin: adminRouter,
+  dataExport: exportRouter,
 });
 
 export type AppRouter = typeof appRouter;
