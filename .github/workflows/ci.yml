@@ -43,6 +43,12 @@ jobs:
   # against a real Postgres - twice, because it must also be idempotent.
   seed:
     runs-on: [self-hosted, linux]
+    # The runner is containerized, so the job must run in a container on the
+    # same Docker network as the service - "localhost" inside the runner
+    # container can't reach a port published on the host. The service is
+    # reached by its alias ("postgres"), so no host port is published and
+    # concurrent runs on one machine can't collide on 5432.
+    container: node:24
     services:
       postgres:
         image: postgres:17-alpine
@@ -50,15 +56,13 @@ jobs:
           POSTGRES_USER: clerq
           POSTGRES_PASSWORD: clerq
           POSTGRES_DB: clerq
-        ports:
-          - 5432:5432
         options: >-
           --health-cmd "pg_isready -U clerq -d clerq"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://clerq:clerq@localhost:5432/clerq
+      DATABASE_URL: postgresql://clerq:clerq@postgres:5432/clerq
       BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-real
     steps:
       - uses: actions/checkout@v4
