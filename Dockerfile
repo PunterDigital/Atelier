@@ -21,6 +21,11 @@ RUN pnpm build
 # Bundle the runtime migrator to a single dependency-light migrate.mjs (pg is
 # left external; it is already in the standalone output). Run on boot.
 RUN pnpm build:migrator
+# Same bundling for the platform-admin bootstrap. The standalone runner has no
+# workspace tooling (no pnpm deps, no tsx), so the tsx `pnpm admin:grant` path
+# can't run there; this ships a dependency-light grant-admin.mjs operators run
+# with `docker compose exec app node grant-admin.mjs <email>`.
+RUN pnpm build:grant-admin
 
 FROM base AS runner
 # Set by the release workflow from the pushed git tag (e.g. "1.3.1", no "v"
@@ -39,6 +44,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 # entrypoint runs them before the server starts, so the image self-migrates.
 COPY --from=builder --chown=nextjs:nodejs /app/migrate.mjs ./migrate.mjs
 COPY --from=builder --chown=nextjs:nodejs /app/db/migrations ./db/migrations
+# Platform-admin bootstrap, run on demand (not on boot):
+#   docker compose exec app node grant-admin.mjs <email>
+COPY --from=builder --chown=nextjs:nodejs /app/grant-admin.mjs ./grant-admin.mjs
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 USER nextjs

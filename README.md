@@ -45,6 +45,20 @@ This starts Postgres, applies database migrations, and serves the app on
 trying it locally; set `POSTGRES_PASSWORD` (see `.env.example`) before
 exposing it anywhere.
 
+### Make yourself a platform admin
+
+The System Administration area (cross-tenant stats and moderation) requires an
+existing platform admin, which the first sign-up cannot be. Create your account
+in the app, then bootstrap yourself from the running container:
+
+```bash
+docker compose exec app node grant-admin.mjs you@example.com
+```
+
+It's idempotent, so re-running is harmless. Once you're in, grant any other
+admins from System Administration → Users. (Contributors running from a source
+checkout can use `pnpm admin:grant <email>` instead.)
+
 ## Local development
 
 Requires Node 24+, pnpm 10+, and a Postgres instance (or use

@@ -17,7 +17,8 @@
     "db:seed": "tsx --env-file-if-exists=.env db/seed.ts",
     "seed:acme": "tsx --env-file-if-exists=.env db/seed-acme.ts",
     "admin:grant": "tsx --env-file-if-exists=.env scripts/grant-platform-admin.ts",
-    "build:migrator": "esbuild scripts/migrate.ts --bundle --platform=node --format=esm --external:pg --outfile=migrate.mjs"
+    "build:migrator": "esbuild scripts/migrate.ts --bundle --platform=node --format=esm --external:pg --outfile=migrate.mjs",
+    "build:grant-admin": "esbuild scripts/grant-platform-admin.ts --bundle --platform=node --format=esm --external:pg --outfile=grant-admin.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
