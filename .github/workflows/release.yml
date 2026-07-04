@@ -1,7 +1,7 @@
 # Build and publish the Clerq image on version tags.
 #
 # Tag a green commit on main with a vX.Y.Z tag (e.g. `git tag v0.1.0 && git
-# push origin v0.1.0`) and this builds a multi-arch image and pushes it to the
+# push origin v0.1.0`) and this builds a linux/amd64 image and pushes it to the
 # GitHub Container Registry. Self-hosters pull ghcr.io/punterdigital/clerq.
 #
 # `latest` tracks the newest stable release only - pre-release tags
@@ -24,8 +24,6 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v4
-
-      - uses: docker/setup-qemu-action@v3
 
       - uses: docker/setup-buildx-action@v3
 
@@ -52,7 +50,7 @@ jobs:
         with:
           context: .
           target: runner
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
