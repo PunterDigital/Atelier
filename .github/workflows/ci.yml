@@ -4,6 +4,11 @@ name: CI
 
 on:
   pull_request:
+  # Post-merge safety net: also run on main directly, since the merge commit
+  # can differ from the PR head. Feature branches only run via pull_request,
+  # so this doesn't reintroduce the per-branch duplicate runs.
+  push:
+    branches: [main]
 
 jobs:
   gate:
