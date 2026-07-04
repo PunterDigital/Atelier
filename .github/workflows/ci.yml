@@ -43,12 +43,6 @@ jobs:
   # against a real Postgres - twice, because it must also be idempotent.
   seed:
     runs-on: [self-hosted, linux]
-    # The runner is containerized, so the job must run in a container on the
-    # same Docker network as the service - "localhost" inside the runner
-    # container can't reach a port published on the host. The service is
-    # reached by its alias ("postgres"), so no host port is published and
-    # concurrent runs on one machine can't collide on 5432.
-    container: node:24
     services:
       postgres:
         image: postgres:17-alpine
@@ -65,6 +59,16 @@ jobs:
       DATABASE_URL: postgresql://clerq:clerq@postgres:5432/clerq
       BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-real
     steps:
+      # The runner is a container on the host's Docker daemon, so it can't
+      # reach the service through a host-published port ("localhost" is the
+      # runner container's own loopback) and job containers don't work either
+      # (the runner's externals mount resolves against the host filesystem).
+      # Instead, attach the runner container to the job's service network so
+      # the "postgres" alias resolves directly - and detach again at the end
+      # so the runner can tear the network down cleanly.
+      - name: Join the service network
+        run: docker network connect ${{ job.services.postgres.network }} "$(cat /etc/hostname)"
+
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
@@ -88,3 +92,7 @@ jobs:
 
       - name: Invoice numbering is concurrency-safe
         run: pnpm exec tsx scripts/check-numbering-concurrency.ts
+
+      - name: Leave the service network
+        if: always()
+        run: docker network disconnect ${{ job.services.postgres.network }} "$(cat /etc/hostname)" || true
