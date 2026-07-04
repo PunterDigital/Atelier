@@ -1,4 +1,3 @@
-import tsconfigPaths from "vite-tsconfig-paths";
 import { defineConfig } from "vitest/config";
 
 // Two suites, run separately by the gate (see CONTRIBUTING):
@@ -6,7 +5,9 @@ import { defineConfig } from "vitest/config";
 // - billing: the money-math fixture suite, kept separate because it is the
 //   correctness core of the product and must stay independently runnable
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  // Resolve the "@/*" tsconfig path alias natively - Vite superseded the
+  // vite-tsconfig-paths plugin with this built-in option.
+  resolve: { tsconfigPaths: true },
   test: {
     projects: [
       {
