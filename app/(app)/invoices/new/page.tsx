@@ -37,6 +37,7 @@ export default async function NewInvoicePage() {
           defaultCurrency={settings.currency}
           currencyOptions={listCurrencyOptions()}
           standardRateConfigured={Boolean(settings.standardRatePct)}
+          hasVatNumber={Boolean(settings.vatNumber)}
         />
       )}
     </div>

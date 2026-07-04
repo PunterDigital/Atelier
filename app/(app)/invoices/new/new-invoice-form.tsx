@@ -23,18 +23,27 @@ export function NewInvoiceForm({
   defaultCurrency,
   currencyOptions,
   standardRateConfigured,
+  hasVatNumber,
 }: {
   clients: { id: string; name: string }[];
   defaultCurrency: string;
   currencyOptions: CurrencyOption[];
   standardRateConfigured: boolean;
+  hasVatNumber: boolean;
 }) {
   const router = useRouter();
   const trpc = useTRPC();
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [currency, setCurrency] = useState(defaultCurrency);
+  // Without a VAT number the business isn't VAT-registered, so every invoice
+  // is issued zero-rated and the treatment picker is hidden. Only once a VAT
+  // number is on the profile do the other treatments become selectable.
   const [treatment, setTreatment] = useState<Treatment>(
-    standardRateConfigured ? "standard" : "reverse_charge",
+    !hasVatNumber
+      ? "zero_rated"
+      : standardRateConfigured
+        ? "standard"
+        : "reverse_charge",
   );
   const [issueDate, setIssueDate] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -155,32 +164,48 @@ export function NewInvoiceForm({
             </p>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="treatment">VAT treatment</Label>
-            <select
-              id="treatment"
-              value={treatment}
-              onChange={(e) => setTreatment(e.target.value as Treatment)}
-              className={selectClassName}
-            >
-              <option value="standard" disabled={!standardRateConfigured}>
-                Standard rate{standardRateConfigured ? "" : " (set it in settings first)"}
-              </option>
-              <option value="zero_rated">Zero-rated</option>
-              <option value="reverse_charge">EU reverse charge</option>
-            </select>
-            {!standardRateConfigured ? (
+          {hasVatNumber ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="treatment">VAT treatment</Label>
+              <select
+                id="treatment"
+                value={treatment}
+                onChange={(e) => setTreatment(e.target.value as Treatment)}
+                className={selectClassName}
+              >
+                <option value="standard" disabled={!standardRateConfigured}>
+                  Standard rate{standardRateConfigured ? "" : " (set it in settings first)"}
+                </option>
+                <option value="zero_rated">Zero-rated</option>
+                <option value="reverse_charge">EU reverse charge</option>
+              </select>
+              {!standardRateConfigured ? (
+                <p className="text-sm text-muted-foreground">
+                  Standard-rate invoicing needs your VAT rate -{" "}
+                  <Link
+                    href="/settings"
+                    className="text-primary underline-offset-4 hover:underline"
+                  >
+                    set it in settings
+                  </Link>
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <Label>VAT treatment</Label>
               <p className="text-sm text-muted-foreground">
-                Standard-rate invoicing needs your VAT rate -{" "}
+                This invoice will be zero-rated for VAT. Add your VAT number in{" "}
                 <Link
                   href="/settings"
                   className="text-primary underline-offset-4 hover:underline"
                 >
-                  set it in settings
-                </Link>
+                  settings
+                </Link>{" "}
+                to charge standard-rate or EU reverse-charge VAT.
               </p>
-            ) : null}
-          </div>
+            </div>
+          )}
 
           {create.error ? (
             <p role="alert" className="text-sm text-destructive">
