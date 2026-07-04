@@ -165,6 +165,8 @@ const PROBES: Record<Permission, (c: Caller) => Promise<unknown>> = {
       brandColor: null,
       footerNote: null,
     }),
+  "settings.manageUpdates": (c) =>
+    c.system.setUpdateChecksEnabled({ enabled: true }),
 };
 
 let pglite: PGlite;

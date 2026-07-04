@@ -59,6 +59,7 @@ export const PERMISSIONS = [
   "settings.view",
   "settings.edit",
   "branding.edit",
+  "settings.manageUpdates",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -286,6 +287,12 @@ export const PERMISSION_META: Record<
     group: "Settings",
     label: "Edit branding",
     description: "Change the logo, brand colour and invoice footer.",
+  },
+  "settings.manageUpdates": {
+    group: "Settings",
+    label: "Manage update checks",
+    description:
+      "See and dismiss available-update prompts, and turn checking for new Clerq versions on or off.",
   },
 };
 

@@ -56,5 +56,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Baked into the image so a running instance knows its own version
+          # (see the Dockerfile's CLERQ_VERSION arg) - the same "1.3.1" string
+          # meta resolved from the pushed tag, reused rather than re-parsed.
+          build-args: |
+            CLERQ_VERSION=${{ steps.meta.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

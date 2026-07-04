@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { Topbar } from "@/components/app-shell/topbar";
+import { UpdateBanner } from "@/components/app-shell/update-banner";
 import { getDb } from "@/db";
 import {
   getBusinessSuspension,
@@ -53,11 +54,24 @@ export default async function AppLayout({
     isPlatformAdmin(getDb(), session.user.id),
   ]);
 
+  // Update checking is owner/admin only (and skipped for the cloud instance,
+  // and for anyone who has turned it off) - fetched conditionally so the rest
+  // of the team never hits the permission gate.
+  const updateStatus = membership.permissions.has("settings.manageUpdates")
+    ? await caller.system.updateStatus()
+    : null;
+
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar isPlatformAdmin={admin} />
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         <Topbar businesses={businesses} userName={session.user.name} isPlatformAdmin={admin} />
+        {updateStatus?.checked && updateStatus.updateAvailable ? (
+          <UpdateBanner
+            currentVersion={updateStatus.currentVersion}
+            latestVersion={updateStatus.latestVersion}
+          />
+        ) : null}
         <main className="mx-auto w-full max-w-[var(--content-max)] flex-1 px-6 py-8">
           {children}
         </main>

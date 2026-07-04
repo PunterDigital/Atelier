@@ -15,6 +15,8 @@ import * as schema from "./schema";
 // - oauth_* are the Better Auth MCP plugin's OAuth tables; an access token
 //   carries a user_id, and that user reaches business data only through the
 //   business-scoped procedures, never directly
+// - instance_settings is self-hosted deployment config (e.g. update-check
+//   preference), a singleton with no business at all to scope it to
 // - platform_admin/user_suspension are platform-level infrastructure keyed by
 //   user_id, not business data (business_suspension is keyed by business_id,
 //   so it already satisfies the rule without an exemption)
@@ -27,6 +29,7 @@ const exemptTables = [
   "oauth_application",
   "oauth_access_token",
   "oauth_consent",
+  "instance_settings",
   "platform_admin",
   "user_suspension",
 ];
