@@ -91,7 +91,9 @@ Traefik gets TLS certs automatically via Let's Encrypt (HTTP-01), so ports
   extra step needed. If you deploy from a different host, log that host's Docker
   in to GHCR too.
 
-That's it. Open a PR to try it.
+Setting `PREVIEW_BASE_DOMAIN` is the on-switch: until it's present the preview
+workflows are **skipped** (not failed), so they never redden CI before the host
+is ready. Once it's set, open a PR to try it.
 
 ## Security
 

@@ -19,7 +19,11 @@ concurrency:
 
 jobs:
   teardown:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Inert until an operator sets PREVIEW_BASE_DOMAIN (see preview/README.md),
+    # matching the deploy workflow's opt-in. Fork PRs are excluded.
+    if: >-
+      vars.PREVIEW_BASE_DOMAIN != '' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4

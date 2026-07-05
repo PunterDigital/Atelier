@@ -16,6 +16,8 @@ permissions:
 
 jobs:
   reap:
+    # Inert until an operator sets PREVIEW_BASE_DOMAIN (see preview/README.md).
+    if: vars.PREVIEW_BASE_DOMAIN != ''
     runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4

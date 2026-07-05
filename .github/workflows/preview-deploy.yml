@@ -29,7 +29,13 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Inert until an operator opts in by setting the PREVIEW_BASE_DOMAIN repo
+    # variable (see preview/README.md). Until then the job is skipped, not
+    # failed, so previews never redden CI before the host is configured.
+    # Also excludes fork PRs so untrusted code never runs on the host.
+    if: >-
+      vars.PREVIEW_BASE_DOMAIN != '' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
