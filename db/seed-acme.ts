@@ -276,29 +276,33 @@ async function main() {
     issueMonthsAgo?: number;
     dueInDays?: number; // relative to issue; negative => already past
   };
-  const byName = (n: string) => activeClients.find((c) => c.name === n)!;
+  const byName = (n: string) => {
+    const found = activeClients.find((c) => c.name === n);
+    if (!found) throw new Error(`Invoice plan references unknown client "${n}"`);
+    return found;
+  };
   const invoicePlans: Plan[] = [
-    { clientName: "Stark Solutions", treatment: "standard", state: "paid", issueMonthsAgo: 3, dueInDays: 14,
+    { clientName: "Stark Solutions Ltd", treatment: "standard", state: "paid", issueMonthsAgo: 3, dueInDays: 14,
       lines: [{ description: "Design system - sprint 1", amount: "9600.00" }, { description: "Component library", amount: "5400.00" }] },
     { clientName: "Globex Corporation", treatment: "reverse_charge", state: "paid", issueMonthsAgo: 2, dueInDays: 30,
       lines: [{ description: "Retainer - January", amount: "12000.00" }] },
-    { clientName: "Umbrella Health", treatment: "standard", state: "paid", issueMonthsAgo: 2, dueInDays: 14,
+    { clientName: "Umbrella Health Group", treatment: "standard", state: "paid", issueMonthsAgo: 2, dueInDays: 14,
       lines: [{ description: "Security review", amount: "7800.00" }, { description: "Remediation support", amount: "3200.00" }] },
     { clientName: "Soylent Industries", treatment: "standard", state: "overdue", issueMonthsAgo: 2, dueInDays: 14,
       lines: [{ description: "Data warehouse - phase 1", amount: "16800.00" }] },
-    { clientName: "Hooli", treatment: "zero_rated", state: "overdue", issueMonthsAgo: 1, dueInDays: 21,
+    { clientName: "Hooli Inc", treatment: "zero_rated", state: "overdue", issueMonthsAgo: 1, dueInDays: 21,
       lines: [{ description: "Platform consulting", amount: "11250.00" }] },
     { clientName: "Wayne Enterprises", treatment: "standard", state: "sent", issueMonthsAgo: 1, dueInDays: 30,
       lines: [{ description: "API platform - milestone 2", amount: "14000.00" }, { description: "Documentation", amount: "2000.00" }] },
-    { clientName: "Stark Solutions", treatment: "standard", state: "sent", issueMonthsAgo: 0, dueInDays: 14,
+    { clientName: "Stark Solutions Ltd", treatment: "standard", state: "sent", issueMonthsAgo: 0, dueInDays: 14,
       lines: [{ description: "Design system - sprint 2", amount: "9600.00" }] },
     { clientName: "Globex Corporation", treatment: "reverse_charge", state: "sent", issueMonthsAgo: 0, dueInDays: 30,
       lines: [{ description: "Retainer - current month", amount: "12000.00" }] },
     { clientName: "Pied Piper", treatment: "standard", state: "draft",
       lines: [{ description: "Search relevance - discovery", amount: "5600.00" }] },
-    { clientName: "Umbrella Health", treatment: "standard", state: "draft",
+    { clientName: "Umbrella Health Group", treatment: "standard", state: "draft",
       lines: [{ description: "Customer portal - estimate", amount: "18400.00" }, { description: "Accessibility audit", amount: "2400.00" }] },
-    { clientName: "Initech", treatment: "standard", state: "paid", issueMonthsAgo: 4, dueInDays: 14,
+    { clientName: "Initech LLC", treatment: "standard", state: "paid", issueMonthsAgo: 4, dueInDays: 14,
       lines: [{ description: "Internal dashboard", amount: "8800.00" }] },
     { clientName: "Soylent Industries", treatment: "standard", state: "sent", issueMonthsAgo: 0, dueInDays: 21,
       lines: [{ description: "Analytics pipeline - phase 1", amount: "13200.00" }] },
