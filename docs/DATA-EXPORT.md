@@ -40,6 +40,8 @@ A single JSON object. The current `formatVersion` is `1`.
     "invoices":          [ … ],
     "invoiceLines":      [ … ],
     "invoiceSequences":  [ … ],
+    "invoiceSchedules":     [ … ],
+    "invoiceScheduleLines": [ … ],
     "expenses":          [ … ],
     "activity":          [ … ],
     "members":           [ … ],
@@ -65,6 +67,8 @@ encodings match the schema:
 | `invoices`          | `invoice`                     |                                                                       |
 | `invoiceLines`      | `invoice_line`                | Ordered by invoice, then `position`.                                  |
 | `invoiceSequences`  | `invoice_sequence`            | The gapless per-year numbering counters.                              |
+| `invoiceSchedules`     | `invoice_schedule`         | Recurring-invoice (retainer) templates and cadence.                   |
+| `invoiceScheduleLines` | `invoice_schedule_line`    | Ordered by schedule, then `position`.                                 |
 | `expenses`          | `expense`                     | Includes the inline receipt (`receiptDataUrl`) when present.          |
 | `activity`          | `activity`                    | The client activity thread, in insertion order.                       |
 | `members`           | `business_member` + `user`    | Enriched with each member's `email` and `name`.                       |

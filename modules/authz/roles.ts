@@ -50,6 +50,7 @@ const INVOICES_OPS = [
   "invoices.markPaid",
   "invoices.void",
   "invoices.delete",
+  "invoices.manageRecurring",
 ] satisfies Permission[];
 
 const EXPENSES_FULL = [

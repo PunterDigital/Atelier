@@ -1,4 +1,4 @@
-import { ReceiptText } from "lucide-react";
+import { ReceiptText, Repeat } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -7,6 +7,8 @@ import { InvoiceStatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatMoney } from "@/lib/format";
 import { caller } from "@/server/trpc/server";
+
+import { InvoiceTabs } from "./invoice-tabs";
 
 export const metadata: Metadata = {
   title: "Invoices - Clerq",
@@ -33,6 +35,8 @@ export default async function InvoicesPage({
           <Link href="/invoices/new">New invoice</Link>
         </Button>
       </div>
+
+      <InvoiceTabs />
 
       {isEmptyBusiness ? (
         <div className="flex flex-col items-center gap-1.5 rounded-lg border bg-card px-8 py-12 text-center shadow-sm">
@@ -74,6 +78,15 @@ export default async function InvoicesPage({
                         {invoice.number ?? "Draft"}
                       </span>
                       <InvoiceStatusPill status={invoice.status} />
+                      {invoice.scheduleId ? (
+                        <span
+                          className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-px text-xs font-medium text-muted-foreground"
+                          title="Generated from a recurring invoice"
+                        >
+                          <Repeat className="size-3" aria-hidden />
+                          Recurring
+                        </span>
+                      ) : null}
                     </div>
                     <div className="truncate text-sm text-muted-foreground">
                       {invoice.clientName}
