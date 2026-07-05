@@ -1,8 +1,9 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Db } from "@/db";
 import { schema } from "@/db";
+import { likeContains } from "@/lib/search";
 
 // Every function takes the caller's businessId and applies it to every
 // query. An expense id from another business behaves exactly like a missing
@@ -71,18 +72,28 @@ const listColumns = {
 export async function listExpenses(
   db: Db,
   businessId: string,
-  opts: { status?: ExpenseStatus } = {},
+  opts: { status?: ExpenseStatus; search?: string } = {},
 ) {
-  const scope = opts.status
-    ? and(
-        eq(schema.expense.businessId, businessId),
-        eq(schema.expense.status, opts.status),
-      )
-    : eq(schema.expense.businessId, businessId);
+  const filters = [eq(schema.expense.businessId, businessId)];
+  if (opts.status) {
+    filters.push(eq(schema.expense.status, opts.status));
+  }
+  // Match on the description, vendor, or category.
+  const term = opts.search?.trim();
+  if (term) {
+    const pattern = likeContains(term);
+    filters.push(
+      or(
+        ilike(schema.expense.description, pattern),
+        ilike(schema.expense.vendor, pattern),
+        ilike(schema.expense.category, pattern),
+      )!,
+    );
+  }
   return db
     .select(listColumns)
     .from(schema.expense)
-    .where(scope)
+    .where(and(...filters))
     // Newest cost first; created_at breaks ties for same-day entries.
     .orderBy(desc(schema.expense.incurredAt), desc(schema.expense.createdAt));
 }

@@ -227,3 +227,43 @@ describe("invoice lifecycle", () => {
     expect(await voidInvoice(db, businessA.id, "u1", invoice.id)).toBeNull();
   });
 });
+
+describe("invoice list - search", () => {
+  it("matches on the invoice number or client name, scoped to the business", async () => {
+    const now = new Date("2026-06-11T09:00:00Z");
+    const invoice = await issuedInvoice(
+      businessA.id,
+      clientA.id,
+      new Date("2026-09-01T00:00:00Z"),
+    );
+    // Business B has its own invoice for "Client B".
+    await issuedInvoice(
+      businessB.id,
+      clientB.id,
+      new Date("2026-09-01T00:00:00Z"),
+    );
+
+    // Search by the assigned invoice number.
+    const byNumber = await listInvoices(db, businessA.id, now, {
+      search: invoice.number!,
+    });
+    expect(byNumber.map((i) => i.id)).toContain(invoice.id);
+
+    // Search by client name only returns business A's invoices.
+    const byClient = await listInvoices(db, businessA.id, now, {
+      search: "Client A",
+    });
+    expect(byClient.length).toBeGreaterThan(0);
+    expect(byClient.every((i) => i.clientName === "Client A")).toBe(true);
+
+    // Business B's "Client B" invoices never surface in A's search.
+    expect(
+      await listInvoices(db, businessA.id, now, { search: "Client B" }),
+    ).toEqual([]);
+
+    // No match returns an empty list.
+    expect(
+      await listInvoices(db, businessA.id, now, { search: "zzzzz" }),
+    ).toEqual([]);
+  });
+});

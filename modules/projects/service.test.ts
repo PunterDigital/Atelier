@@ -161,3 +161,42 @@ describe("projects service - lifecycle", () => {
     expect(event).toBeDefined();
   });
 });
+
+describe("projects service - search", () => {
+  it("matches on the project name or the client name, business-scoped", async () => {
+    const acme = await createClient(db, businessA.id, userA, {
+      name: "Acme Corporation",
+      contacts: [],
+    });
+    await createProject(db, businessA.id, userA, {
+      name: "Website Redesign",
+      clientId: acme.id,
+      status: "active",
+    });
+    await createProject(db, businessA.id, userA, {
+      name: "Mobile App",
+      clientId: clientA.id,
+      status: "active",
+    });
+    // A project in another business must not surface here.
+    await createProject(db, businessB.id, userB, {
+      name: "Website Redesign",
+      clientId: clientB.id,
+      status: "active",
+    });
+
+    // Matches the project name directly - business B's identically named
+    // project is scoped out, so exactly one result comes back.
+    const byName = await listProjects(db, businessA.id, { search: "redesign" });
+    expect(byName.map((p) => p.name)).toEqual(["Website Redesign"]);
+
+    // Matches via the client the project belongs to.
+    const byClient = await listProjects(db, businessA.id, { search: "acme" });
+    expect(byClient.map((p) => p.name)).toContain("Website Redesign");
+
+    // No match returns an empty list.
+    expect(await listProjects(db, businessA.id, { search: "zzzzz" })).toEqual(
+      [],
+    );
+  });
+});

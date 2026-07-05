@@ -45,9 +45,19 @@ function found<T>(row: T | null): T {
 
 export const expensesRouter = createTRPCRouter({
   list: permissionProcedure("expenses.view")
-    .input(z.object({ status: expenseStatusSchema.optional() }).optional())
+    .input(
+      z
+        .object({
+          status: expenseStatusSchema.optional(),
+          search: z.string().optional(),
+        })
+        .optional(),
+    )
     .query(({ ctx, input }) =>
-      listExpenses(getDb(), ctx.businessId, { status: input?.status }),
+      listExpenses(getDb(), ctx.businessId, {
+        status: input?.status,
+        search: input?.search,
+      }),
     ),
 
   get: permissionProcedure("expenses.view")

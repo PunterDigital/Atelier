@@ -13,6 +13,7 @@ import {
   createTask,
   deleteTask,
   listTasks,
+  searchTasks,
   setTaskStatus,
   updateTask,
 } from "./tasks-service";
@@ -141,5 +142,36 @@ describe("tasks service - lifecycle", () => {
     );
     expect(deleted).not.toBeNull();
     expect(await listTasks(db, businessA.id, projectA.id)).toEqual([]);
+  });
+});
+
+describe("tasks service - search", () => {
+  it("searches titles across the business's projects, scoped to the caller", async () => {
+    await createTask(db, businessA.id, projectA.id, {
+      title: "Wire up the payment webhook",
+      status: "todo",
+    });
+    await createTask(db, businessA.id, projectA.id, {
+      title: "Draft onboarding email",
+      status: "in_progress",
+    });
+    // A same-titled task in another business must stay invisible here.
+    await createTask(db, businessB.id, projectB.id, {
+      title: "Wire up the payment webhook",
+      status: "todo",
+    });
+
+    const hits = await searchTasks(db, businessA.id, "webhook");
+    expect(hits).toHaveLength(1);
+    expect(hits[0].title).toBe("Wire up the payment webhook");
+    // Results carry the parent project and client for context/linking.
+    expect(hits[0].projectId).toBe(projectA.id);
+    expect(hits[0].projectName).toBe("Alpha project");
+    expect(hits[0].clientName).toBe("Alpha client");
+
+    // An empty term returns nothing rather than every task.
+    expect(await searchTasks(db, businessA.id, "   ")).toEqual([]);
+    // No match returns an empty list.
+    expect(await searchTasks(db, businessA.id, "zzzzz")).toEqual([]);
   });
 });

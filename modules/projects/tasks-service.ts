@@ -1,8 +1,18 @@
-import { and, asc, eq, getTableColumns, isNotNull, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  ilike,
+  isNotNull,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 
 import type { Db } from "@/db";
 import { schema } from "@/db";
+import { likeContains } from "@/lib/search";
 
 // Tasks live inside the projects module (the repo map: projects owns
 // projects + tasks). Same tenancy contract: businessId on every query,
@@ -70,6 +80,40 @@ export async function listTasks(db: Db, businessId: string, projectId: string) {
     ...row,
     trackedSeconds: Number(row.trackedSeconds),
   }));
+}
+
+// Business-wide task search by title, used by the projects page so a search
+// there surfaces matching tasks alongside matching projects. Carries the
+// parent project and client names so a result links back and reads in
+// context. Returns [] for an empty term rather than every task.
+export async function searchTasks(
+  db: Db,
+  businessId: string,
+  search: string,
+) {
+  const term = search.trim();
+  if (!term) {
+    return [];
+  }
+  return db
+    .select({
+      id: schema.task.id,
+      title: schema.task.title,
+      status: schema.task.status,
+      projectId: schema.task.projectId,
+      projectName: schema.project.name,
+      clientName: schema.client.name,
+    })
+    .from(schema.task)
+    .innerJoin(schema.project, eq(schema.task.projectId, schema.project.id))
+    .innerJoin(schema.client, eq(schema.project.clientId, schema.client.id))
+    .where(
+      and(
+        eq(schema.task.businessId, businessId),
+        ilike(schema.task.title, likeContains(term)),
+      ),
+    )
+    .orderBy(desc(schema.task.createdAt));
 }
 
 export async function createTask(
