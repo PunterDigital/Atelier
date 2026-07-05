@@ -94,6 +94,14 @@ Coolify's compose magic differs slightly across versions, so confirm these once:
   modest VPS. Scale the box up if you routinely run many at once.
 - **Orphans:** if the auto-stop webhook ever misfires, Coolify lists active
   previews under the resource's Preview Deployments tab — stop them there.
+- **Clean state:** the `seed` service drops and recreates the schema before
+  migrating, so a preview always seeds fresh even though Coolify keeps the
+  per-PR Postgres volume across redeploys. (Without it, leftover tables from an
+  interrupted deploy make `drizzle-kit migrate` fail with a swallowed "relation
+  already exists" and the deploy dies with no visible error.)
+- **Housekeeping:** failed deploys can leave stopped containers behind (Coolify
+  runs `up` without `--remove-orphans`). They only waste disk, but to clear
+  them: `docker container prune -f` and `docker volume prune -f` on the host.
 
 ## Production is separate
 
