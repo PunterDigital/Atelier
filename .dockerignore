@@ -9,3 +9,5 @@ coverage
 clerq-software-plan.md
 TASKS.md
 ESCALATIONS.md
+# Preview-environment compose + docs; the app image never needs them
+preview

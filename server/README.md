@@ -12,7 +12,7 @@ between the Next.js app and the domain modules in `/modules`.
   until multi-entity switching lands in Phase 4).
 - `updates.ts` - self-hosted update checking: compares the running build
   against the latest release published to GHCR, skipped entirely for the
-  cloud instance (`BETTER_AUTH_URL` on `app.useclerq.com`).
+  cloud instance (`BETTER_AUTH_URL` on `app.useclerq.net`).
 - `trpc/init.ts` - context (resolves the Better Auth session) and the
   procedure ladder: `publicProcedure` -> `authedProcedure` (session
   required) -> `businessProcedure` (adds `ctx.businessId` derived from
