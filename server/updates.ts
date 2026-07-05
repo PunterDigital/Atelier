@@ -5,17 +5,19 @@ import { compareVersions, RELEASE_TAG } from "@/lib/semver";
 import { currentVersion } from "@/lib/version";
 
 // Self-hosted update checking: is a newer Clerq release published to GHCR
-// than the one this instance is running? Cloud (app.useclerq.com) is managed
-// centrally and never checks or prompts - see isCloudInstance below.
+// than the one this instance is running? The managed cloud (app.useclerq.net)
+// is run centrally and never checks or prompts - see isCloudInstance below.
 
-const CLOUD_HOSTNAME = "app.useclerq.com";
+// Every host the managed cloud is reached on. .net is the live domain; .com is
+// kept so an instance reached on either is still recognised as cloud.
+const CLOUD_HOSTNAMES = new Set(["app.useclerq.net", "app.useclerq.com"]);
 
 // BETTER_AUTH_URL is "the URL your instance is reached on" (see .env.example)
 // - a deployment-level setting, not a per-request header, so this can't be
 // spoofed by a client and needs no request context to call.
 export function isCloudInstance(): boolean {
   try {
-    return new URL(process.env.BETTER_AUTH_URL ?? "").hostname === CLOUD_HOSTNAME;
+    return CLOUD_HOSTNAMES.has(new URL(process.env.BETTER_AUTH_URL ?? "").hostname);
   } catch {
     return false;
   }
