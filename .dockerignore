@@ -9,5 +9,5 @@ coverage
 clerq-software-plan.md
 TASKS.md
 ESCALATIONS.md
-# Preview-environment infra (host-side only; never part of the app image)
+# Preview-environment compose + docs; the app image never needs them
 preview

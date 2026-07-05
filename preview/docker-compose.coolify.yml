@@ -1,0 +1,75 @@
+# Preview-environment stack for Coolify's PR Preview Deployments.
+#
+# Point a Coolify "Docker Compose" resource at the repo with this file as its
+# compose path, enable Preview Deployments + "Auto-stop on PR close", and
+# Coolify builds this stack for every pull request, gives it a pr<n>- URL, and
+# tears it down when the PR closes. See preview/README.md for the click-through.
+#
+# Each preview is fully isolated: its own Postgres (fresh volume per PR) seeded
+# with the rich Acme dataset, plus the app built from the PR's own source. All
+# of Clerq's state lives in Postgres, so there is nothing else to isolate.
+#
+# THIS FILE IS FOR PREVIEWS ONLY - it always seeds demo data and builds from
+# source. Do not use it for a production deployment (use the root
+# docker-compose.yml, which pulls the released image and never seeds).
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: clerq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clerq}
+      POSTGRES_DB: clerq
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clerq -d clerq"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # One-shot: migrate the fresh database and seed the Acme dataset, then exit.
+  # Reuses the Dockerfile's `builder` stage, which has the full workspace, tsx,
+  # and drizzle-kit - so this runs the exact `pnpm db:migrate && pnpm seed:acme`
+  # that CI runs, with no bundling and no image changes. `app` waits for it to
+  # finish successfully before starting.
+  seed:
+    build:
+      context: .
+      target: builder
+    command: sh -c "pnpm db:migrate && pnpm seed:acme"
+    environment:
+      DATABASE_URL: postgresql://clerq:${POSTGRES_PASSWORD:-clerq}@postgres:5432/clerq
+      # Only needed so the seed's Better Auth sign-up can hash the demo password.
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-preview-secret-not-used-anywhere-real}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    environment:
+      DATABASE_URL: postgresql://clerq:${POSTGRES_PASSWORD:-clerq}@postgres:5432/clerq
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-preview-secret-not-used-anywhere-real}
+      # Coolify generates a domain for this service (the pr<n>- URL) and exposes
+      # its FQDN as $SERVICE_FQDN_APP. Better Auth must be told the exact public
+      # URL or its callbacks/cookies break - this is the one gotcha of previews.
+      # If your Coolify version names these differently, set BETTER_AUTH_URL as a
+      # preview env var in the UI instead (see preview/README.md).
+      SERVICE_FQDN_APP_3000: ""
+      BETTER_AUTH_URL: https://$SERVICE_FQDN_APP
+      # The seed service already migrated, so skip the entrypoint's boot migration.
+      CLERQ_SKIP_MIGRATIONS: "1"
+      NODE_ENV: production
+      # Deliberately NO GROQ_API_KEY / Google OAuth in previews.
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    expose:
+      - "3000"
+
+volumes:
+  postgres-data:
