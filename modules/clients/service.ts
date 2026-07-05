@@ -1,8 +1,9 @@
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Db } from "@/db";
 import { schema } from "@/db";
+import { likeContains } from "@/lib/search";
 
 // Every function takes the caller's businessId and applies it to every
 // query. Nothing in this module trusts a client id alone - a client id
@@ -78,18 +79,21 @@ export type MemberRateInput = z.infer<typeof memberRateInputSchema>;
 export async function listClients(
   db: Db,
   businessId: string,
-  opts: { includeArchived?: boolean } = {},
+  opts: { includeArchived?: boolean; search?: string } = {},
 ) {
-  const scope = opts.includeArchived
-    ? eq(schema.client.businessId, businessId)
-    : and(
-        eq(schema.client.businessId, businessId),
-        isNull(schema.client.archivedAt),
-      );
+  const filters = [eq(schema.client.businessId, businessId)];
+  if (!opts.includeArchived) {
+    filters.push(isNull(schema.client.archivedAt));
+  }
+  // Case-insensitive contains match on the client name.
+  const term = opts.search?.trim();
+  if (term) {
+    filters.push(ilike(schema.client.name, likeContains(term)));
+  }
   return db
     .select()
     .from(schema.client)
-    .where(scope)
+    .where(and(...filters))
     .orderBy(desc(schema.client.createdAt));
 }
 

@@ -196,3 +196,54 @@ describe("clients service - lifecycle", () => {
     expect(note?.userId).toBe(userA);
   });
 });
+
+describe("clients service - search", () => {
+  it("filters by name case-insensitively and stays business-scoped", async () => {
+    await createClient(db, businessA.id, userA, {
+      name: "Northwind Trading",
+      contacts: [],
+    });
+    await createClient(db, businessA.id, userA, {
+      name: "Southgate Media",
+      contacts: [],
+    });
+    // A same-named client in another business must never leak into A's
+    // search results.
+    await createClient(db, businessB.id, userB, {
+      name: "Northwind Trading",
+      contacts: [],
+    });
+
+    const hits = await listClients(db, businessA.id, { search: "northwind" });
+    expect(hits.map((c) => c.name)).toEqual(["Northwind Trading"]);
+    expect(hits.every((c) => c.businessId === businessA.id)).toBe(true);
+
+    // A substring in the middle of the name still matches.
+    const partial = await listClients(db, businessA.id, { search: "gate" });
+    expect(partial.map((c) => c.name)).toContain("Southgate Media");
+
+    // No match returns an empty list, not everything.
+    expect(await listClients(db, businessA.id, { search: "zzzzz" })).toEqual(
+      [],
+    );
+  });
+
+  it("respects the archived scope while searching", async () => {
+    const created = await createClient(db, businessA.id, userA, {
+      name: "Archivable Anchors",
+      contacts: [],
+    });
+    await archiveClient(db, businessA.id, userA, created.id);
+
+    // Archived clients are excluded from the default search...
+    expect(
+      await listClients(db, businessA.id, { search: "Archivable" }),
+    ).toEqual([]);
+    // ...but included when archived are requested.
+    const withArchived = await listClients(db, businessA.id, {
+      search: "Archivable",
+      includeArchived: true,
+    });
+    expect(withArchived.map((c) => c.name)).toContain("Archivable Anchors");
+  });
+});

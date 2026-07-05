@@ -2,6 +2,7 @@ import { ReceiptText } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { SearchBar } from "@/components/search-bar";
 import { InvoiceStatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatMoney } from "@/lib/format";
@@ -13,8 +14,16 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function InvoicesPage() {
-  const invoices = await caller.invoices.list();
+export default async function InvoicesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
+  const search = q?.trim() || undefined;
+  const invoices = await caller.invoices.list({ search });
+
+  const isEmptyBusiness = invoices.length === 0 && !search;
 
   return (
     <div className="flex flex-col gap-6">
@@ -25,7 +34,7 @@ export default async function InvoicesPage() {
         </Button>
       </div>
 
-      {invoices.length === 0 ? (
+      {isEmptyBusiness ? (
         <div className="flex flex-col items-center gap-1.5 rounded-lg border bg-card px-8 py-12 text-center shadow-sm">
           <span className="mb-2.5 flex size-12 items-center justify-center rounded-full bg-[var(--primary-subtle)] text-[var(--primary-subtle-fg)]">
             <ReceiptText className="size-[26px]" aria-hidden />
@@ -41,35 +50,48 @@ export default async function InvoicesPage() {
           </div>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-          {invoices.map((invoice) => (
-            <Link
-              key={invoice.id}
-              href={`/invoices/${invoice.id}`}
-              className="flex items-center gap-4 border-b px-4 py-[13px] transition-colors last:border-b-0 hover:bg-muted"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-medium tabular">
-                    {invoice.number ?? "Draft"}
+        <>
+          <SearchBar
+            placeholder="Search by invoice number or client"
+            className="max-w-sm"
+          />
+
+          {invoices.length === 0 ? (
+            <div className="rounded-lg border bg-card px-8 py-12 text-center text-sm text-muted-foreground shadow-sm">
+              No invoices match &ldquo;{search}&rdquo;
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+              {invoices.map((invoice) => (
+                <Link
+                  key={invoice.id}
+                  href={`/invoices/${invoice.id}`}
+                  className="flex items-center gap-4 border-b px-4 py-[13px] transition-colors last:border-b-0 hover:bg-muted"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium tabular">
+                        {invoice.number ?? "Draft"}
+                      </span>
+                      <InvoiceStatusPill status={invoice.status} />
+                    </div>
+                    <div className="truncate text-sm text-muted-foreground">
+                      {invoice.clientName}
+                    </div>
+                  </div>
+                  {invoice.dueDate ? (
+                    <span className="hidden shrink-0 text-sm text-muted-foreground sm:inline">
+                      Due {formatDate(invoice.dueDate)}
+                    </span>
+                  ) : null}
+                  <span className="shrink-0 text-sm font-medium tabular">
+                    {formatMoney(invoice.totalMinor, invoice.currency)}
                   </span>
-                  <InvoiceStatusPill status={invoice.status} />
-                </div>
-                <div className="truncate text-sm text-muted-foreground">
-                  {invoice.clientName}
-                </div>
-              </div>
-              {invoice.dueDate ? (
-                <span className="hidden shrink-0 text-sm text-muted-foreground sm:inline">
-                  Due {formatDate(invoice.dueDate)}
-                </span>
-              ) : null}
-              <span className="shrink-0 text-sm font-medium tabular">
-                {formatMoney(invoice.totalMinor, invoice.currency)}
-              </span>
-            </Link>
-          ))}
-        </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

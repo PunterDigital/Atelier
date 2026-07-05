@@ -1,8 +1,9 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Db } from "@/db";
 import { schema } from "@/db";
+import { likeContains } from "@/lib/search";
 
 // Same tenancy contract as modules/clients: every query carries the
 // caller's businessId, and a foreign id behaves like a missing record.
@@ -52,14 +53,23 @@ async function clientInBusiness(db: Db, businessId: string, clientId: string) {
 export async function listProjects(
   db: Db,
   businessId: string,
-  opts: { clientId?: string } = {},
+  opts: { clientId?: string; search?: string } = {},
 ) {
-  const scope = opts.clientId
-    ? and(
-        eq(schema.project.businessId, businessId),
-        eq(schema.project.clientId, opts.clientId),
-      )
-    : eq(schema.project.businessId, businessId);
+  const filters = [eq(schema.project.businessId, businessId)];
+  if (opts.clientId) {
+    filters.push(eq(schema.project.clientId, opts.clientId));
+  }
+  // Match on the project name or the client it belongs to.
+  const term = opts.search?.trim();
+  if (term) {
+    const pattern = likeContains(term);
+    filters.push(
+      or(
+        ilike(schema.project.name, pattern),
+        ilike(schema.client.name, pattern),
+      )!,
+    );
+  }
   return db
     .select({
       id: schema.project.id,
@@ -72,7 +82,7 @@ export async function listProjects(
     })
     .from(schema.project)
     .innerJoin(schema.client, eq(schema.project.clientId, schema.client.id))
-    .where(scope)
+    .where(and(...filters))
     .orderBy(desc(schema.project.createdAt));
 }
 

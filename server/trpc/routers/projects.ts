@@ -21,9 +21,19 @@ function found<T>(row: T | null): T {
 
 export const projectsRouter = createTRPCRouter({
   list: permissionProcedure("projects.view")
-    .input(z.object({ clientId: z.string().uuid().optional() }).optional())
+    .input(
+      z
+        .object({
+          clientId: z.string().uuid().optional(),
+          search: z.string().optional(),
+        })
+        .optional(),
+    )
     .query(({ ctx, input }) =>
-      listProjects(getDb(), ctx.businessId, { clientId: input?.clientId }),
+      listProjects(getDb(), ctx.businessId, {
+        clientId: input?.clientId,
+        search: input?.search,
+      }),
     ),
 
   get: permissionProcedure("projects.view")

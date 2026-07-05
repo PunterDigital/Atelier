@@ -4,10 +4,11 @@
 // so reads are the source of truth and stay cheap and scoped. paid is a
 // terminal state set explicitly.
 
-import { and, desc, eq, inArray, lt } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, lt, or } from "drizzle-orm";
 
 import type { Db } from "@/db";
 import { schema } from "@/db";
+import { likeContains } from "@/lib/search";
 
 // Flips sent invoices past their due date to overdue for one business.
 // Called by the read paths so a listed status is never stale.
@@ -32,8 +33,21 @@ export async function listInvoices(
   db: Db,
   businessId: string,
   now: Date = new Date(),
+  opts: { search?: string } = {},
 ) {
   await refreshOverdue(db, businessId, now);
+  const filters = [eq(schema.invoice.businessId, businessId)];
+  // Match on the invoice number or the client it's billed to.
+  const term = opts.search?.trim();
+  if (term) {
+    const pattern = likeContains(term);
+    filters.push(
+      or(
+        ilike(schema.invoice.number, pattern),
+        ilike(schema.client.name, pattern),
+      )!,
+    );
+  }
   return db
     .select({
       id: schema.invoice.id,
@@ -49,7 +63,7 @@ export async function listInvoices(
     })
     .from(schema.invoice)
     .innerJoin(schema.client, eq(schema.invoice.clientId, schema.client.id))
-    .where(eq(schema.invoice.businessId, businessId))
+    .where(and(...filters))
     .orderBy(desc(schema.invoice.createdAt));
 }
 

@@ -6,6 +6,7 @@ import {
   createTask,
   deleteTask,
   listTasks,
+  searchTasks,
   setTaskStatus,
   taskInputSchema,
   taskStatusSchema,
@@ -25,6 +26,14 @@ export const tasksRouter = createTRPCRouter({
   list: permissionProcedure("tasks.view")
     .input(z.object({ projectId: z.string().uuid() }))
     .query(({ ctx, input }) => listTasks(getDb(), ctx.businessId, input.projectId)),
+
+  // Business-wide task search, used by the projects page alongside the
+  // project search. Returns [] for an empty term.
+  search: permissionProcedure("tasks.view")
+    .input(z.object({ search: z.string() }))
+    .query(({ ctx, input }) =>
+      searchTasks(getDb(), ctx.businessId, input.search),
+    ),
 
   create: permissionProcedure("tasks.create")
     .input(z.object({ projectId: z.string().uuid(), data: taskInputSchema }))

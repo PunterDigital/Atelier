@@ -37,9 +37,13 @@ function found<T>(row: T | null): T {
 const treatmentSchema = z.enum(["standard", "zero_rated", "reverse_charge"]);
 
 export const invoicesRouter = createTRPCRouter({
-  list: permissionProcedure("invoices.view").query(({ ctx }) =>
-    listInvoices(getDb(), ctx.businessId),
-  ),
+  list: permissionProcedure("invoices.view")
+    .input(z.object({ search: z.string().optional() }).optional())
+    .query(({ ctx, input }) =>
+      listInvoices(getDb(), ctx.businessId, undefined, {
+        search: input?.search,
+      }),
+    ),
 
   get: permissionProcedure("invoices.view")
     .input(z.object({ invoiceId: z.string().uuid() }))

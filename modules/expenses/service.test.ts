@@ -167,3 +167,58 @@ describe("expenses service (integration)", () => {
     expect(await getExpense(db, business.id, created.id)).toBeNull();
   });
 });
+
+describe("expenses service - search", () => {
+  it("matches description, vendor, or category and composes with the status filter", async () => {
+    const scoped = await db
+      .insert(schema.business)
+      .values({ name: "Search Co", currency: "GBP" })
+      .returning();
+    const biz = scoped[0].id;
+
+    await createExpense(db, biz, {
+      description: "Figma team seats",
+      amountMinor: 4500,
+      currency: "GBP",
+      vendor: "Figma",
+      category: "Software",
+      incurredAt: new Date("2026-06-01T00:00:00Z"),
+    });
+    await createExpense(db, biz, {
+      description: "Client lunch",
+      amountMinor: 3200,
+      currency: "GBP",
+      vendor: "Bistro Nine",
+      category: "Meals",
+      incurredAt: new Date("2026-06-02T00:00:00Z"),
+    });
+
+    // Match on description.
+    const byDescription = await listExpenses(db, biz, { search: "figma" });
+    expect(byDescription.map((e) => e.description)).toEqual([
+      "Figma team seats",
+    ]);
+    // Match on vendor.
+    const byVendor = await listExpenses(db, biz, { search: "bistro" });
+    expect(byVendor.map((e) => e.description)).toEqual(["Client lunch"]);
+    // Match on category.
+    const byCategory = await listExpenses(db, biz, { search: "meals" });
+    expect(byCategory.map((e) => e.description)).toEqual(["Client lunch"]);
+
+    // Search composes with the status filter: the paid Figma expense drops
+    // out once we restrict to unpaid.
+    const figma = await listExpenses(db, biz, { search: "figma" });
+    await setExpenseStatus(db, biz, figma[0].id, "paid");
+    expect(
+      await listExpenses(db, biz, { search: "figma", status: "unpaid" }),
+    ).toEqual([]);
+    expect(
+      (await listExpenses(db, biz, { search: "figma", status: "paid" })).map(
+        (e) => e.description,
+      ),
+    ).toEqual(["Figma team seats"]);
+
+    // No match returns an empty list.
+    expect(await listExpenses(db, biz, { search: "zzzzz" })).toEqual([]);
+  });
+});

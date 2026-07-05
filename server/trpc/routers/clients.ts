@@ -61,10 +61,18 @@ function found<T>(row: T | null): T {
 
 export const clientsRouter = createTRPCRouter({
   list: permissionProcedure("clients.view")
-    .input(z.object({ includeArchived: z.boolean().default(false) }).optional())
+    .input(
+      z
+        .object({
+          includeArchived: z.boolean().default(false),
+          search: z.string().optional(),
+        })
+        .optional(),
+    )
     .query(({ ctx, input }) =>
       listClients(getDb(), ctx.businessId, {
         includeArchived: input?.includeArchived ?? false,
+        search: input?.search,
       }),
     ),
 
