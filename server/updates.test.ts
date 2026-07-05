@@ -55,10 +55,22 @@ describe("isCloudInstance", () => {
     });
   });
 
-  it("is true only for the app.useclerq.com host", async () => {
+  it("is true for the managed cloud hosts (.net and .com)", async () => {
+    await withEnv({ BETTER_AUTH_URL: "https://app.useclerq.net" }, async () => {
+      expect(isCloudInstance()).toBe(true);
+    });
     await withEnv({ BETTER_AUTH_URL: "https://app.useclerq.com" }, async () => {
       expect(isCloudInstance()).toBe(true);
     });
+  });
+
+  it("is false for a self-hosted host that merely resembles the cloud domain", async () => {
+    await withEnv(
+      { BETTER_AUTH_URL: "https://clerq.example.com" },
+      async () => {
+        expect(isCloudInstance()).toBe(false);
+      },
+    );
   });
 
   it("is false when unset or malformed", async () => {
@@ -168,7 +180,7 @@ describe("update settings + status (against a real DB)", () => {
 
   it("skips the check for the cloud instance even with a version baked in", async () => {
     await withEnv(
-      { CLERQ_VERSION: "1.0.0", BETTER_AUTH_URL: "https://app.useclerq.com" },
+      { CLERQ_VERSION: "1.0.0", BETTER_AUTH_URL: "https://app.useclerq.net" },
       async () => {
         expect(await getUpdateStatus({ fetch: fetchLatest })).toEqual({
           checked: false,
