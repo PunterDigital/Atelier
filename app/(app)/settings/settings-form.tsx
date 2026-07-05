@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -178,20 +177,6 @@ export function SettingsForm({
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Import data</CardTitle>
-          <CardDescription>
-            Bring clients over from another tool&apos;s CSV export
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="outline" asChild>
-            <Link href="/settings/import">Import clients from CSV</Link>
-          </Button>
         </CardContent>
       </Card>
 
