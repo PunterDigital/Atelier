@@ -10,9 +10,9 @@ export const dynamic = "force-dynamic";
 
 export default function ImportPage() {
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    <>
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl">Import clients</h1>
+        <h2 className="text-xl">Import clients</h2>
         <p className="text-muted-foreground">
           Bring clients over from any tool that exports CSV - AndCo, Invoice
           Ninja, FreshBooks, a spreadsheet. Map the columns, check the
@@ -21,6 +21,6 @@ export default function ImportPage() {
         </p>
       </div>
       <ImportWizard />
-    </div>
+    </>
   );
 }
