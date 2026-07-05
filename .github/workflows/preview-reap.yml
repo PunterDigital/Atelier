@@ -1,0 +1,28 @@
+# Daily backstop: tear down any preview whose PR is no longer open.
+#
+# The teardown workflow handles the normal close event; this catches the ones
+# it misses (closed while Actions was down, dropped webhook, etc.) so previews
+# never leak. Also runnable on demand from the Actions tab.
+name: Preview reap
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  reap:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reap previews for closed PRs
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.PREVIEW_POSTGRES_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: bash preview/scripts/preview-reap.sh

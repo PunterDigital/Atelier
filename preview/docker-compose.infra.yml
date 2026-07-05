@@ -1,0 +1,89 @@
+# One-time preview infrastructure for the preview host. Everything here is
+# long-lived and shared by every PR preview; per-PR app containers live in
+# docker-compose.app.yml and attach to the network this file creates.
+#
+# Bring it up once on the host (see preview/README.md for the full walkthrough):
+#
+#   docker network create clerq-preview
+#   cd preview
+#   cp .env.example .env      # set POSTGRES_PASSWORD and ACME_EMAIL
+#   docker compose -f docker-compose.infra.yml --env-file .env up -d
+#
+# It provides two services:
+#   traefik   - reverse proxy that terminates TLS and routes each PR's
+#               subdomain to its app container, discovered via Docker labels.
+#   postgres  - a single shared Postgres. Each PR gets its OWN database on this
+#               one server (clerq_pr_<n>), which is far cheaper than a whole
+#               Postgres per PR and is what makes "tens of instances" practical.
+
+services:
+  traefik:
+    image: traefik:v3.3
+    command:
+      # Discover per-PR app containers through Docker labels on the shared
+      # network. exposedbydefault=false means only containers that opt in with
+      # `traefik.enable=true` are routed.
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=clerq-preview
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      # HTTP in, redirected to HTTPS; HTTPS terminated here.
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      # Automatic TLS via Let's Encrypt. Default is the HTTP-01 challenge: it
+      # needs no DNS-provider credentials, only that each pr-<n> subdomain
+      # resolves to this host (the wildcard A record does that) and that port
+      # 80 is reachable. For high PR churn, switch to a DNS-01 wildcard cert to
+      # avoid Let's Encrypt's per-name rate limit - see preview/README.md.
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL:?set ACME_EMAIL in preview/.env}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.httpchallenge=true
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Read-only socket so Traefik can watch container labels. Read-only is
+      # deliberate: Traefik never needs to control Docker, only observe it.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - traefik-letsencrypt:/letsencrypt
+    networks:
+      - clerq-preview
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    # Stable name so the deploy/teardown scripts can `docker exec` it and app
+    # containers can reach it by hostname on the shared network.
+    container_name: clerq-preview-postgres
+    environment:
+      POSTGRES_USER: clerq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in preview/.env}
+      # The maintenance database. Per-PR databases are created alongside it.
+      POSTGRES_DB: postgres
+    volumes:
+      - preview-postgres-data:/var/lib/postgresql/data
+    # Intentionally NOT published to the host: only reachable inside the
+    # clerq-preview network (app containers and, briefly, the CI runner).
+    networks:
+      - clerq-preview
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clerq"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+networks:
+  # Created once with `docker network create clerq-preview`, then shared by the
+  # infra services, every per-PR app container, and the runner during seeding.
+  clerq-preview:
+    external: true
+    name: clerq-preview
+
+volumes:
+  traefik-letsencrypt:
+  preview-postgres-data:

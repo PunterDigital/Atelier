@@ -1,0 +1,48 @@
+# Per-PR preview app: exactly one stateless Clerq container per open pull
+# request. Deployed by preview/scripts/preview-deploy.sh with a project name of
+# clerq-pr-<n>, so many PRs coexist on the same host without colliding.
+#
+# The shared Postgres and Traefik come from docker-compose.infra.yml. Because
+# all of Clerq's state lives in Postgres (receipts and logos are stored inline
+# in the database, there is no blob store), this container needs no volumes -
+# tearing down a preview is just stopping it and dropping its database.
+#
+# All values are supplied through the environment by the deploy script:
+#   PR_NUMBER, PREVIEW_HOST, IMAGE, DATABASE_URL, BETTER_AUTH_SECRET,
+#   PREVIEW_NETWORK.
+
+services:
+  app:
+    image: ${IMAGE:?set IMAGE to the built preview tag}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to this PR's database}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-preview-secret-not-used-anywhere-real}
+      # Must equal the public URL or Better Auth's callbacks and session
+      # cookies break. This is the one Clerq-specific gotcha of previews.
+      BETTER_AUTH_URL: https://${PREVIEW_HOST:?set PREVIEW_HOST}
+      # The deploy script migrates the database from the runner before this
+      # container starts, so the entrypoint's boot migration is skipped to
+      # avoid two migrators racing on the same database.
+      CLERQ_SKIP_MIGRATIONS: "1"
+      NODE_ENV: production
+      # Deliberately NO GROQ_API_KEY and NO Google OAuth here: a throwaway,
+      # publicly reachable preview must never carry live third-party keys.
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pr-${PR_NUMBER}.rule=Host(`${PREVIEW_HOST}`)"
+      - "traefik.http.routers.pr-${PR_NUMBER}.entrypoints=websecure"
+      - "traefik.http.routers.pr-${PR_NUMBER}.tls=true"
+      - "traefik.http.routers.pr-${PR_NUMBER}.tls.certresolver=le"
+      - "traefik.http.services.pr-${PR_NUMBER}.loadbalancer.server.port=3000"
+      # To gate previews behind HTTP basic auth (recommended if the host is
+      # internet-facing), uncomment the next line. The middleware is defined in
+      # traefik/dynamic.yml.
+      # - "traefik.http.routers.pr-${PR_NUMBER}.middlewares=preview-auth@file"
+    networks:
+      - clerq-preview
+    restart: unless-stopped
+
+networks:
+  clerq-preview:
+    external: true
+    name: ${PREVIEW_NETWORK:-clerq-preview}
