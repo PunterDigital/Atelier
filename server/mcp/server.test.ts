@@ -66,6 +66,16 @@ function buildFakeCaller(recorded: Recorded[]) {
         lines: [],
       })),
     },
+    recurring: {
+      create: rec("recurring.create", (input: unknown) => ({
+        id: "rs1",
+        ...(input as object),
+      })),
+      setStatus: rec("recurring.setStatus", (input: unknown) => ({
+        id: "rs1",
+        ...(input as object),
+      })),
+    },
     expenses: {
       list: rec("expenses.list", [
         { id: "e1", description: "Hosting", status: "unpaid" },
@@ -157,6 +167,13 @@ describe("Clerq MCP server", () => {
         "issue_invoice",
         "mark_invoice_paid",
         "get_invoice_pdf_link",
+        "list_recurring_invoices",
+        "get_recurring_invoice",
+        "create_recurring_invoice",
+        "update_recurring_invoice",
+        "set_recurring_invoice_status",
+        "generate_recurring_invoice_now",
+        "delete_recurring_invoice",
         "list_expenses",
         "get_expense",
         "create_expense",
@@ -210,6 +227,35 @@ describe("Clerq MCP server", () => {
     expect((input.startedAt as Date).toISOString()).toBe(
       "2026-06-12T09:00:00.000Z",
     );
+  });
+
+  it("create_recurring_invoice coerces the start date and forwards the schedule", async () => {
+    const recorded: Recorded[] = [];
+    const client = await connectClient(buildFakeCaller(recorded));
+    await client.callTool({
+      name: "create_recurring_invoice",
+      arguments: {
+        clientId: "99999999-9999-4999-8999-999999999999",
+        name: "Acme retainer",
+        currency: "EUR",
+        taxTreatment: "zero_rated",
+        frequency: "monthly",
+        interval: 1,
+        startDate: "2026-07-01T00:00:00Z",
+        netTermsDays: 14,
+        autoIssue: false,
+        lines: [{ description: "Retainer", amountMajor: "1500" }],
+      },
+    });
+    const call = recorded.find((r) => r.method === "recurring.create");
+    expect(call).toBeDefined();
+    const input = call!.input as { startDate: unknown; endDate: unknown };
+    expect(input.startDate).toBeInstanceOf(Date);
+    expect((input.startDate as Date).toISOString()).toBe(
+      "2026-07-01T00:00:00.000Z",
+    );
+    // Absent end date is normalised to null, not left undefined.
+    expect(input.endDate).toBeNull();
   });
 
   it("replaces contacts without clobbering other client fields", async () => {

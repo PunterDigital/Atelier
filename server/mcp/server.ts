@@ -76,6 +76,98 @@ const taskStatus = z
   .enum(["todo", "in_progress", "in_review", "done"])
   .describe("Task status.");
 
+const scheduleLineField = z.object({
+  description: z
+    .string()
+    .min(1)
+    .max(500)
+    .describe('Line description, e.g. "Monthly retainer".'),
+  amountMajor: z
+    .string()
+    .regex(/^\d+(\.\d+)?$/)
+    .describe(
+      'Fixed amount in MAJOR units as a decimal string, e.g. "1500" or "1500.00" (NOT minor units).',
+    ),
+});
+
+// The model-facing surface for a recurring invoice (retainer). Mirrors the
+// recurring router's body schema; the caller re-validates, so this is guidance,
+// not the source of truth. Shared by create and update (which replaces the
+// whole schedule wholesale).
+const scheduleFields = {
+  clientId: z.string().uuid(),
+  projectId: z
+    .string()
+    .uuid()
+    .nullable()
+    .optional()
+    .describe("Optional project to attribute the generated invoices to."),
+  name: z
+    .string()
+    .min(1)
+    .max(120)
+    .describe(
+      'Internal label for the schedule, e.g. "Acme monthly retainer". Not printed on the invoices.',
+    ),
+  currency: currencyField,
+  taxTreatment: z
+    .enum(["standard", "zero_rated", "reverse_charge"])
+    .describe(
+      "Tax treatment applied to every generated invoice. Standard requires a standard VAT rate set in settings; reverse_charge needs both business and client VAT numbers to auto-issue.",
+    ),
+  frequency: z
+    .enum(["weekly", "monthly", "quarterly", "yearly"])
+    .describe("Cadence unit."),
+  interval: z
+    .number()
+    .int()
+    .min(1)
+    .max(52)
+    .describe(
+      "Repeat every N frequency units (e.g. frequency=weekly, interval=2 is fortnightly).",
+    ),
+  startDate: z
+    .string()
+    .datetime()
+    .describe(`Date of the first invoice; the series steps out from here. ${ISO}`),
+  endDate: z
+    .string()
+    .datetime()
+    .nullable()
+    .optional()
+    .describe(`Optional stop date - nothing generates past it. ${ISO}`),
+  occurrenceLimit: z
+    .number()
+    .int()
+    .min(1)
+    .max(1000)
+    .nullable()
+    .optional()
+    .describe("Optional cap on how many invoices this schedule ever generates."),
+  netTermsDays: z
+    .number()
+    .int()
+    .min(0)
+    .max(365)
+    .describe("Days after each invoice's date that it falls due. 0 means due on issue."),
+  autoIssue: z
+    .boolean()
+    .describe(
+      "When true, each generated invoice is issued (numbered and marked sent) automatically; when false it is left as a draft to review.",
+    ),
+  notes: z
+    .string()
+    .max(2000)
+    .nullable()
+    .optional()
+    .describe("Optional notes printed at the foot of every generated invoice."),
+  lines: z
+    .array(scheduleLineField)
+    .min(1)
+    .max(50)
+    .describe("Fixed-amount lines stamped onto every generated invoice."),
+};
+
 export type ClerqMcpOptions = {
   caller: ClerqCaller;
   /** Active business of the authenticated user; used to sign PDF links. */
@@ -840,6 +932,131 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
     ({ invoiceId }) =>
       runTool(async () =>
         toolJson(await caller.invoices.delete({ invoiceId })),
+      ),
+  );
+
+  // --- Recurring invoices -------------------------------------------------
+  server.registerTool(
+    "list_recurring_invoices",
+    {
+      title: "List recurring invoices",
+      description:
+        "List the recurring invoices (retainers) for the active business, each with its client, cadence, next run date, status and template total.",
+    },
+    () => runTool(async () => toolJson(await caller.recurring.list())),
+  );
+
+  server.registerTool(
+    "get_recurring_invoice",
+    {
+      title: "Get recurring invoice",
+      description:
+        "Fetch a single recurring invoice by id, with its template lines, cadence, tax setup and stop conditions.",
+      inputSchema: { scheduleId: z.string().uuid() },
+    },
+    ({ scheduleId }) =>
+      runTool(async () => toolJson(await caller.recurring.get({ scheduleId }))),
+  );
+
+  server.registerTool(
+    "list_recurring_invoice_history",
+    {
+      title: "List a recurring invoice's generated invoices",
+      description:
+        "List the invoices a recurring invoice has already generated, newest first.",
+      inputSchema: { scheduleId: z.string().uuid() },
+    },
+    ({ scheduleId }) =>
+      runTool(async () =>
+        toolJson(await caller.recurring.generated({ scheduleId })),
+      ),
+  );
+
+  server.registerTool(
+    "create_recurring_invoice",
+    {
+      title: "Create recurring invoice",
+      description:
+        "Create a recurring invoice (retainer): a template plus a cadence. Clerq drafts a new invoice each time it comes due, dated at the occurrence and due after the net terms. Standard tax treatment requires a standard VAT rate set in settings.",
+      inputSchema: scheduleFields,
+    },
+    ({ startDate, endDate, ...rest }) =>
+      runTool(async () =>
+        toolJson(
+          await caller.recurring.create({
+            ...rest,
+            startDate: new Date(startDate),
+            endDate: endDate ? new Date(endDate) : null,
+          }),
+        ),
+      ),
+  );
+
+  server.registerTool(
+    "update_recurring_invoice",
+    {
+      title: "Update recurring invoice",
+      description:
+        "Replace a recurring invoice's template and cadence wholesale: send the COMPLETE set of fields and lines, not just the ones you want to change (omitted lines are dropped). Fetch it first with get_recurring_invoice if unsure. Cadence changes apply from the schedule's current place in the series.",
+      inputSchema: { scheduleId: z.string().uuid(), ...scheduleFields },
+    },
+    ({ scheduleId, startDate, endDate, ...rest }) =>
+      runTool(async () =>
+        toolJson(
+          await caller.recurring.update({
+            scheduleId,
+            data: {
+              ...rest,
+              startDate: new Date(startDate),
+              endDate: endDate ? new Date(endDate) : null,
+            },
+          }),
+        ),
+      ),
+  );
+
+  server.registerTool(
+    "set_recurring_invoice_status",
+    {
+      title: "Pause, resume or end a recurring invoice",
+      description:
+        'Change a recurring invoice\'s status. "paused" stops generation; resuming with "active" skips past any occurrences missed while paused (never back-bills). "ended" is terminal - it stops the schedule for good. Invoices already generated are always kept.',
+      inputSchema: {
+        scheduleId: z.string().uuid(),
+        status: z.enum(["active", "paused", "ended"]),
+      },
+    },
+    ({ scheduleId, status }) =>
+      runTool(async () =>
+        toolJson(await caller.recurring.setStatus({ scheduleId, status })),
+      ),
+  );
+
+  server.registerTool(
+    "generate_recurring_invoice_now",
+    {
+      title: "Generate the next recurring invoice now",
+      description:
+        "Generate the next scheduled invoice immediately instead of waiting for the sweep; the schedule then advances as usual. Returns how many invoices were generated and whether auto-issue succeeded.",
+      inputSchema: { scheduleId: z.string().uuid() },
+    },
+    ({ scheduleId }) =>
+      runTool(async () =>
+        toolJson(await caller.recurring.generateNow({ scheduleId })),
+      ),
+  );
+
+  server.registerTool(
+    "delete_recurring_invoice",
+    {
+      title: "Delete recurring invoice",
+      description:
+        'Delete a recurring invoice and its template. Invoices it already generated are kept (they detach from the schedule). To stop billing but keep the record, set its status to "ended" instead.',
+      inputSchema: { scheduleId: z.string().uuid() },
+    },
+    ({ scheduleId }) =>
+      runTool(async () =>
+        toolJson(await caller.recurring.delete({ scheduleId })),
       ),
   );
 

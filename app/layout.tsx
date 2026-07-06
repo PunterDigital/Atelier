@@ -16,10 +16,39 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+// Absolute base for resolving OG/Twitter image URLs. The instance URL when
+// set (BETTER_AUTH_URL is already the canonical origin for auth callbacks),
+// falling back to the hosted app so shares still unfurl on a default build.
+const siteUrl = process.env.BETTER_AUTH_URL ?? "https://app.useclerq.net";
+
+const description =
+  "Open-source, self-hostable business operating system for developer-freelancers: clients, projects, time tracking and invoicing in one connected flow.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Clerq",
-  description:
-    "Open-source, self-hostable business operating system for developer-freelancers: clients, projects, time tracking and invoicing in one connected flow.",
+  description,
+  openGraph: {
+    type: "website",
+    siteName: "Clerq",
+    title: "Clerq",
+    description,
+    url: "/",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        alt: "Clerq — the open-source business OS for dev studios",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Clerq",
+    description,
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({
