@@ -8,6 +8,7 @@ import { exportRouter } from "./export";
 import { healthRouter } from "./health";
 import { invoicesRouter } from "./invoices";
 import { projectsRouter } from "./projects";
+import { recurringRouter } from "./recurring";
 import { reportsRouter } from "./reports";
 import { systemRouter } from "./system";
 import { tasksRouter } from "./tasks";
@@ -22,6 +23,7 @@ export const appRouter = createTRPCRouter({
   tasks: tasksRouter,
   time: timeRouter,
   invoices: invoicesRouter,
+  recurring: recurringRouter,
   expenses: expensesRouter,
   team: teamRouter,
   dashboard: dashboardRouter,

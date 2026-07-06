@@ -121,6 +121,19 @@ const PROBES: Record<Permission, (c: Caller) => Promise<unknown>> = {
   "invoices.delete": (c) => c.invoices.delete({ invoiceId: randomUUID() }),
   "invoices.configure": (c) =>
     c.invoices.configureNextNumber({ year: 2026, nextNumber: 1 }),
+  "invoices.manageRecurring": (c) =>
+    c.recurring.create({
+      clientId: randomUUID(),
+      name: "Probe retainer",
+      currency: "EUR",
+      taxTreatment: "zero_rated",
+      frequency: "monthly",
+      interval: 1,
+      startDate: new Date(),
+      netTermsDays: 14,
+      autoIssue: false,
+      lines: [{ description: "Probe", amountMajor: "100" }],
+    }),
   "expenses.view": (c) => c.expenses.list({}),
   "expenses.create": (c) =>
     c.expenses.create({

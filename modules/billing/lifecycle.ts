@@ -59,6 +59,9 @@ export async function listInvoices(
       dueDate: schema.invoice.dueDate,
       clientId: schema.invoice.clientId,
       clientName: schema.client.name,
+      // Non-null when this invoice came from a recurring schedule (retainer);
+      // the list tags it so a generated invoice is recognisable at a glance.
+      scheduleId: schema.invoice.scheduleId,
       createdAt: schema.invoice.createdAt,
     })
     .from(schema.invoice)

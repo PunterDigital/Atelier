@@ -178,6 +178,33 @@ async function seedFullBusiness(
     })
     .returning();
 
+  const [invoiceSchedule] = await db
+    .insert(schema.invoiceSchedule)
+    .values({
+      businessId: biz.id,
+      clientId: client.id,
+      name: `${label} Retainer`,
+      currency,
+      taxTreatment: "zero_rated",
+      frequency: "monthly",
+      interval: 1,
+      anchorDay: 1,
+      startDate: new Date(),
+      nextRunAt: new Date(),
+    })
+    .returning();
+
+  const [invoiceScheduleLine] = await db
+    .insert(schema.invoiceScheduleLine)
+    .values({
+      businessId: biz.id,
+      scheduleId: invoiceSchedule.id,
+      position: 1,
+      description: `${label} retainer line`,
+      amountMinor: 120_000,
+    })
+    .returning();
+
   const [expense] = await db
     .insert(schema.expense)
     .values({
@@ -221,6 +248,8 @@ async function seedFullBusiness(
       timeEntry.id,
       invoice.id,
       invoiceLine.id,
+      invoiceSchedule.id,
+      invoiceScheduleLine.id,
       expense.id,
       activity.id,
     ],

@@ -40,6 +40,7 @@ export const PERMISSIONS = [
   "invoices.void",
   "invoices.delete",
   "invoices.configure",
+  "invoices.manageRecurring",
   // Expenses
   "expenses.view",
   "expenses.create",
@@ -221,6 +222,12 @@ export const PERMISSION_META: Record<
     group: "Invoices",
     label: "Configure numbering",
     description: "Change the next invoice number for a year.",
+  },
+  "invoices.manageRecurring": {
+    group: "Invoices",
+    label: "Manage recurring invoices",
+    description:
+      "Create, edit, pause and end recurring invoices (retainers) that generate invoices on a schedule.",
   },
   "expenses.view": {
     group: "Expenses",

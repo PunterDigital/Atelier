@@ -160,6 +160,32 @@ export const EXPORT_ENTITIES: ExportEntity[] = [
         .orderBy(asc(schema.invoiceSequence.year)),
   },
   {
+    // Recurring-invoice schedules (retainers). The invoices they produced are
+    // already in `invoices` (with schedule_id); these are the templates.
+    key: "invoiceSchedules",
+    table: schema.invoiceSchedule,
+    select: (db, businessId) =>
+      db
+        .select()
+        .from(schema.invoiceSchedule)
+        .where(eq(schema.invoiceSchedule.businessId, businessId))
+        .orderBy(asc(schema.invoiceSchedule.createdAt)),
+  },
+  {
+    // Ordered so each schedule's template lines read back in position order.
+    key: "invoiceScheduleLines",
+    table: schema.invoiceScheduleLine,
+    select: (db, businessId) =>
+      db
+        .select()
+        .from(schema.invoiceScheduleLine)
+        .where(eq(schema.invoiceScheduleLine.businessId, businessId))
+        .orderBy(
+          asc(schema.invoiceScheduleLine.scheduleId),
+          asc(schema.invoiceScheduleLine.position),
+        ),
+  },
+  {
     // Expenses, including the inline receipt data URL - a full export means the
     // receipts come too, not just the metadata.
     key: "expenses",

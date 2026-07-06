@@ -94,6 +94,35 @@ export function InvoiceStatusPill({ status }: { status: InvoiceStatus }) {
   );
 }
 
+// Recurring-invoice schedules: active reuses the in-motion (sent) token,
+// paused the neutral draft token, ended the settled/closed token.
+const scheduleStyles = {
+  active: "bg-[var(--status-sent-bg)] text-[var(--status-sent-fg)]",
+  paused: "bg-[var(--status-draft-bg)] text-[var(--status-draft-fg)]",
+  ended: "bg-[var(--status-paid-bg)] text-[var(--status-paid-fg)]",
+} as const;
+
+const scheduleLabels = {
+  active: "Active",
+  paused: "Paused",
+  ended: "Ended",
+} as const;
+
+export type ScheduleStatus = keyof typeof scheduleStyles;
+
+export function ScheduleStatusPill({ status }: { status: ScheduleStatus }) {
+  return (
+    <span
+      className={cn(
+        "rounded-full px-2 py-px text-xs font-semibold",
+        scheduleStyles[status],
+      )}
+    >
+      {scheduleLabels[status]}
+    </span>
+  );
+}
+
 // Expenses: paid reuses the settled (green) token; unpaid uses the warning
 // tint so an outstanding cost reads as actionable, not merely neutral.
 const expenseStyles = {

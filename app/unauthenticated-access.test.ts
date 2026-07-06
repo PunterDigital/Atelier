@@ -134,6 +134,47 @@ describe("file-download routes refuse anonymous requests", () => {
   });
 });
 
+describe("the cron trigger refuses anonymous callers", () => {
+  it("is disabled (404) until a token is configured, and never runs the sweep", async () => {
+    const original = process.env.CLERQ_CRON_TOKEN;
+    try {
+      delete process.env.CLERQ_CRON_TOKEN;
+      const { POST } = await import("@/app/api/cron/run/route");
+      const res = await POST(
+        new Request("http://localhost/api/cron/run", { method: "POST" }),
+      );
+      expect(res.status).toBe(404);
+    } finally {
+      if (original === undefined) delete process.env.CLERQ_CRON_TOKEN;
+      else process.env.CLERQ_CRON_TOKEN = original;
+    }
+  });
+
+  it("rejects a missing or wrong bearer token with 401 once configured", async () => {
+    const original = process.env.CLERQ_CRON_TOKEN;
+    try {
+      process.env.CLERQ_CRON_TOKEN = "secret-cron-token";
+      const { POST } = await import("@/app/api/cron/run/route");
+
+      const noHeader = await POST(
+        new Request("http://localhost/api/cron/run", { method: "POST" }),
+      );
+      expect(noHeader.status).toBe(401);
+
+      const wrongToken = await POST(
+        new Request("http://localhost/api/cron/run", {
+          method: "POST",
+          headers: { authorization: "Bearer not-the-token" },
+        }),
+      );
+      expect(wrongToken.status).toBe(401);
+    } finally {
+      if (original === undefined) delete process.env.CLERQ_CRON_TOKEN;
+      else process.env.CLERQ_CRON_TOKEN = original;
+    }
+  });
+});
+
 describe("gated pages redirect anonymous visitors to sign-in", () => {
   it("bounces the signed-in app shell (clients, invoices, expenses+receipts, settings...)", async () => {
     const { default: AppLayout } = await import("@/app/(app)/layout");
@@ -202,6 +243,11 @@ const PROTECTED_ROUTES = [
   "api/invoices/[invoiceId]/pdf/route.ts",
   "api/export/route.ts",
   "api/mcp/route.ts",
+  // The recurring-invoice cron trigger: token-guarded, not session-gated. It
+  // stays disabled (404) until CLERQ_CRON_TOKEN is set, and refuses a wrong or
+  // missing bearer token with 401 - never runs the sweep for an anonymous
+  // caller.
+  "api/cron/run/route.ts",
 ];
 // The tRPC entrypoint is public, but every procedure behind it gates on a
 // session (see server/trpc/routers/auth-boundary.test.ts).

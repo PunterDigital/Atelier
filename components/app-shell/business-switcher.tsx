@@ -45,7 +45,7 @@ export function BusinessSwitcher({
   const switchBusiness = useMutation(
     trpc.business.switch.mutationOptions({
       onSuccess: () => {
-        window.location.href = "/";
+        window.location.assign("/");
       },
     }),
   );
@@ -146,7 +146,7 @@ function CreateBusinessDialog({
         setName("");
         setCurrency("");
         onOpenChange(false);
-        window.location.href = "/";
+        window.location.assign("/");
       },
     }),
   );
