@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTRPC } from "@/server/trpc/client";
 
@@ -270,6 +271,134 @@ function VoidControl({ invoiceId }: { invoiceId: string }) {
             {voidInvoice.isPending ? "Voiding..." : "Confirm void"}
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// In-place edit of a draft line's description and amount. Opens a small dialog
+// seeded with the line's current values (so a stray click never loses them) and
+// saves through invoices.updateLine. The hours x rate breakdown hint appears
+// only for generated lines, where changing the amount replaces that breakdown.
+export function EditLineButton({
+  lineId,
+  currency,
+  description: initialDescription,
+  amount: initialAmount,
+  hasBreakdown,
+}: {
+  lineId: string;
+  currency: string;
+  description: string;
+  amount: string;
+  hasBreakdown: boolean;
+}) {
+  const router = useRouter();
+  const trpc = useTRPC();
+  const [open, setOpen] = useState(false);
+  const [description, setDescription] = useState(initialDescription);
+  const [amount, setAmount] = useState(initialAmount);
+  const save = useMutation(
+    trpc.invoices.updateLine.mutationOptions({
+      onSuccess: () => {
+        setOpen(false);
+        router.refresh();
+      },
+    }),
+  );
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (save.isPending) return;
+        setOpen(next);
+        if (next) {
+          // Re-seed from the line each time it opens so a cancelled edit never
+          // carries into the next one.
+          setDescription(initialDescription);
+          setAmount(initialAmount);
+          save.reset();
+        }
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button
+          size="icon"
+          variant="ghost"
+          aria-label="Edit line"
+          className="size-7 shrink-0"
+        >
+          <Pencil className="size-4" aria-hidden />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            save.mutate({
+              lineId,
+              description: description.trim(),
+              amountMajor: amount.trim(),
+            });
+          }}
+          className="flex flex-col gap-4"
+        >
+          <DialogHeader>
+            <DialogTitle>Edit line</DialogTitle>
+            <DialogDescription>
+              Change this line&apos;s description or amount.
+              {hasBreakdown
+                ? " Changing the amount replaces its hours x rate breakdown with the amount you enter."
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={`edit-line-description-${lineId}`}>
+              Description
+            </Label>
+            <textarea
+              id={`edit-line-description-${lineId}`}
+              required
+              rows={2}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40"
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={`edit-line-amount-${lineId}`}>
+              Amount ({currency})
+            </Label>
+            <Input
+              id={`edit-line-amount-${lineId}`}
+              required
+              inputMode="decimal"
+              placeholder="1500.00"
+              className="tabular"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
+          </div>
+          {save.error ? (
+            <p role="alert" className="text-sm text-destructive">
+              {save.error.message}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={save.isPending}
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={save.isPending}>
+              {save.isPending ? "Saving..." : "Save line"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

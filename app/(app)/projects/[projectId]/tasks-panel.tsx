@@ -105,7 +105,9 @@ export function TasksPanel({
     trpc.tasks.delete.mutationOptions({
       onSuccess: () => {
         setEditing(null);
-        refresh();
+        // Deleting a task cascades to its time entries, so a running timer
+        // on it is gone too - refresh the timer state alongside the board.
+        void refreshTimer();
       },
     }),
   );
@@ -397,6 +399,9 @@ function EditTaskDialog({
   const [estimate, setEstimate] = useState(
     task.estimateMinutes ? String(task.estimateMinutes / 60) : "",
   );
+  // Deleting a task also deletes its tracked time, so gate it behind a
+  // confirm step (matches the invoice draft/void delete pattern).
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -455,25 +460,69 @@ function EditTaskDialog({
               />
             </div>
           </div>
-          {error ? (
-            <p role="alert" className="text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
-          <DialogFooter className="gap-2 sm:justify-between">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={deleting}
-              onClick={onDelete}
-              className="text-destructive hover:text-destructive"
-            >
-              {deleting ? "Deleting..." : "Delete"}
-            </Button>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Saving..." : "Save"}
-            </Button>
-          </DialogFooter>
+          {confirmingDelete ? (
+            <div className="flex flex-col gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-medium">Delete this task?</p>
+                <p className="text-sm text-muted-foreground">
+                  This permanently deletes{" "}
+                  <span className="font-medium text-foreground">
+                    {task.title}
+                  </span>{" "}
+                  and every time entry logged against it
+                  {task.trackedSeconds > 0
+                    ? ` (${formatHoursClock(task.trackedSeconds)} tracked)`
+                    : ""}
+                  , including any already billed. This cannot be undone.
+                </p>
+              </div>
+              {error ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {error}
+                </p>
+              ) : null}
+              <DialogFooter className="gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={deleting}
+                  onClick={() => setConfirmingDelete(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={deleting}
+                  onClick={onDelete}
+                >
+                  {deleting ? "Deleting..." : "Delete task and time"}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <>
+              {error ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {error}
+                </p>
+              ) : null}
+              <DialogFooter className="gap-2 sm:justify-between">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={deleting}
+                  onClick={() => setConfirmingDelete(true)}
+                  className="text-destructive hover:text-destructive"
+                >
+                  Delete
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? "Saving..." : "Save"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </form>
         <TimeSection taskId={task.id} />
       </DialogContent>

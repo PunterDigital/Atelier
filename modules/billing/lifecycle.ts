@@ -138,7 +138,10 @@ export async function markInvoicePaid(
 // terminal: paid invoices stay locked (money moved against them) and drafts
 // are edited, not voided. The status guard is in SQL so a concurrent
 // transition cannot double-apply, and the void is logged to the client's
-// activity thread - both in one transaction.
+// activity thread - both in one transaction. Voiding also releases any time
+// billed on this invoice back to the unbilled pool: the work is no longer
+// owed against a live document, so it can be billed again. The invoice's
+// lines stay for the record - only the time_entry -> line link is cleared.
 export async function voidInvoice(
   db: Db,
   businessId: string,
@@ -168,6 +171,23 @@ export async function voidInvoice(
     if (!updated) {
       return null;
     }
+    // Unbill the entries billed on this invoice's lines, mirroring what a
+    // draft line deletion does via ON DELETE SET NULL (spec Section 7).
+    await tx
+      .update(schema.timeEntry)
+      .set({ invoiceLineId: null, updatedAt: now })
+      .where(
+        and(
+          eq(schema.timeEntry.businessId, businessId),
+          inArray(
+            schema.timeEntry.invoiceLineId,
+            tx
+              .select({ id: schema.invoiceLine.id })
+              .from(schema.invoiceLine)
+              .where(eq(schema.invoiceLine.invoiceId, invoiceId)),
+          ),
+        ),
+      );
     await tx.insert(schema.activity).values({
       businessId,
       clientId: updated.clientId,

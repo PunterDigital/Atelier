@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 
 import { PGlite } from "@electric-sql/pglite";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -142,6 +143,33 @@ describe("tasks service - lifecycle", () => {
     );
     expect(deleted).not.toBeNull();
     expect(await listTasks(db, businessA.id, projectA.id)).toEqual([]);
+  });
+
+  it("deleting a task cascades to its time entries", async () => {
+    const task = (await createTask(db, businessA.id, projectA.id, {
+      title: "Task with tracked time",
+      status: "in_progress",
+    })) as { id: string };
+
+    await db.insert(schema.timeEntry).values({
+      businessId: businessA.id,
+      taskId: task.id,
+      userId: userA,
+      startedAt: new Date("2026-01-01T09:00:00.000Z"),
+      endedAt: new Date("2026-01-01T10:00:00.000Z"),
+      durationSeconds: 3600,
+    });
+
+    const deleted = await deleteTask(db, businessA.id, task.id);
+    expect(deleted).not.toBeNull();
+
+    // The FK is ON DELETE cascade, so the entry is gone with the task
+    // rather than the delete failing on a constraint violation.
+    const entries = await db
+      .select()
+      .from(schema.timeEntry)
+      .where(eq(schema.timeEntry.taskId, task.id));
+    expect(entries).toEqual([]);
   });
 });
 

@@ -28,16 +28,28 @@ services:
       timeout: 5s
       retries: 10
 
-  # One-shot: migrate the fresh database and seed the Acme dataset, then exit.
+  # One-shot: reset the schema, migrate, seed the Acme dataset, then exit.
   # Reuses the Dockerfile's `builder` stage, which has the full workspace, tsx,
-  # and drizzle-kit - so this runs the exact `pnpm db:migrate && pnpm seed:acme`
-  # that CI runs, with no bundling and no image changes. `app` waits for it to
-  # finish successfully before starting.
+  # and drizzle-kit, so it runs the same migrate + seed as CI - no image changes.
+  # `app` waits for it to finish successfully before starting.
+  #
+  # The DROP SCHEMA first is essential for previews: Coolify keeps the per-PR
+  # Postgres volume across redeploys, so an interrupted earlier deploy can leave
+  # tables behind with no drizzle journal. `drizzle-kit migrate` then tries to
+  # re-CREATE them, fails with "relation already exists", and exits 1 with the
+  # error swallowed by its spinner (no message at all). Resetting to a clean
+  # schema makes every deploy deterministic and re-seeds fresh data each time.
   seed:
     build:
       context: .
       target: builder
-    command: sh -c "pnpm db:migrate && pnpm seed:acme"
+    command:
+      - sh
+      - -ec
+      - |
+        node -e "const{Pool}=require('pg');const p=new Pool({connectionString:process.env.DATABASE_URL});p.query('DROP SCHEMA IF EXISTS drizzle CASCADE; DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;').then(()=>p.end()).then(()=>process.exit(0)).catch(e=>{console.error(e);process.exit(1);});"
+        pnpm db:migrate
+        pnpm seed:acme
     environment:
       DATABASE_URL: postgresql://clerq:${POSTGRES_PASSWORD:-clerq}@postgres:5432/clerq
       # Only needed so the seed's Better Auth sign-up can hash the demo password.
