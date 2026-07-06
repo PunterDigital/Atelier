@@ -693,6 +693,25 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
   );
 
   server.registerTool(
+    "update_invoice_line",
+    {
+      title: "Edit an invoice line",
+      description:
+        "Edit a line on a draft invoice: its description and amount. Amount is a plain decimal string in major units, e.g. \"1500\" or \"1500.00\". Changing the amount replaces any hours x rate breakdown on the line with the amount you set. Draft invoices only.",
+      inputSchema: {
+        lineId: z.string().uuid(),
+        description: z.string().min(1),
+        amountMajor: z
+          .string()
+          .regex(/^\d+(\.\d+)?$/)
+          .describe("Major units as a decimal string, e.g. 1500.00 (not cents)."),
+      },
+    },
+    (args) =>
+      runTool(async () => toolJson(await caller.invoices.updateLine(args))),
+  );
+
+  server.registerTool(
     "set_invoice_details",
     {
       title: "Set invoice dates",
@@ -780,7 +799,7 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
     {
       title: "Void invoice",
       description:
-        "Void a sent or overdue invoice (e.g. to re-issue a corrected copy). The invoice keeps its number but no longer counts as revenue. Only sent/overdue invoices can be voided; paid is locked and drafts are edited. Optionally record a reason.",
+        "Void a sent or overdue invoice (e.g. to re-issue a corrected copy). The invoice keeps its number but no longer counts as revenue, and any time billed on it returns to the unbilled pool so it can be billed again. Only sent/overdue invoices can be voided; paid is locked and drafts are edited. Optionally record a reason.",
       inputSchema: {
         invoiceId: z.string().uuid(),
         reason: z

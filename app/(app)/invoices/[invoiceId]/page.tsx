@@ -7,12 +7,17 @@ import { InvoiceStatusPill } from "@/components/status-pill";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatMoney } from "@/lib/format";
+import { minorToMajor } from "@/modules/billing/currency";
 import { caller } from "@/server/trpc/server";
 
 import { AddLineForm } from "./add-line-form";
 import { DetailsForm } from "./details-form";
 import { GeneratePanel } from "./generate-panel";
-import { InvoiceActions, RemoveLineButton } from "./invoice-actions";
+import {
+  EditLineButton,
+  InvoiceActions,
+  RemoveLineButton,
+} from "./invoice-actions";
 import { NotesForm } from "./notes-form";
 
 export const metadata: Metadata = {
@@ -138,7 +143,21 @@ export default async function InvoiceDetailPage({
                       <span className="shrink-0 text-sm font-medium tabular">
                         {formatMoney(line.totalMinor, invoice.currency)}
                       </span>
-                      {isDraft ? <RemoveLineButton lineId={line.id} /> : null}
+                      {isDraft ? (
+                        <div className="flex shrink-0 items-center gap-1">
+                          <EditLineButton
+                            lineId={line.id}
+                            currency={invoice.currency}
+                            description={line.description}
+                            amount={minorToMajor(
+                              line.totalMinor,
+                              invoice.currency,
+                            )}
+                            hasBreakdown={line.quantity != null}
+                          />
+                          <RemoveLineButton lineId={line.id} />
+                        </div>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

@@ -423,6 +423,75 @@ export async function addManualLine(
   });
 }
 
+// Editing a draft line in place. Draft-only, like every other line change.
+// Description and amount are the editable surface. Changing the amount is a
+// manual override: it supersedes any auto-derived hours x rate breakdown and
+// FX conversion recorded on the line, so those are cleared - otherwise the
+// line would show a "4.08 h x EUR 62/h" subtitle that no longer multiplies out
+// to the total. A description-only edit (amount unchanged) leaves the breakdown
+// - and the line's linked time entries - untouched. Returns { ok, invoice } or
+// a reason, mirroring addManualLine.
+export async function updateInvoiceLine(
+  db: Db,
+  businessId: string,
+  input: { lineId: string; description: string; amountMajor: string },
+) {
+  return db.transaction(async (tx) => {
+    const [line] = await tx
+      .select({
+        id: schema.invoiceLine.id,
+        invoiceId: schema.invoiceLine.invoiceId,
+        totalMinor: schema.invoiceLine.totalMinor,
+        status: schema.invoice.status,
+        currency: schema.invoice.currency,
+      })
+      .from(schema.invoiceLine)
+      .innerJoin(
+        schema.invoice,
+        eq(schema.invoiceLine.invoiceId, schema.invoice.id),
+      )
+      .where(
+        and(
+          eq(schema.invoiceLine.businessId, businessId),
+          eq(schema.invoiceLine.id, input.lineId),
+        ),
+      );
+    if (!line || line.status !== "draft") {
+      return { ok: false as const, reason: "no_draft" as const };
+    }
+
+    const totalMinor = majorToMinor(input.amountMajor, line.currency);
+    if (totalMinor === null) {
+      return { ok: false as const, reason: "bad_amount" as const };
+    }
+
+    // A changed figure drops the now-inconsistent breakdown (see note above);
+    // an unchanged one is a pure description edit and keeps it.
+    const amountChanged = totalMinor !== line.totalMinor;
+    await tx
+      .update(schema.invoiceLine)
+      .set({
+        description: input.description,
+        totalMinor,
+        updatedAt: new Date(),
+        ...(amountChanged
+          ? {
+              quantity: null,
+              unitPriceMinor: null,
+              sourceCurrency: null,
+              sourceTotalMinor: null,
+              fxRate: null,
+              fxSource: null,
+            }
+          : {}),
+      })
+      .where(eq(schema.invoiceLine.id, line.id));
+
+    const updated = await recomputeInvoiceTotals(tx, businessId, line.invoiceId);
+    return { ok: true as const, invoice: updated };
+  });
+}
+
 // Free-text notes printed at the foot of the invoice, just above the footer.
 // Draft-only, like every other invoice edit; an empty/whitespace value clears
 // them. Returns the updated invoice, or null when there is no draft to edit.

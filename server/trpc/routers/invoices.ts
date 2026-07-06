@@ -9,6 +9,7 @@ import {
   deleteInvoiceLine,
   generateLinesFromUnbilledTime,
   setInvoiceNotes,
+  updateInvoiceLine,
 } from "@/modules/billing/generate";
 import {
   configureNextInvoiceNumber,
@@ -167,6 +168,34 @@ export const invoicesRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       const result = await addManualLine(getDb(), ctx.businessId, input);
+      if (!result.ok) {
+        throw new TRPCError({
+          code: result.reason === "bad_amount" ? "BAD_REQUEST" : "NOT_FOUND",
+          message:
+            result.reason === "bad_amount"
+              ? "That amount has more decimal places than the invoice currency allows"
+              : "Only draft invoices can be edited",
+        });
+      }
+      return result.invoice;
+    }),
+
+  // Edit an existing draft line's description and amount in place. Draft-only;
+  // changing the amount drops any derived hours x rate breakdown on the line
+  // (see updateInvoiceLine).
+  updateLine: permissionProcedure("invoices.edit")
+    .input(
+      z.object({
+        lineId: z.string().uuid(),
+        description: z.string().trim().min(1),
+        amountMajor: z
+          .string()
+          .trim()
+          .regex(/^\d+(\.\d+)?$/, "Enter a plain amount like 1500 or 1500.00"),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const result = await updateInvoiceLine(getDb(), ctx.businessId, input);
       if (!result.ok) {
         throw new TRPCError({
           code: result.reason === "bad_amount" ? "BAD_REQUEST" : "NOT_FOUND",

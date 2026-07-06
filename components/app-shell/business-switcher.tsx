@@ -23,12 +23,15 @@ import type { UserBusiness } from "@/server/membership";
 // (clean separation of concerns - one account, several entities); this is how
 // they see which one they are in, jump between them, and spin up a new one.
 // Server-rendered with the full list, so there is no empty-state flash. On a
-// switch or a create we do a full page reload rather than a soft router
+// switch or a create we do a full document navigation rather than a soft router
 // refresh: the active business changes what every query returns, and a soft
 // refresh would re-render the server components while leaving the previous
 // business's data cached in React Query on the client - so the page would show
-// a stale mix. A reload re-fetches the current page cleanly against the now-
-// active business and keeps the user where they were.
+// a stale mix. We send the user to the dashboard rather than reloading in place
+// because the current page may reference the previous business's data (a
+// specific project, invoice, client...) that does not exist under the newly
+// active business - the dashboard is always valid, and a full load fetches it
+// cleanly against the now-active business.
 export function BusinessSwitcher({
   businesses,
 }: {
@@ -41,7 +44,9 @@ export function BusinessSwitcher({
 
   const switchBusiness = useMutation(
     trpc.business.switch.mutationOptions({
-      onSuccess: () => window.location.reload(),
+      onSuccess: () => {
+        window.location.href = "/";
+      },
     }),
   );
 
@@ -121,8 +126,9 @@ export function BusinessSwitcher({
 
 // Create a new business inline. Mirrors the onboarding form's fields and the
 // business.create mutation; on success that mutation already makes the new
-// business active, so reloading the page lands the user inside it (a full
-// reload for the same reason as switching - see BusinessSwitcher).
+// business active, so navigating to the dashboard lands the user inside it (a
+// full document load, and the dashboard rather than the current page, for the
+// same reasons as switching - see BusinessSwitcher).
 function CreateBusinessDialog({
   open,
   onOpenChange,
@@ -140,7 +146,7 @@ function CreateBusinessDialog({
         setName("");
         setCurrency("");
         onOpenChange(false);
-        window.location.reload();
+        window.location.href = "/";
       },
     }),
   );

@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 
 import { PGlite } from "@electric-sql/pglite";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -17,12 +17,14 @@ import {
   deleteInvoiceLine,
   generateLinesFromUnbilledTime,
   setInvoiceNotes,
+  updateInvoiceLine,
 } from "./generate";
 import {
   createDraftInvoice,
   deleteDraftInvoice,
   issueInvoice,
 } from "./invoices";
+import { voidInvoice } from "./lifecycle";
 
 const migrationsFolder = fileURLToPath(
   new URL("../../db/migrations", import.meta.url),
@@ -215,6 +217,108 @@ describe("generate lines from unbilled time (integration)", () => {
     }
   });
 
+  it("edits a draft line in place and recomputes totals", async () => {
+    const draft = await createDraftInvoice(db, business.id, {
+      clientId: client.id,
+      currency: "EUR",
+      taxTreatment: "standard",
+      standardRatePercent: "21",
+    });
+    const invoiceId = (draft as { id: string }).id;
+
+    await addManualLine(db, business.id, {
+      invoiceId,
+      description: "Retainer",
+      amountMajor: "1000",
+    });
+    const [manualLine] = await db
+      .select({ id: schema.invoiceLine.id })
+      .from(schema.invoiceLine)
+      .where(eq(schema.invoiceLine.invoiceId, invoiceId));
+
+    // Description + amount edit flows through to the invoice totals.
+    const edited = await updateInvoiceLine(db, business.id, {
+      lineId: manualLine.id,
+      description: "Monthly retainer",
+      amountMajor: "1200",
+    });
+    expect(edited).toMatchObject({ ok: true });
+    if (edited.ok) {
+      expect(edited.invoice?.subtotalMinor).toBe(120000);
+      expect(edited.invoice?.taxMinor).toBe(25200);
+      expect(edited.invoice?.totalMinor).toBe(145200);
+    }
+    const [afterEdit] = await db
+      .select()
+      .from(schema.invoiceLine)
+      .where(eq(schema.invoiceLine.id, manualLine.id));
+    expect(afterEdit.description).toBe("Monthly retainer");
+    expect(afterEdit.totalMinor).toBe(120000);
+
+    // More decimals than the currency allows is rejected, never rounded.
+    expect(
+      await updateInvoiceLine(db, business.id, {
+        lineId: manualLine.id,
+        description: "Monthly retainer",
+        amountMajor: "1200.005",
+      }),
+    ).toMatchObject({ ok: false, reason: "bad_amount" });
+
+    // A generated line carries an hours x rate breakdown (253.17 in the S7
+    // example)...
+    await generateLinesFromUnbilledTime(db, business.id, {
+      invoiceId,
+      grouping: "person_rate",
+    });
+    const [timeLine] = await db
+      .select()
+      .from(schema.invoiceLine)
+      .where(
+        and(
+          eq(schema.invoiceLine.invoiceId, invoiceId),
+          isNotNull(schema.invoiceLine.quantity),
+        ),
+      );
+    expect(timeLine.quantity).not.toBeNull();
+
+    // ...a description-only edit (same amount) keeps the breakdown...
+    await updateInvoiceLine(db, business.id, {
+      lineId: timeLine.id,
+      description: "Design work",
+      amountMajor: "253.17",
+    });
+    const [renamed] = await db
+      .select()
+      .from(schema.invoiceLine)
+      .where(eq(schema.invoiceLine.id, timeLine.id));
+    expect(renamed.description).toBe("Design work");
+    expect(renamed.quantity).toBe(timeLine.quantity);
+    expect(renamed.unitPriceMinor).toBe(timeLine.unitPriceMinor);
+
+    // ...but changing the amount drops the now-inconsistent breakdown.
+    await updateInvoiceLine(db, business.id, {
+      lineId: timeLine.id,
+      description: "Design work",
+      amountMajor: "250",
+    });
+    const [overridden] = await db
+      .select()
+      .from(schema.invoiceLine)
+      .where(eq(schema.invoiceLine.id, timeLine.id));
+    expect(overridden.quantity).toBeNull();
+    expect(overridden.unitPriceMinor).toBeNull();
+    expect(overridden.totalMinor).toBe(25000);
+
+    // Cleanup: release entries for the later tests in this file.
+    const lines = await db
+      .select({ id: schema.invoiceLine.id })
+      .from(schema.invoiceLine)
+      .where(eq(schema.invoiceLine.invoiceId, invoiceId));
+    for (const line of lines) {
+      await deleteInvoiceLine(db, business.id, line.id);
+    }
+  });
+
   it("sets and clears free-text notes on a draft, but not once issued", async () => {
     const draft = await createDraftInvoice(db, business.id, {
       clientId: client.id,
@@ -304,6 +408,68 @@ describe("generate lines from unbilled time (integration)", () => {
     expect(releasable.length).toBeGreaterThan(0);
   });
 
+  it("voiding an issued invoice releases its billed time back to unbilled", async () => {
+    // A dedicated task + billable entry so this test owns its billed time.
+    const voidTask = (await createTask(db, business.id, project.id, {
+      title: "Void-me task",
+      status: "in_progress",
+    })) as { id: string };
+    const entry = await logManualEntry(db, business.id, user, {
+      taskId: voidTask.id,
+      startedAt: new Date("2026-06-20T09:00:00Z"),
+      durationSeconds: 3600,
+      billable: true,
+    });
+    const entryId = (entry as { id: string }).id;
+
+    const draft = await createDraftInvoice(db, business.id, {
+      clientId: client.id,
+      currency: "EUR",
+      taxTreatment: "standard",
+      standardRatePercent: "21",
+    });
+    const invoiceId = (draft as { id: string }).id;
+
+    const gen = await generateLinesFromUnbilledTime(db, business.id, {
+      invoiceId,
+      grouping: "single",
+    });
+    expect(gen.ok).toBe(true);
+
+    // Issue it so it is a real sent document - drafts are deleted, not voided.
+    const issued = await issueInvoice(db, business.id, invoiceId);
+    expect(issued.ok).toBe(true);
+
+    // The entry is now billed on this invoice's line.
+    const [billed] = await db
+      .select({ invoiceLineId: schema.timeEntry.invoiceLineId })
+      .from(schema.timeEntry)
+      .where(eq(schema.timeEntry.id, entryId));
+    expect(billed.invoiceLineId).not.toBeNull();
+
+    // Voiding releases the entry back to the unbilled pool...
+    const voided = await voidInvoice(
+      db,
+      business.id,
+      user,
+      invoiceId,
+      "duplicate",
+    );
+    expect(voided?.status).toBe("void");
+    const [released] = await db
+      .select({ invoiceLineId: schema.timeEntry.invoiceLineId })
+      .from(schema.timeEntry)
+      .where(eq(schema.timeEntry.id, entryId));
+    expect(released.invoiceLineId).toBeNull();
+
+    // ...while the voided invoice keeps its lines for the record.
+    const lines = await db
+      .select()
+      .from(schema.invoiceLine)
+      .where(eq(schema.invoiceLine.invoiceId, invoiceId));
+    expect(lines.length).toBeGreaterThan(0);
+  });
+
   it("refuses to add generated lines to an issued invoice", async () => {
     const draft = await createDraftInvoice(db, business.id, {
       clientId: client.id,
@@ -325,11 +491,20 @@ describe("generate lines from unbilled time (integration)", () => {
     });
     expect(blocked).toMatchObject({ ok: false, reason: "no_draft" });
 
-    // And issued lines cannot be deleted.
+    // And issued lines cannot be deleted...
     const [line] = await db
       .select({ id: schema.invoiceLine.id })
       .from(schema.invoiceLine)
       .where(eq(schema.invoiceLine.invoiceId, invoiceId));
     expect(await deleteInvoiceLine(db, business.id, line.id)).toBeNull();
+
+    // ...nor edited.
+    expect(
+      await updateInvoiceLine(db, business.id, {
+        lineId: line.id,
+        description: "Nope",
+        amountMajor: "10",
+      }),
+    ).toMatchObject({ ok: false, reason: "no_draft" });
   });
 });
