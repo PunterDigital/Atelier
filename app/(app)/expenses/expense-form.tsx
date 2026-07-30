@@ -49,8 +49,8 @@ export function ExpenseForm({
 }: {
   initial?: ExpenseInitial;
   defaultCurrency: string;
-  // True when the instance has Groq receipt scanning configured. When false
-  // the "Scan with AI" button is never shown.
+  // True when the instance has OpenRouter receipt scanning configured. When
+  // false the "Scan with AI" button is never shown.
   scanEnabled?: boolean;
 }) {
   const router = useRouter();
@@ -95,9 +95,9 @@ export function ExpenseForm({
   const [converting, setConverting] = useState(false);
   const [convertError, setConvertError] = useState<string | null>(null);
 
-  // Receipt scanning: hand the picked image to Groq and pre-fill whatever it
-  // confidently reads. Only non-null fields overwrite the form, so a partial
-  // read never wipes something the user already typed.
+  // Receipt scanning: hand the picked image to the vision model and pre-fill
+  // whatever it confidently reads. Only non-null fields overwrite the form, so
+  // a partial read never wipes something the user already typed.
   const scan = useMutation(
     trpc.expenses.scanReceipt.mutationOptions({
       onSuccess: (result) => {
@@ -116,7 +116,7 @@ export function ExpenseForm({
 
   // Kick off a scan for the freshly picked receipt. Images go straight to the
   // scan endpoint; PDFs are rasterized to a JPEG in the browser first, since
-  // Groq vision reads images, not PDFs.
+  // the vision model reads images, not PDFs.
   async function runScan(picked: NewReceipt) {
     setConvertError(null);
     if (picked.mimeType !== "application/pdf") {

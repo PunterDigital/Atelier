@@ -10,7 +10,7 @@ import {
 const CONFIG: ReceiptScanConfig = {
   apiKey: "test-key",
   model: "vision-test",
-  baseUrl: "https://api.groq.com/openai",
+  baseUrl: "https://openrouter.ai/api/v1",
 };
 
 const IMAGE = {
@@ -19,8 +19,9 @@ const IMAGE = {
   mimeType: "image/png" as const,
 };
 
-// Builds a fake Groq chat-completion response whose assistant message content
-// is the given JSON string (or arbitrary content for the malformed cases).
+// Builds a fake OpenRouter chat-completion response whose assistant message
+// content is the given JSON string (or arbitrary content for the malformed
+// cases).
 function completionWith(content: unknown): Response {
   return new Response(
     JSON.stringify({ choices: [{ message: { content } }] }),
@@ -100,7 +101,7 @@ describe("scanReceipt", () => {
     });
   });
 
-  it("sends the image to Groq in JSON mode with auth", async () => {
+  it("sends the image to OpenRouter in JSON mode with auth", async () => {
     const fetchMock = vi.fn(async () =>
       completionWith(JSON.stringify({ description: "x" })),
     );
@@ -112,13 +113,17 @@ describe("scanReceipt", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe("https://api.groq.com/openai/v1/chat/completions");
-    expect((init.headers as Record<string, string>).Authorization).toBe(
-      "Bearer test-key",
-    );
+    expect(url).toBe("https://openrouter.ai/api/v1/chat/completions");
+    const headers = init.headers as Record<string, string>;
+    expect(headers.Authorization).toBe("Bearer test-key");
+    // App attribution headers OpenRouter reads for its dashboards.
+    expect(headers["HTTP-Referer"]).toBe("https://useclerq.net");
+    expect(headers["X-OpenRouter-Title"]).toBe("Clerq");
     const payload = JSON.parse(init.body as string);
     expect(payload.model).toBe("vision-test");
     expect(payload.response_format).toEqual({ type: "json_object" });
+    // Extraction doesn't need reasoning; it's off so scans stay fast and cheap.
+    expect(payload.reasoning).toEqual({ effort: "none" });
     // The receipt image is included as an image_url content part.
     const parts = payload.messages.at(-1).content;
     expect(parts).toContainEqual({
@@ -134,11 +139,32 @@ describe("scanReceipt", () => {
 
     await scanReceipt(IMAGE, {
       fetch: fetchMock as unknown as typeof fetch,
-      config: { ...CONFIG, baseUrl: "http://localhost:9099/openai" },
+      config: { ...CONFIG, baseUrl: "http://localhost:9099/openai/v1" },
     });
 
     const [url] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("http://localhost:9099/openai/v1/chat/completions");
+  });
+
+  it("treats an error reported in a 200 body as a rejected request", async () => {
+    // OpenRouter surfaces some upstream provider failures this way rather than
+    // with an HTTP error status.
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: { code: 502, message: "Provider returned error" },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+    );
+
+    await expect(
+      scanReceipt(IMAGE, {
+        fetch: fetchMock as unknown as typeof fetch,
+        config: CONFIG,
+      }),
+    ).rejects.toThrow(/502/);
   });
 
   it("drops a non-positive amount and an invalid currency to null", async () => {
@@ -213,9 +239,9 @@ describe("scanReceipt", () => {
 });
 
 describe("receiptScanConfig", () => {
-  const KEY = "GROQ_API_KEY";
-  const MODEL = "GROQ_VISION_MODEL";
-  const BASE = "GROQ_BASE_URL";
+  const KEY = "OPENROUTER_API_KEY";
+  const MODEL = "OPENROUTER_VISION_MODEL";
+  const BASE = "OPENROUTER_BASE_URL";
 
   function withEnv(
     values: Record<string, string | undefined>,
@@ -247,8 +273,8 @@ describe("receiptScanConfig", () => {
     withEnv({ [KEY]: "abc", [MODEL]: undefined, [BASE]: undefined }, () => {
       expect(receiptScanConfig()).toEqual({
         apiKey: "abc",
-        model: "meta-llama/llama-4-scout-17b-16e-instruct",
-        baseUrl: "https://api.groq.com/openai",
+        model: "qwen/qwen3.7-flash",
+        baseUrl: "https://openrouter.ai/api/v1",
       });
     });
   });

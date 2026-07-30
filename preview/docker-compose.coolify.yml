@@ -76,7 +76,7 @@ services:
       # The seed service already migrated, so skip the entrypoint's boot migration.
       CLERQ_SKIP_MIGRATIONS: "1"
       NODE_ENV: production
-      # Deliberately NO GROQ_API_KEY / Google OAuth in previews.
+      # Deliberately NO OPENROUTER_API_KEY / Google OAuth in previews.
     depends_on:
       seed:
         condition: service_completed_successfully
