@@ -1,4 +1,4 @@
-// Browser-side PDF rasterization for receipt scanning. Groq vision reads
+// Browser-side PDF rasterization for receipt scanning. The vision model reads
 // images, not PDFs, so when a user scans a PDF receipt we render its first
 // page to a JPEG here and send that instead. Doing this client-side keeps the
 // server free of native canvas/PDF dependencies (important for self-hosting) -

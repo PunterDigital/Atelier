@@ -21,7 +21,7 @@ import { createTRPCRouter, permissionProcedure } from "../init";
 
 const expenseIdInput = z.object({ expenseId: z.string().uuid() });
 
-// Scanning only accepts the image formats Groq vision can read - PDFs are
+// Scanning only accepts the image formats a vision model can read - PDFs are
 // excluded here even though they're valid receipts elsewhere in the form.
 const scanReceiptInput = z.object({
   dataUrl: z
@@ -72,9 +72,9 @@ export const expensesRouter = createTRPCRouter({
       createExpense(getDb(), ctx.businessId, input),
     ),
 
-  // Read a receipt image with Groq and return suggested fields for the form to
-  // pre-fill. Gated on expenses.create: scanning is a shortcut to creating an
-  // expense. Nothing is persisted here - the user reviews before saving.
+  // Read a receipt image with OpenRouter and return suggested fields for the
+  // form to pre-fill. Gated on expenses.create: scanning is a shortcut to
+  // creating an expense. Nothing is persisted here - the user reviews first.
   scanReceipt: permissionProcedure("expenses.create")
     .input(scanReceiptInput)
     .mutation(async ({ input }) => {

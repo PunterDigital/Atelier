@@ -94,9 +94,9 @@ https://app.useclerq.net/api/mcp     # hosted
 https://<your-instance>/api/mcp      # self-hosted
 ```
 
-**AI receipt scanning (optional):** set a `GROQ_API_KEY` to add a “Scan with
-AI” button on the expense form that reads an uploaded receipt (PNG, JPEG or
-PDF) and pre-fills the fields. It stays hidden unless configured; see
+**AI receipt scanning (optional):** set an `OPENROUTER_API_KEY` to add a “Scan
+with AI” button on the expense form that reads an uploaded receipt (PNG, JPEG
+or PDF) and pre-fills the fields. It stays hidden unless configured; see
 `.env.example`.
 
 See the [AI docs](https://useclerq.net/docs) for the full tool list and

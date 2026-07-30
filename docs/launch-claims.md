@@ -59,7 +59,7 @@ Each bullet cites the evidence. ★ = headline-worthy.
 
 **Expenses** — *shipped; the draft omits it entirely*
 - Capture expenses, mark paid/unpaid, attach to projects (`expenses` module/router).
-- **Optional AI receipt scanning** via `GROQ_API_KEY` — reads an uploaded
+- **Optional AI receipt scanning** via `OPENROUTER_API_KEY` — reads an uploaded
   receipt (PNG/JPEG/PDF) and pre-fills the form (`modules/expenses/ocr.ts`).
   Stays hidden unless configured.
 
@@ -106,7 +106,7 @@ Every AI claim below maps to a real tool and behaviour in
 | "The assistant plays by the same rules as the app" | all tools → `ClerqCaller` (tRPC) | Same validation + per-business tenancy; no side door |
 | "Connect without pasting tokens" | OAuth 2.1 via Better Auth + consent screen | `/api/mcp`, no long-lived secrets |
 | "Hand me a downloadable invoice" | `get_invoice_pdf_link` | 15-min signed URL, no browser login (`server/mcp/pdf-link.ts`) |
-| "Optional AI receipt scanning" | `create_expense` + Groq OCR pre-fill | Gated on `GROQ_API_KEY`; off by default |
+| "Optional AI receipt scanning" | `create_expense` + OpenRouter OCR pre-fill | Gated on `OPENROUTER_API_KEY`; off by default |
 
 Reference for the mapping: README "AI & MCP" section and the tool registrations
 in `server/mcp/server.ts`.
