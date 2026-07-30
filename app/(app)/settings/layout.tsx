@@ -31,6 +31,7 @@ export default async function SettingsLayout({
   const tabs: SettingsTab[] = [
     { href: "/settings", label: "General" },
     { href: "/settings/branding", label: "Branding" },
+    { href: "/settings/ai", label: "AI" },
     { href: "/settings/team", label: "Team" },
     // The CSV import wizard lives at /settings/import but belongs to Data.
     { href: "/settings/data", label: "Data", match: ["/settings/import"] },
