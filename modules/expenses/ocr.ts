@@ -74,6 +74,9 @@ export type ReceiptScanResult = {
   currency: string | null;
   vendor: string | null;
   category: string | null;
+  // The invoice/receipt date as YYYY-MM-DD - the shape the form's date input
+  // takes directly, kept as a string so no timezone math can shift the day.
+  date: string | null;
   notes: string | null;
 };
 
@@ -86,6 +89,7 @@ const modelJsonSchema = z.object({
   currency: z.string().nullish(),
   vendor: z.string().nullish(),
   category: z.string().nullish(),
+  date: z.string().nullish(),
   notes: z.string().nullish(),
 });
 
@@ -100,6 +104,8 @@ const SYSTEM_PROMPT = [
   '- "currency": the three-letter ISO 4217 currency code (e.g. EUR, USD, GBP).',
   '- "vendor": the merchant or supplier name.',
   '- "category": a short spending category such as Software, Travel, Meals, Office, Hardware.',
+  '- "date": the invoice or receipt date in ISO format (YYYY-MM-DD). Look for a',
+  '  labelled "Invoice Date" or "Date"; otherwise use the document\'s own date.',
   '- "notes": any useful extra detail (invoice number, payment method), or null.',
   "Report amounts in the receipt's own currency. If a field is not clearly",
   "present, use null for it - never guess or invent values.",
@@ -128,6 +134,23 @@ function cleanAmount(value: number | string | null | undefined): number | null {
   return Number.isFinite(num) && num > 0 ? num : null;
 }
 
+// Only accept a real calendar date in YYYY-MM-DD form. Anything else (other
+// formats, impossible dates like 2024-02-31) becomes null so the form keeps
+// its existing date rather than getting a bad one.
+function cleanDate(value: string | null | undefined): string | null {
+  const trimmed = cleanStr(value);
+  if (!trimmed || !/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
+  // Date.parse rolls an out-of-range day into the next month, so round-trip
+  // the components instead to reject e.g. 2024-02-31 outright.
+  const [y, m, d] = trimmed.split("-").map(Number);
+  const parsed = new Date(Date.UTC(y, m - 1, d));
+  const valid =
+    parsed.getUTCFullYear() === y &&
+    parsed.getUTCMonth() === m - 1 &&
+    parsed.getUTCDate() === d;
+  return valid ? trimmed : null;
+}
+
 function normalize(raw: z.infer<typeof modelJsonSchema>): ReceiptScanResult {
   const currency = cleanStr(raw.currency);
   return {
@@ -139,6 +162,7 @@ function normalize(raw: z.infer<typeof modelJsonSchema>): ReceiptScanResult {
       currency && /^[A-Za-z]{3}$/.test(currency) ? currency.toUpperCase() : null,
     vendor: cleanStr(raw.vendor),
     category: cleanStr(raw.category),
+    date: cleanDate(raw.date),
     notes: cleanStr(raw.notes),
   };
 }

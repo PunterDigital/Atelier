@@ -109,6 +109,8 @@ export function ExpenseForm({
         }
         if (result.vendor) setVendor(result.vendor);
         if (result.category) setCategory(result.category);
+        // Already YYYY-MM-DD - exactly what the date input takes.
+        if (result.date) setIncurredAt(result.date);
         if (result.notes) setNotes(result.notes);
       },
     }),
