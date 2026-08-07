@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { formatDate, formatMoney } from "@/lib/format";
 import { caller } from "@/server/trpc/server";
 
+import { DownloadReceipts } from "./download-receipts";
+
 export const metadata: Metadata = {
   title: "Expenses - Clerq",
 };
@@ -39,6 +41,7 @@ export default async function ExpensesPage({
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
         <h1 className="flex-1 text-2xl">Expenses</h1>
+        {!isEmptyBusiness && <DownloadReceipts />}
         <Button asChild>
           <Link href="/expenses/new">New expense</Link>
         </Button>

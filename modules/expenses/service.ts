@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, isNotNull, lt, or } from "drizzle-orm";
 import { z } from "zod";
 
 import type { Db } from "@/db";
@@ -96,6 +96,42 @@ export async function listExpenses(
     .where(and(...filters))
     // Newest cost first; created_at breaks ties for same-day entries.
     .orderBy(desc(schema.expense.incurredAt), desc(schema.expense.createdAt));
+}
+
+// Receipted expenses in a half-open [from, to) window, receipt bytes
+// included - the source for the "download all receipts for a period" zip.
+// Rows can be ~2MB each, so this is only ever called for a bounded period,
+// never the whole table.
+export async function listExpenseReceipts(
+  db: Db,
+  businessId: string,
+  range: { from: Date; to: Date },
+) {
+  return db
+    .select({
+      id: schema.expense.id,
+      description: schema.expense.description,
+      amountMinor: schema.expense.amountMinor,
+      currency: schema.expense.currency,
+      vendor: schema.expense.vendor,
+      category: schema.expense.category,
+      status: schema.expense.status,
+      incurredAt: schema.expense.incurredAt,
+      receiptDataUrl: schema.expense.receiptDataUrl,
+      receiptFilename: schema.expense.receiptFilename,
+      receiptMimeType: schema.expense.receiptMimeType,
+    })
+    .from(schema.expense)
+    .where(
+      and(
+        eq(schema.expense.businessId, businessId),
+        isNotNull(schema.expense.receiptDataUrl),
+        gte(schema.expense.incurredAt, range.from),
+        lt(schema.expense.incurredAt, range.to),
+      ),
+    )
+    // Chronological, so the zip's file listing reads like a ledger.
+    .orderBy(asc(schema.expense.incurredAt), asc(schema.expense.createdAt));
 }
 
 // The full row, including the receipt data URL - only fetched one at a time.

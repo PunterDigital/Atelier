@@ -11,6 +11,7 @@ import {
   createExpense,
   deleteExpense,
   getExpense,
+  listExpenseReceipts,
   listExpenses,
   setExpenseStatus,
   updateExpense,
@@ -165,6 +166,74 @@ describe("expenses service (integration)", () => {
     const deleted = await deleteExpense(db, business.id, created.id);
     expect(deleted?.id).toBe(created.id);
     expect(await getExpense(db, business.id, created.id)).toBeNull();
+  });
+});
+
+describe("expenses service - receipts in range", () => {
+  it("returns only receipted expenses inside the half-open window, scoped to the business", async () => {
+    const scoped = await db
+      .insert(schema.business)
+      .values({ name: "Receipts Co", currency: "EUR" })
+      .returning();
+    const biz = scoped[0].id;
+
+    const receipt = (filename: string) => ({
+      dataUrl: PNG,
+      filename,
+      mimeType: "image/png" as const,
+    });
+
+    // In July, with a receipt - included.
+    await createExpense(db, biz, {
+      description: "July receipted",
+      amountMinor: 1000,
+      currency: "EUR",
+      incurredAt: new Date("2026-07-10T00:00:00Z"),
+      receipt: receipt("july.png"),
+    });
+    // In July, no receipt - excluded.
+    await createExpense(db, biz, {
+      description: "July bare",
+      amountMinor: 1000,
+      currency: "EUR",
+      incurredAt: new Date("2026-07-11T00:00:00Z"),
+    });
+    // First instant of July - included (from is inclusive).
+    await createExpense(db, biz, {
+      description: "July first moment",
+      amountMinor: 1000,
+      currency: "EUR",
+      incurredAt: new Date("2026-07-01T00:00:00Z"),
+      receipt: receipt("first.png"),
+    });
+    // First instant of August - excluded (to is exclusive).
+    await createExpense(db, biz, {
+      description: "August first moment",
+      amountMinor: 1000,
+      currency: "EUR",
+      incurredAt: new Date("2026-08-01T00:00:00Z"),
+      receipt: receipt("august.png"),
+    });
+    // Another business's July receipt - never visible.
+    await createExpense(db, other.id, {
+      description: "Other business receipt",
+      amountMinor: 1000,
+      currency: "USD",
+      incurredAt: new Date("2026-07-15T00:00:00Z"),
+      receipt: receipt("other.png"),
+    });
+
+    const rows = await listExpenseReceipts(db, biz, {
+      from: new Date("2026-07-01T00:00:00Z"),
+      to: new Date("2026-08-01T00:00:00Z"),
+    });
+
+    // Chronological, receipt bytes included.
+    expect(rows.map((r) => r.description)).toEqual([
+      "July first moment",
+      "July receipted",
+    ]);
+    expect(rows.every((r) => r.receiptDataUrl === PNG)).toBe(true);
   });
 });
 

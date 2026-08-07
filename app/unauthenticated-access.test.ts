@@ -116,6 +116,17 @@ describe("file-download routes refuse anonymous requests", () => {
     expect(await res.text()).toBe("Sign in first");
   });
 
+  it("serves no expense-receipts zip without a session", async () => {
+    const { GET } = await import("@/app/api/expenses/receipts/route");
+    const res = await GET(
+      new Request(
+        "http://localhost/api/expenses/receipts?from=2026-07-01T00:00:00Z&to=2026-08-01T00:00:00Z",
+      ),
+    );
+    expect(res.status).toBe(401);
+    expect(await res.text()).toBe("Sign in first");
+  });
+
   it("rejects an MCP call that carries no bearer token", async () => {
     const { POST } = await import("@/app/api/mcp/route");
     const res = await POST(
@@ -241,6 +252,7 @@ const PUBLIC_PAGES = [
 // Routes whose anonymous behaviour is asserted by the live tests above.
 const PROTECTED_ROUTES = [
   "api/invoices/[invoiceId]/pdf/route.ts",
+  "api/expenses/receipts/route.ts",
   "api/export/route.ts",
   "api/mcp/route.ts",
   // The recurring-invoice cron trigger: token-guarded, not session-gated. It
@@ -297,14 +309,16 @@ describe("every URL in the app is accounted for", () => {
     ).toEqual([]);
   });
 
-  it("exposes no standalone receipt URL - receipts live only in the gated expense page", () => {
+  it("exposes no unaccounted receipt URL - receipts live in the gated expense page or the session-gated zip route", () => {
     // Receipts are stored as base64 data URLs and rendered client-side inside
-    // /expenses/[expenseId] (a gated page). If a receipt-serving route.ts ever
-    // appears it needs its own auth check and its own test - fail until then.
+    // /expenses/[expenseId] (a gated page). The one standalone receipt route -
+    // the period zip download - answers anonymous requests with 401 (asserted
+    // live above). Any other receipt-serving route.ts needs its own auth check
+    // and its own test - fail until then.
     const receiptRoutes = filesEndingWith("route.ts").filter((r) =>
       r.toLowerCase().includes("receipt"),
     );
-    expect(receiptRoutes).toEqual([]);
+    expect(receiptRoutes).toEqual(["api/expenses/receipts/route.ts"]);
     // And the expense detail page that embeds them is under the gated group.
     const expensePages = filesEndingWith("page.tsx").filter((p) =>
       p.includes("expenses/[expenseId]"),
