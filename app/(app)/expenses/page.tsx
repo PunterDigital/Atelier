@@ -111,9 +111,13 @@ export default async function ExpensesPage({
                       {expense.description}
                     </div>
                     <div className="truncate text-sm text-muted-foreground">
-                      {[expense.vendor, expense.category]
+                      {[
+                        formatDate(expense.incurredAt),
+                        expense.vendor,
+                        expense.category,
+                      ]
                         .filter(Boolean)
-                        .join(" · ") || formatDate(expense.incurredAt)}
+                        .join(" · ")}
                     </div>
                   </div>
                   <ExpenseStatusPill status={expense.status} />

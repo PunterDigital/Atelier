@@ -39,6 +39,7 @@ describe("scanReceipt", () => {
           currency: "eur",
           vendor: " Adobe ",
           category: "Software",
+          date: "2026-07-14",
           notes: null,
         }),
       ),
@@ -55,6 +56,7 @@ describe("scanReceipt", () => {
       currency: "EUR",
       vendor: "Adobe",
       category: "Software",
+      date: "2026-07-14",
       notes: null,
     });
   });
@@ -97,8 +99,35 @@ describe("scanReceipt", () => {
       currency: null,
       vendor: null,
       category: null,
+      date: null,
       notes: null,
     });
+  });
+
+  it("drops a date that is not a real YYYY-MM-DD calendar date", async () => {
+    for (const bad of ["14/07/2026", "July 14, 2026", "2026-02-31", ""]) {
+      const fetchMock = vi.fn(async () =>
+        completionWith(JSON.stringify({ description: "Lunch", date: bad })),
+      );
+      const result = await scanReceipt(IMAGE, {
+        fetch: fetchMock as unknown as typeof fetch,
+        config: CONFIG,
+      });
+      expect(result.date).toBeNull();
+    }
+  });
+
+  it("keeps a valid ISO date, trimming whitespace", async () => {
+    const fetchMock = vi.fn(async () =>
+      completionWith(
+        JSON.stringify({ description: "Lunch", date: " 2026-01-31 " }),
+      ),
+    );
+    const result = await scanReceipt(IMAGE, {
+      fetch: fetchMock as unknown as typeof fetch,
+      config: CONFIG,
+    });
+    expect(result.date).toBe("2026-01-31");
   });
 
   it("sends the image to OpenRouter in JSON mode with auth", async () => {
