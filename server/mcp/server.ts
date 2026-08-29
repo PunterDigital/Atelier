@@ -570,7 +570,8 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
     "delete_task",
     {
       title: "Delete task",
-      description: "Delete a task. This is permanent.",
+      description:
+        "Delete a task and its tracked time entries. This is permanent. Refused while any of the task's time is billed on an invoice line - release the time first (remove the draft's lines, delete the draft, or void the issued invoice).",
       inputSchema: { taskId: z.string().uuid() },
     },
     ({ taskId }) =>
@@ -751,12 +752,33 @@ export function createClerqMcpServer(opts: ClerqMcpOptions): McpServer {
     {
       title: "Generate invoice lines from time",
       description:
-        "Fill a draft invoice with lines built from unbilled, billable time. Groups by person+rate, by task, or into a single line.",
+        "Fill a draft invoice with lines built from unbilled, billable time. Groups by person+rate, by task, or into a single line. A nothing_to_bill result includes details explaining where the client's time is (already billed on which invoice, unpriced, timers still running). If entries carry rates in other currencies than the invoice's, the result lists them as missing_fx_rates - retry with fxRates supplying a conversion rate per currency.",
       inputSchema: {
         invoiceId: z.string().uuid(),
         projectId: z.string().uuid().optional().describe("Limit to one project."),
         grouping: z.enum(["person_rate", "task", "single"]),
         includeTaskList: z.boolean().optional(),
+        replace: z
+          .boolean()
+          .optional()
+          .describe(
+            "Clear the draft's previously generated lines first (their time returns to the pool and is regenerated with the new grouping). Manual fixed-amount lines are kept. Use to redo a generation whose grouping was wrong.",
+          ),
+        fxRates: z
+          .record(
+            z.string().regex(/^[A-Z]{3}$/),
+            z.object({
+              rate: z
+                .string()
+                .regex(/^\d+(\.\d+)?$/)
+                .describe("Units of the invoice currency per 1 unit of this currency, as a decimal string."),
+              source: z.enum(["ecb", "manual"]),
+            }),
+          )
+          .optional()
+          .describe(
+            "Conversion rates keyed by source currency code, required when entries carry rates in other currencies than the invoice's. Confirm rates with the user before applying - they are stored on the invoice lines.",
+          ),
       },
     },
     (args) =>

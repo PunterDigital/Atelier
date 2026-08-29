@@ -473,7 +473,8 @@ function EditTaskDialog({
                   {task.trackedSeconds > 0
                     ? ` (${formatHoursClock(task.trackedSeconds)} tracked)`
                     : ""}
-                  , including any already billed. This cannot be undone.
+                  . This cannot be undone. Time already billed on an invoice
+                  blocks deletion until it is released.
                 </p>
               </div>
               {error ? (

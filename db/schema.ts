@@ -323,7 +323,8 @@ export const timeEntry = pgTable(
       .references(() => business.id),
     // Time entries belong to their task: deleting the task deletes its
     // entries (cascade). The app warns before doing so, since this discards
-    // tracked time - including any already billed on an invoice line.
+    // tracked time - and refuses at the service layer while any entry is
+    // billed on an invoice line, so billed time can never silently vanish.
     taskId: uuid("task_id")
       .notNull()
       .references(() => task.id, { onDelete: "cascade" }),

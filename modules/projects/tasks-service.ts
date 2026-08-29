@@ -6,6 +6,7 @@ import {
   getTableColumns,
   ilike,
   isNotNull,
+  notExists,
   sql,
 } from "drizzle-orm";
 import { z } from "zod";
@@ -175,12 +176,51 @@ export async function setTaskStatus(
   return updated ?? null;
 }
 
-export async function deleteTask(db: Db, businessId: string, taskId: string) {
+// Deleting a task cascades to its time entries, which permanently discards
+// tracked time. Time that is billed on an invoice line must never vanish
+// that way (an issued invoice would silently lose its backing record, and a
+// voided-then-stuck line its audit trail), so the delete refuses while any
+// of the task's entries are linked to a line. The guard lives in the DELETE
+// itself (NOT EXISTS) so a concurrent generation cannot slip billed time in
+// between a check and the delete. Callers release the time first: remove
+// the draft's lines, delete the draft, or void the issued invoice.
+export type DeleteTaskResult =
+  | { ok: true; task: typeof schema.task.$inferSelect }
+  | { ok: false; reason: "not_found" | "billed_time" };
+
+export async function deleteTask(
+  db: Db,
+  businessId: string,
+  taskId: string,
+): Promise<DeleteTaskResult> {
   const [deleted] = await db
     .delete(schema.task)
     .where(
-      and(eq(schema.task.businessId, businessId), eq(schema.task.id, taskId)),
+      and(
+        eq(schema.task.businessId, businessId),
+        eq(schema.task.id, taskId),
+        notExists(
+          db
+            .select({ one: sql`1` })
+            .from(schema.timeEntry)
+            .where(
+              and(
+                eq(schema.timeEntry.taskId, schema.task.id),
+                isNotNull(schema.timeEntry.invoiceLineId),
+              ),
+            ),
+        ),
+      ),
     )
     .returning();
-  return deleted ?? null;
+  if (deleted) {
+    return { ok: true, task: deleted };
+  }
+  const [existing] = await db
+    .select({ id: schema.task.id })
+    .from(schema.task)
+    .where(
+      and(eq(schema.task.businessId, businessId), eq(schema.task.id, taskId)),
+    );
+  return { ok: false, reason: existing ? "billed_time" : "not_found" };
 }
