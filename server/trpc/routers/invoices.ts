@@ -121,6 +121,10 @@ export const invoicesRouter = createTRPCRouter({
         projectId: z.string().uuid().optional(),
         grouping: z.enum(["person_rate", "task", "single"]),
         includeTaskList: z.boolean().default(false),
+        // Clear the draft's previously generated lines (releasing their time
+        // back to the pool) and regenerate - the fix for a wrong grouping
+        // choice. Manual fixed-amount lines are untouched.
+        replace: z.boolean().default(false),
         fxRates: z
           .record(
             z.string().regex(/^[A-Z]{3}$/),

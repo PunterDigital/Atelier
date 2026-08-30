@@ -7,7 +7,13 @@ import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { schema, type Db } from "@/db";
+import { generateLinesFromUnbilledTime } from "@/modules/billing/generate";
+import {
+  createDraftInvoice,
+  deleteDraftInvoice,
+} from "@/modules/billing/invoices";
 import { createClient } from "@/modules/clients/service";
+import { logManualEntry } from "@/modules/time/service";
 
 import { createProject } from "./service";
 import {
@@ -28,6 +34,7 @@ let db: Db;
 
 let businessA: { id: string };
 let businessB: { id: string };
+let clientA: { id: string };
 let projectA: { id: string };
 let projectB: { id: string };
 const userA = "user-a";
@@ -51,7 +58,7 @@ beforeAll(async () => {
     { id: userA, name: "Ada", email: "ada@alpha.test" },
     { id: userB, name: "Ben", email: "ben@beta.test" },
   ]);
-  const clientA = await createClient(db, businessA.id, userA, {
+  clientA = await createClient(db, businessA.id, userA, {
     name: "Alpha client",
     contacts: [],
   });
@@ -99,7 +106,10 @@ describe("tasks service - cross-business isolation", () => {
       }),
     ).toBeNull();
     expect(await setTaskStatus(db, businessA.id, targetId, "done")).toBeNull();
-    expect(await deleteTask(db, businessA.id, targetId)).toBeNull();
+    expect(await deleteTask(db, businessA.id, targetId)).toEqual({
+      ok: false,
+      reason: "not_found",
+    });
 
     const [untouched] = await listTasks(db, businessB.id, projectB.id);
     expect(untouched.title).toBe("Beta task");
@@ -141,7 +151,7 @@ describe("tasks service - lifecycle", () => {
       businessA.id,
       (created as { id: string }).id,
     );
-    expect(deleted).not.toBeNull();
+    expect(deleted.ok).toBe(true);
     expect(await listTasks(db, businessA.id, projectA.id)).toEqual([]);
   });
 
@@ -161,7 +171,7 @@ describe("tasks service - lifecycle", () => {
     });
 
     const deleted = await deleteTask(db, businessA.id, task.id);
-    expect(deleted).not.toBeNull();
+    expect(deleted.ok).toBe(true);
 
     // The FK is ON DELETE cascade, so the entry is gone with the task
     // rather than the delete failing on a constraint violation.
@@ -170,6 +180,43 @@ describe("tasks service - lifecycle", () => {
       .from(schema.timeEntry)
       .where(eq(schema.timeEntry.taskId, task.id));
     expect(entries).toEqual([]);
+  });
+
+  it("refuses to delete a task whose time is billed, until it is released", async () => {
+    const task = (await createTask(db, businessA.id, projectA.id, {
+      title: "Task with billed time",
+      status: "in_progress",
+    })) as { id: string };
+    await logManualEntry(db, businessA.id, userA, {
+      taskId: task.id,
+      startedAt: new Date("2026-06-10T09:00:00Z"),
+      durationSeconds: 3600,
+      billable: true,
+      rateMinor: 6000,
+      rateCurrency: "GBP",
+    });
+
+    const draft = (await createDraftInvoice(db, businessA.id, {
+      clientId: clientA.id,
+      currency: "GBP",
+      taxTreatment: "zero_rated",
+    })) as { id: string };
+    const generated = await generateLinesFromUnbilledTime(db, businessA.id, {
+      invoiceId: draft.id,
+      grouping: "task",
+    });
+    expect(generated).toMatchObject({ ok: true, lineCount: 1 });
+
+    // Billed time blocks the delete - the tracked hour must not vanish.
+    expect(await deleteTask(db, businessA.id, task.id)).toEqual({
+      ok: false,
+      reason: "billed_time",
+    });
+
+    // Deleting the draft releases the time; the task can go now.
+    expect(await deleteDraftInvoice(db, businessA.id, draft.id)).not.toBeNull();
+    const deleted = await deleteTask(db, businessA.id, task.id);
+    expect(deleted.ok).toBe(true);
   });
 });
 

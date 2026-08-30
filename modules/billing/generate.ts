@@ -3,7 +3,17 @@
 // path is fixture-testable; the db wrapper links entries to the lines it
 // creates and recomputes invoice totals in the same transaction.
 
-import { and, eq, inArray, isNotNull, isNull, max } from "drizzle-orm";
+import {
+  and,
+  eq,
+  exists,
+  inArray,
+  isNotNull,
+  isNull,
+  max,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import type { Db } from "@/db";
 import { schema } from "@/db";
@@ -260,9 +270,101 @@ export async function recomputeInvoiceTotals(
   return updated;
 }
 
+// Why a generation found nothing to bill: how the client's entries are
+// distributed over the states that exclude them from the unbilled pool.
+// Surfaced with every nothing_to_bill result so "no lines" is never a
+// mystery - the counts name the fix (delete/void the holding invoice, set
+// a rate, stop a timer).
+export type NothingToBillDetails = {
+  // Billable, closed, unbilled entries with no stored rate.
+  unpriced: number;
+  // Billable entries whose timer has not been stopped yet.
+  running: number;
+  nonBillable: number;
+  // Entries already linked to invoice lines, grouped by holding invoice.
+  alreadyBilled: {
+    invoiceId: string;
+    number: string | null;
+    status: string;
+    entries: number;
+  }[];
+};
+
+async function describeNothingToBill(
+  db: Db,
+  businessId: string,
+  clientId: string,
+  projectId?: string,
+): Promise<NothingToBillDetails> {
+  const scope = [
+    eq(schema.timeEntry.businessId, businessId),
+    eq(schema.project.clientId, clientId),
+  ];
+  if (projectId) {
+    scope.push(eq(schema.project.id, projectId));
+  }
+  const rows = await db
+    .select({
+      billable: schema.timeEntry.billable,
+      endedAt: schema.timeEntry.endedAt,
+      rateMinor: schema.timeEntry.rateMinor,
+      rateCurrency: schema.timeEntry.rateCurrency,
+      invoiceId: schema.invoice.id,
+      invoiceNumber: schema.invoice.number,
+      invoiceStatus: schema.invoice.status,
+    })
+    .from(schema.timeEntry)
+    .innerJoin(schema.task, eq(schema.timeEntry.taskId, schema.task.id))
+    .innerJoin(schema.project, eq(schema.task.projectId, schema.project.id))
+    .leftJoin(
+      schema.invoiceLine,
+      eq(schema.timeEntry.invoiceLineId, schema.invoiceLine.id),
+    )
+    .leftJoin(
+      schema.invoice,
+      eq(schema.invoiceLine.invoiceId, schema.invoice.id),
+    )
+    .where(and(...scope));
+
+  const details: NothingToBillDetails = {
+    unpriced: 0,
+    running: 0,
+    nonBillable: 0,
+    alreadyBilled: [],
+  };
+  const byInvoice = new Map<string, NothingToBillDetails["alreadyBilled"][number]>();
+  for (const row of rows) {
+    if (row.invoiceId) {
+      const bucket = byInvoice.get(row.invoiceId) ?? {
+        invoiceId: row.invoiceId,
+        number: row.invoiceNumber,
+        status: row.invoiceStatus as string,
+        entries: 0,
+      };
+      bucket.entries += 1;
+      byInvoice.set(row.invoiceId, bucket);
+    } else if (!row.billable) {
+      details.nonBillable += 1;
+    } else if (row.endedAt === null) {
+      details.running += 1;
+    } else if (row.rateMinor === null || row.rateCurrency === null) {
+      details.unpriced += 1;
+    }
+  }
+  details.alreadyBilled = [...byInvoice.values()].sort(
+    (a, b) => b.entries - a.entries,
+  );
+  return details;
+}
+
 // Pulls the client's unbilled, billable, closed entries (optionally one
 // project's), runs the grouping core, and writes lines + entry links +
-// totals in one transaction onto an existing draft invoice.
+// totals in one transaction onto an existing draft invoice. With
+// `replace`, the draft's previously generated lines are cleared and their
+// time re-pooled first (so a wrong grouping choice is a regenerate away,
+// not a dead end) - manual fixed-amount lines are never touched. The line
+// insert and entry linking are batched: one statement each, so a large
+// generation commits in a handful of round trips instead of two per line.
 export async function generateLinesFromUnbilledTime(
   db: Db,
   businessId: string,
@@ -272,6 +374,7 @@ export async function generateLinesFromUnbilledTime(
     grouping: GroupingMode;
     fxRates?: Record<string, FxRateInput>;
     includeTaskList?: boolean;
+    replace?: boolean;
   },
 ) {
   return db.transaction(async (tx) => {
@@ -293,7 +396,21 @@ export async function generateLinesFromUnbilledTime(
       eq(schema.timeEntry.businessId, businessId),
       eq(schema.project.clientId, inv.clientId),
       eq(schema.timeEntry.billable, true),
-      isNull(schema.timeEntry.invoiceLineId),
+      // In replace mode, time billed on this draft's own lines counts as
+      // available again - the pool is validated before anything is deleted,
+      // so a failed grouping never destroys the existing lines.
+      input.replace
+        ? or(
+            isNull(schema.timeEntry.invoiceLineId),
+            inArray(
+              schema.timeEntry.invoiceLineId,
+              tx
+                .select({ id: schema.invoiceLine.id })
+                .from(schema.invoiceLine)
+                .where(eq(schema.invoiceLine.invoiceId, inv.id)),
+            ),
+          )!
+        : isNull(schema.timeEntry.invoiceLineId),
       isNotNull(schema.timeEntry.endedAt),
     ];
     if (input.projectId) {
@@ -327,7 +444,40 @@ export async function generateLinesFromUnbilledTime(
       includeTaskList: input.includeTaskList,
     });
     if (!result.ok) {
+      if (result.reason === "nothing_to_bill") {
+        return {
+          ...result,
+          details: await describeNothingToBill(
+            tx,
+            businessId,
+            inv.clientId,
+            input.projectId,
+          ),
+        };
+      }
       return result;
+    }
+
+    if (input.replace) {
+      // Clear this draft's generated lines: still-linked ones (their entries
+      // are re-pooled by the FK's SET NULL and immediately re-linked below)
+      // and orphaned time-backed leftovers whose entries no longer exist.
+      await tx.delete(schema.invoiceLine).where(
+        and(
+          eq(schema.invoiceLine.invoiceId, inv.id),
+          or(
+            isNotNull(schema.invoiceLine.quantity),
+            exists(
+              tx
+                .select({ one: sql`1` })
+                .from(schema.timeEntry)
+                .where(
+                  eq(schema.timeEntry.invoiceLineId, schema.invoiceLine.id),
+                ),
+            ),
+          ),
+        ),
+      );
     }
 
     const [{ maxPosition }] = await tx
@@ -335,15 +485,14 @@ export async function generateLinesFromUnbilledTime(
       .from(schema.invoiceLine)
       .where(eq(schema.invoiceLine.invoiceId, inv.id));
 
-    let position = Number(maxPosition ?? 0);
-    for (const line of result.lines) {
-      position += 1;
-      const [created] = await tx
-        .insert(schema.invoiceLine)
-        .values({
+    const basePosition = Number(maxPosition ?? 0);
+    const created = await tx
+      .insert(schema.invoiceLine)
+      .values(
+        result.lines.map((line, i) => ({
           businessId,
           invoiceId: inv.id,
-          position,
+          position: basePosition + i + 1,
           description: line.description,
           quantity: line.quantity,
           unitPriceMinor: line.unitPriceMinor,
@@ -352,13 +501,37 @@ export async function generateLinesFromUnbilledTime(
           sourceTotalMinor: line.sourceTotalMinor,
           fxRate: line.fxRate,
           fxSource: line.fxSource,
-        })
-        .returning();
-      await tx
-        .update(schema.timeEntry)
-        .set({ invoiceLineId: created.id, updatedAt: new Date() })
-        .where(inArray(schema.timeEntry.id, line.entryIds));
-    }
+        })),
+      )
+      .returning({
+        id: schema.invoiceLine.id,
+        position: schema.invoiceLine.position,
+      });
+    // RETURNING order is not guaranteed; positions are unique within the
+    // batch, so they map each created id back to its source line.
+    const idByPosition = new Map(created.map((l) => [l.position, l.id]));
+
+    const pairs: { entryId: string; lineId: string }[] = [];
+    result.lines.forEach((line, i) => {
+      const lineId = idByPosition.get(basePosition + i + 1);
+      if (!lineId) {
+        throw new Error("Generated line missing from insert result");
+      }
+      for (const entryId of line.entryIds) {
+        pairs.push({ entryId, lineId });
+      }
+    });
+    const values = sql.join(
+      pairs.map((p) => sql`(${p.entryId}::uuid, ${p.lineId}::uuid)`),
+      sql`, `,
+    );
+    await tx.execute(sql`
+      update "time_entry" set
+        "invoice_line_id" = m.line_id,
+        "updated_at" = now()
+      from (values ${values}) as m(entry_id, line_id)
+      where "time_entry"."id" = m.entry_id
+    `);
 
     await recomputeInvoiceTotals(tx, businessId, inv.id);
     return {

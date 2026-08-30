@@ -57,7 +57,18 @@ export const tasksRouter = createTRPCRouter({
 
   delete: permissionProcedure("tasks.delete")
     .input(z.object({ taskId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) =>
-      found(await deleteTask(getDb(), ctx.businessId, input.taskId)),
-    ),
+    .mutation(async ({ ctx, input }) => {
+      const result = await deleteTask(getDb(), ctx.businessId, input.taskId);
+      if (!result.ok) {
+        if (result.reason === "billed_time") {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message:
+              "This task has time billed on an invoice. Remove those invoice lines, delete the draft, or void the issued invoice to release the time, then delete the task.",
+          });
+        }
+        throw new TRPCError({ code: "NOT_FOUND", message: "No such task" });
+      }
+      return result.task;
+    }),
 });

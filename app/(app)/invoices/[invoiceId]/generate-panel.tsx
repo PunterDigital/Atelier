@@ -22,6 +22,55 @@ const selectClassName =
 type Grouping = "person_rate" | "task" | "single";
 type RateDraft = { rate: string; source: "ecb" | "manual"; effectiveDate?: string };
 
+type NothingToBillDetails = {
+  unpriced: number;
+  running: number;
+  nonBillable: number;
+  alreadyBilled: {
+    invoiceId: string;
+    number: string | null;
+    status: string;
+    entries: number;
+  }[];
+};
+
+// "Nothing to bill" is never left unexplained: the details say where the
+// client's time actually is, so the user knows what to do next instead of
+// staring at an empty invoice.
+function nothingToBillNotice(details?: NothingToBillDetails): string {
+  if (!details) {
+    return "No unbilled billable time for this client";
+  }
+  const parts: string[] = [];
+  for (const held of details.alreadyBilled) {
+    const label = held.number
+      ? `invoice ${held.number} (${held.status})`
+      : "a draft invoice";
+    parts.push(
+      `${held.entries} ${held.entries === 1 ? "entry is" : "entries are"} already billed on ${label}`,
+    );
+  }
+  if (details.unpriced > 0) {
+    parts.push(
+      `${details.unpriced} ${details.unpriced === 1 ? "entry has" : "entries have"} no rate (rates apply to entries logged after they are set)`,
+    );
+  }
+  if (details.running > 0) {
+    parts.push(
+      `${details.running} ${details.running === 1 ? "timer is" : "timers are"} still running`,
+    );
+  }
+  if (details.nonBillable > 0) {
+    parts.push(
+      `${details.nonBillable} ${details.nonBillable === 1 ? "entry is" : "entries are"} non-billable`,
+    );
+  }
+  if (parts.length === 0) {
+    return "No time has been tracked for this client yet";
+  }
+  return `No unbilled time to pull: ${parts.join("; ")}`;
+}
+
 // Pulls unbilled time onto the draft. When entries carry rates in other
 // currencies, the panel fetches the ECB rate per currency for review (or
 // manual entry when uncovered/edited) - the user confirms exactly what
@@ -41,6 +90,7 @@ export function GeneratePanel({
   const [grouping, setGrouping] = useState<Grouping>("person_rate");
   const [projectId, setProjectId] = useState<string>("");
   const [includeTaskList, setIncludeTaskList] = useState(false);
+  const [replace, setReplace] = useState(false);
   const [rates, setRates] = useState<Record<string, RateDraft> | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +134,11 @@ export function GeneratePanel({
           );
           return;
         }
-        setNotice("No unbilled billable time for this client");
+        if (result.reason === "nothing_to_bill") {
+          setNotice(nothingToBillNotice(result.details));
+          return;
+        }
+        setError("Only draft invoices can be generated onto");
       },
       onError: (mutationError) => setError(mutationError.message),
     }),
@@ -98,6 +152,7 @@ export function GeneratePanel({
       grouping,
       projectId: projectId || undefined,
       includeTaskList,
+      replace,
       fxRates:
         withRates && rates
           ? Object.fromEntries(
@@ -160,6 +215,15 @@ export function GeneratePanel({
             List covered tasks in the description
           </label>
         ) : null}
+        <label className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <input
+            type="checkbox"
+            checked={replace}
+            onChange={(e) => setReplace(e.target.checked)}
+          />
+          Replace lines generated earlier on this draft (their time is pulled
+          again with the grouping chosen above; manual lines are kept)
+        </label>
 
         {rates ? (
           <div className="flex flex-col gap-3 rounded-md border bg-[var(--surface-sunken)] p-3">
