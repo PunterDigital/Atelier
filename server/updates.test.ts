@@ -1,11 +1,8 @@
-import { fileURLToPath } from "node:url";
-
 import { PGlite } from "@electric-sql/pglite";
-import { drizzle } from "drizzle-orm/pglite";
-import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { schema, setTestDb, type Db } from "@/db";
+import { setTestDb, type Db } from "@/db";
+import { createTestDatabase } from "@/db/testing";
 
 import {
   fetchLatestGhcrVersion,
@@ -15,8 +12,6 @@ import {
   resetUpdateCheckCache,
   setUpdateChecksEnabled,
 } from "./updates";
-
-const migrationsFolder = fileURLToPath(new URL("../db/migrations", import.meta.url));
 
 function tagsResponse(tags: string[]): Response {
   return new Response(JSON.stringify({ tags }), {
@@ -137,10 +132,7 @@ describe("update settings + status (against a real DB)", () => {
   let db: Db;
 
   beforeAll(async () => {
-    pglite = new PGlite();
-    const pgliteDb = drizzle(pglite, { schema });
-    await migrate(pgliteDb, { migrationsFolder });
-    db = pgliteDb;
+    ({ pglite, db } = await createTestDatabase());
     setTestDb(db);
   });
 

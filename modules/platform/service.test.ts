@@ -1,11 +1,8 @@
-import { fileURLToPath } from "node:url";
-
 import { PGlite } from "@electric-sql/pglite";
-import { drizzle } from "drizzle-orm/pglite";
-import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { schema, type Db } from "@/db";
+import { createTestDatabase } from "@/db/testing";
 
 import {
   getBusinessDetail,
@@ -24,18 +21,11 @@ import {
   suspendUser,
 } from "./service";
 
-const migrationsFolder = fileURLToPath(
-  new URL("../../db/migrations", import.meta.url),
-);
-
 let pglite: PGlite;
 let db: Db;
 
 beforeAll(async () => {
-  pglite = new PGlite();
-  const pgliteDb = drizzle(pglite, { schema });
-  await migrate(pgliteDb, { migrationsFolder });
-  db = pgliteDb;
+  ({ pglite, db } = await createTestDatabase());
 });
 
 afterAll(async () => {

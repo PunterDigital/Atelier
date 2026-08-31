@@ -1,13 +1,10 @@
-import { fileURLToPath } from "node:url";
-
 import { PGlite } from "@electric-sql/pglite";
 import { getTableColumns, getTableName, is } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/pglite";
-import { migrate } from "drizzle-orm/pglite/migrator";
 import { PgTable } from "drizzle-orm/pg-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { schema, type Db } from "@/db";
+import { createTestDatabase } from "@/db/testing";
 
 import {
   EXPORT_EXEMPT_TABLES,
@@ -25,10 +22,6 @@ import {
 //      asserted structurally against the schema so a new table can't slip out;
 //   2. scoping       - the export contains only the caller's business data;
 //   3. portability   - the file carries the documented format metadata.
-
-const migrationsFolder = fileURLToPath(
-  new URL("../../db/migrations", import.meta.url),
-);
 
 // Every table in the schema, and the subset that carries business_id - the
 // same reflection db/schema.test.ts uses to enforce the tenancy convention.
@@ -260,10 +253,7 @@ let businessA: SeededBusiness;
 let businessB: SeededBusiness;
 
 beforeAll(async () => {
-  pglite = new PGlite();
-  const pgliteDb = drizzle(pglite, { schema });
-  await migrate(pgliteDb, { migrationsFolder });
-  db = pgliteDb;
+  ({ pglite, db } = await createTestDatabase());
 
   businessA = await seedFullBusiness("Alpha Studio", "alpha", "GBP");
   businessB = await seedFullBusiness("Beta Works", "beta", "EUR");

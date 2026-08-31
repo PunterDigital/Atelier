@@ -1,13 +1,12 @@
 import { readdirSync } from "node:fs";
-import { sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { sep } from "node:path";
 
 import { PGlite } from "@electric-sql/pglite";
-import { drizzle } from "drizzle-orm/pglite";
-import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { schema, setTestDb, type Db } from "@/db";
+import { setTestDb, type Db } from "@/db";
+import { createTestDatabase } from "@/db/testing";
 
 // The unauthenticated-access boundary for the whole HTTP surface: every URL an
 // anonymous visitor could type must either be intentionally public or refuse
@@ -38,10 +37,6 @@ vi.mock("next/headers", () => ({
 // tRPC server caller, so stub it to a no-op to let the module import here.
 vi.mock("server-only", () => ({}));
 
-const migrationsFolder = fileURLToPath(
-  new URL("../db/migrations", import.meta.url),
-);
-
 // The app/ directory this test lives in, for the structural coverage pass.
 const appDir = fileURLToPath(new URL("./", import.meta.url));
 
@@ -56,10 +51,7 @@ beforeAll(async () => {
   process.env.BETTER_AUTH_SECRET ??= "test-secret-unauthenticated-access";
   process.env.BETTER_AUTH_URL ??= "http://localhost:3000";
 
-  pglite = new PGlite();
-  const pgliteDb = drizzle(pglite, { schema });
-  await migrate(pgliteDb, { migrationsFolder });
-  db = pgliteDb;
+  ({ pglite, db } = await createTestDatabase());
   setTestDb(db);
 });
 

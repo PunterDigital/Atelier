@@ -120,6 +120,11 @@ function outsideMargins(pages: Box[][], width: number, height: number) {
   );
 }
 
+// Inclusive range, for sweeping a fixture across a page break.
+function range(from: number, to: number): number[] {
+  return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+}
+
 // A4, in points.
 const A4_WIDTH = 595.28;
 const A4_HEIGHT = 841.89;
@@ -266,26 +271,33 @@ describe("invoice PDF layout", () => {
     // normal flow, so content that reached that far printed straight through
     // it. It only showed up when the notes happened to end inside the footer
     // band, so this walks the notes down through it a line at a time.
-    for (let count = 24; count <= 34; count++) {
-      const notes = Array.from(
-        { length: count },
-        (_, i) => `- Audit workstream item ${i + 1} delivered during the period`,
-      ).join("\n");
+    // Notes are set on a 14.4pt line and the footer block stands about 62pt
+    // tall, so six consecutive fills are enough to guarantee one of them ends
+    // inside the footer band - which is the only place the fault showed.
+    const counts = range(26, 31);
+    const rendered = await Promise.all(
+      counts.map(async (count) => {
+        const notes = Array.from(
+          { length: count },
+          (_, i) => `- Audit workstream item ${i + 1} delivered during the period`,
+        ).join("\n");
 
-      const pages = await textBoxes(
-        await buildInvoicePdf(
-          invoice({
-            notes,
-            footerNote:
-              "Studio Demo, registered in England & Wales no. 08123456.\nBank details on request. Please quote the invoice number.",
-          }),
-        ),
-      );
+        return textBoxes(
+          await buildInvoicePdf(
+            invoice({
+              notes,
+              footerNote:
+                "Studio Demo, registered in England & Wales no. 08123456.\nBank details on request. Please quote the invoice number.",
+            }),
+          ),
+        );
+      }),
+    );
 
-      expect(collisions(pages), `${count} notes`).toEqual([]);
-      expect(outsideMargins(pages, A4_WIDTH, A4_HEIGHT), `${count} notes`).toEqual(
-        [],
-      );
+    rendered.forEach((pages, i) => {
+      const where = `${counts[i]} notes`;
+      expect(collisions(pages), where).toEqual([]);
+      expect(outsideMargins(pages, A4_WIDTH, A4_HEIGHT), where).toEqual([]);
 
       // The footer is the last thing on the invoice, and appears once.
       const footerPages = pages.flatMap((boxes, index) =>
@@ -293,8 +305,8 @@ describe("invoice PDF layout", () => {
           ? [index]
           : [],
       );
-      expect(footerPages, `${count} notes`).toEqual([pages.length - 1]);
-    }
+      expect(footerPages, where).toEqual([pages.length - 1]);
+    });
   });
 
   it("lets a line item taller than the page break across pages", async () => {
@@ -327,13 +339,18 @@ describe("invoice PDF layout", () => {
       .flat()
       .join(", ")})`;
 
-    for (const lineDescription of [asLines, asParagraph]) {
-      const pages = await textBoxes(
-        await buildInvoicePdf(invoice({ lineDescription })),
-      );
-      expect(pages.length).toBeGreaterThan(1);
-      expect(collisions(pages)).toEqual([]);
-      expect(outsideMargins(pages, A4_WIDTH, A4_HEIGHT)).toEqual([]);
+    const shapes = { "one line per task": asLines, "one paragraph": asParagraph };
+    const rendered = await Promise.all(
+      Object.entries(shapes).map(async ([name, lineDescription]) => [
+        name,
+        await textBoxes(await buildInvoicePdf(invoice({ lineDescription }))),
+      ] as const),
+    );
+
+    for (const [name, pages] of rendered) {
+      expect(pages.length, name).toBeGreaterThan(1);
+      expect(collisions(pages), name).toEqual([]);
+      expect(outsideMargins(pages, A4_WIDTH, A4_HEIGHT), name).toEqual([]);
     }
   });
 
@@ -341,21 +358,30 @@ describe("invoice PDF layout", () => {
     // A caption alone at the foot of a page, with the notes it introduces
     // overleaf, reads as a mistake. Where the block falls depends on how
     // much else is on the page, so this walks it across the page break.
-    for (let extra = 0; extra < 12; extra++) {
-      const notes = Array.from(
-        { length: 20 + extra },
-        (_, i) => `- Audit workstream item ${i + 1}`,
-      ).join("\n");
+    // Six consecutive fills, for the same reason as above: enough to walk the
+    // caption across the page break wherever it happens to fall.
+    const lengths = range(24, 29);
+    const rendered = await Promise.all(
+      lengths.map(async (length) => {
+        const notes = Array.from(
+          { length },
+          (_, i) => `- Audit workstream item ${i + 1}`,
+        ).join("\n");
 
-      const pages = await textBoxes(
-        await buildInvoicePdf(invoice({ notes, footerNote: "Thank you." })),
-      );
+        return textBoxes(
+          await buildInvoicePdf(invoice({ notes, footerNote: "Thank you." })),
+        );
+      }),
+    );
+
+    rendered.forEach((pages, i) => {
       const captionPage = pages.findIndex((boxes) =>
         boxes.some((box) => box.text === "NOTES"),
       );
       expect(
         pages[captionPage].some((box) => box.text.startsWith("- Audit")),
+        `${lengths[i]} notes`,
       ).toBe(true);
-    }
+    });
   });
 });
