@@ -1,8 +1,23 @@
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { buildInvoicePdfData } from "@/modules/billing/pdf-data";
 
 import { buildInvoicePdf } from "./invoice-document";
+
+// pdfjs needs the standard font data to measure Helvetica, and warns on
+// every page it parses without it. The invoice is set entirely in the PDF
+// standard fonts, so this is exactly the data it wants; resolving it through
+// the package keeps it working under pnpm's nested layout.
+const standardFontDataUrl = join(
+  dirname(createRequire(import.meta.url).resolve("pdfjs-dist/package.json")),
+  "standard_fonts",
+  // pdfjs concatenates the font's filename onto this, so it has to end in a
+  // separator.
+  "/",
+);
 
 // The page margin the document is laid out to (styles.page padding).
 const PAGE_MARGIN = 56;
@@ -32,9 +47,10 @@ async function textBoxes(pdf: Buffer): Promise<Box[][]> {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const doc = await pdfjs.getDocument({
     data: new Uint8Array(pdf),
-    // The document uses only the PDF standard fonts, which need no font
-    // data to measure, and this keeps the parser quiet about not having a
-    // URL to fetch it from.
+    standardFontDataUrl,
+    // Measure with the standard font data above rather than whatever fonts
+    // the machine running the tests happens to have, so the geometry these
+    // tests assert on is the same everywhere.
     useSystemFonts: false,
   }).promise;
 
