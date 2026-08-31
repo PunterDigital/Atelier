@@ -1,13 +1,10 @@
-import { fileURLToPath } from "node:url";
-
 import { PGlite } from "@electric-sql/pglite";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/pglite";
-import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { schema, setTestDb, type Db } from "@/db";
 import type { Session } from "@/server/auth";
+import { createTestDatabase } from "@/db/testing";
 
 import { createCallerFactory, type TRPCContext } from "../init";
 import { appRouter } from "./_app";
@@ -17,10 +14,6 @@ import { appRouter } from "./_app";
 // reaching a business the user never joined. The real appRouter runs against
 // in-process PGlite via the getDb() test seam, so every assertion exercises the
 // actual procedures and the membership resolver - not mocks.
-
-const migrationsFolder = fileURLToPath(
-  new URL("../../../db/migrations", import.meta.url),
-);
 
 const createCaller = createCallerFactory(appRouter);
 type Caller = ReturnType<typeof createCaller>;
@@ -37,10 +30,7 @@ let pglite: PGlite;
 let db: Db;
 
 beforeAll(async () => {
-  pglite = new PGlite();
-  const pgliteDb = drizzle(pglite, { schema });
-  await migrate(pgliteDb, { migrationsFolder });
-  db = pgliteDb;
+  ({ pglite, db } = await createTestDatabase());
   setTestDb(db);
 });
 

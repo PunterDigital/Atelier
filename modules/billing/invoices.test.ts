@@ -3,12 +3,11 @@ import { fileURLToPath } from "node:url";
 
 import { PGlite } from "@electric-sql/pglite";
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/pglite";
-import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { schema, type Db } from "@/db";
 import { createClient } from "@/modules/clients/service";
+import { createTestDatabase } from "@/db/testing";
 
 import { addManualLine } from "./generate";
 import {
@@ -47,10 +46,6 @@ const fixture = JSON.parse(
   };
 };
 
-const migrationsFolder = fileURLToPath(
-  new URL("../../db/migrations", import.meta.url),
-);
-
 let pglite: PGlite;
 let db: Db;
 let businessA: { id: string };
@@ -81,10 +76,7 @@ async function issueOk(businessId: string, invoiceId: string, date?: Date) {
 }
 
 beforeAll(async () => {
-  pglite = new PGlite();
-  const pgliteDb = drizzle(pglite, { schema });
-  await migrate(pgliteDb, { migrationsFolder });
-  db = pgliteDb;
+  ({ pglite, db } = await createTestDatabase());
 
   [businessA] = await db
     .insert(schema.business)

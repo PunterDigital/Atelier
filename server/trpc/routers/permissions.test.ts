@@ -1,9 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { fileURLToPath } from "node:url";
 
 import { PGlite } from "@electric-sql/pglite";
-import { drizzle } from "drizzle-orm/pglite";
-import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { schema, setTestDb, type Db } from "@/db";
@@ -15,6 +12,7 @@ import {
   type Role,
 } from "@/modules/authz";
 import type { Session } from "@/server/auth";
+import { createTestDatabase } from "@/db/testing";
 
 import { createCallerFactory, type TRPCContext } from "../init";
 import { appRouter } from "./_app";
@@ -25,10 +23,6 @@ import { appRouter } from "./_app";
 // every permission's representative procedure and assert it is allowed exactly
 // when the role grants it. Overrides and the role/permission management guards
 // get their own sections below.
-
-const migrationsFolder = fileURLToPath(
-  new URL("../../../db/migrations", import.meta.url),
-);
 
 const createCaller = createCallerFactory(appRouter);
 type Caller = ReturnType<typeof createCaller>;
@@ -216,10 +210,7 @@ async function addMember(
 }
 
 beforeAll(async () => {
-  pglite = new PGlite();
-  const pgliteDb = drizzle(pglite, { schema });
-  await migrate(pgliteDb, { migrationsFolder });
-  db = pgliteDb;
+  ({ pglite, db } = await createTestDatabase());
   setTestDb(db);
 
   // A self-contained business per role: the owner plus, for non-owner roles,

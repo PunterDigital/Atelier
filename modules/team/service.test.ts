@@ -1,12 +1,9 @@
-import { fileURLToPath } from "node:url";
-
 import { PGlite } from "@electric-sql/pglite";
 import { and, eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/pglite";
-import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { schema, type Db } from "@/db";
+import { createTestDatabase } from "@/db/testing";
 
 import {
   acceptInvitation,
@@ -18,20 +15,13 @@ import {
   revokeInvitation,
 } from "./service";
 
-const migrationsFolder = fileURLToPath(
-  new URL("../../db/migrations", import.meta.url),
-);
-
 let pglite: PGlite;
 let db: Db;
 let alpha: { id: string };
 let beta: { id: string };
 
 beforeAll(async () => {
-  pglite = new PGlite();
-  const pgliteDb = drizzle(pglite, { schema });
-  await migrate(pgliteDb, { migrationsFolder });
-  db = pgliteDb;
+  ({ pglite, db } = await createTestDatabase());
 
   await db.insert(schema.user).values([
     { id: "owner-a", name: "Owner A", email: "owner-a@test.dev" },

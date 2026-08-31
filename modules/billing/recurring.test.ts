@@ -1,13 +1,10 @@
-import { fileURLToPath } from "node:url";
-
 import { PGlite } from "@electric-sql/pglite";
 import { and, eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/pglite";
-import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { schema, type Db } from "@/db";
 import { createClient } from "@/modules/clients/service";
+import { createTestDatabase } from "@/db/testing";
 
 import {
   createSchedule,
@@ -21,10 +18,6 @@ import {
   updateSchedule,
   type ScheduleInput,
 } from "./recurring";
-
-const migrationsFolder = fileURLToPath(
-  new URL("../../db/migrations", import.meta.url),
-);
 
 const utc = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
 
@@ -60,10 +53,7 @@ async function invoicesFor(scheduleId: string, businessId: string) {
 }
 
 beforeAll(async () => {
-  pglite = new PGlite();
-  const pgliteDb = drizzle(pglite, { schema });
-  await migrate(pgliteDb, { migrationsFolder });
-  db = pgliteDb;
+  ({ pglite, db } = await createTestDatabase());
 
   [businessA] = await db
     .insert(schema.business)
