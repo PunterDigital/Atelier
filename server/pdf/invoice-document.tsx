@@ -25,9 +25,32 @@ const colors = {
   border: "#E8E1D8",
 };
 
+// One spacing scale for the whole document, so the gaps between sections
+// stay in proportion when any one of them is tuned. Values are PDF points.
+const space = {
+  // Page margin. A4 is 595x842pt, so 56pt leaves a ~483pt column - wide
+  // enough for a full line item, with a comfortable margin for printing.
+  page: 56,
+  // Between the major bands: header, meta, table, totals, notes, footer.
+  section: 28,
+  // Between a small-caps caption and the value under it.
+  caption: 6,
+  // Between stacked fields inside a meta column.
+  field: 12,
+  // Vertical breathing room inside a line-item row.
+  row: 10,
+};
+
+// Helvetica draws a line box about 1.38x its font size, so anything tighter
+// than that has consecutive lines overlapping the moment the text wraps.
+// The page's 1.5 is comfortable for body copy; the display sizes (business
+// name, title, balance) use this slightly tighter value, which still leaves
+// a clear gap when they wrap onto a second line.
+const displayLineHeight = 1.45;
+
 const styles = StyleSheet.create({
   page: {
-    padding: 48,
+    padding: space.page,
     fontFamily: "Helvetica",
     fontSize: 10,
     color: colors.textStrong,
@@ -37,29 +60,45 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 28,
+    marginBottom: space.section,
   },
+  // The header columns are explicitly sized. Without this the business
+  // block is free to grow past the middle of the page and print on top of
+  // the invoice title and balance, which is what a long business name used
+  // to do. The left column flexes and wraps; the right one keeps the width
+  // its title and amount need.
+  headerLeft: { flex: 1, paddingRight: 24 },
+  headerRight: { flexShrink: 0, maxWidth: "45%", alignItems: "flex-end" },
   businessName: {
     fontSize: 16,
     fontFamily: "Helvetica-Bold",
     color: colors.primary,
-    marginBottom: 5,
+    lineHeight: displayLineHeight,
+    // Clears the descenders of this line from the ascenders of the address
+    // line below it, which used to touch.
+    marginBottom: 10,
   },
-  title: { fontSize: 22, fontFamily: "Helvetica-Bold", textAlign: "right" },
-  balanceBox: { marginTop: 22, alignItems: "flex-end" },
+  title: {
+    fontSize: 22,
+    fontFamily: "Helvetica-Bold",
+    textAlign: "right",
+    lineHeight: displayLineHeight,
+  },
+  balanceBox: { marginTop: 20, alignItems: "flex-end" },
   balanceCaption: {
     fontSize: 8,
     fontFamily: "Helvetica-Bold",
     color: colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.8,
-    marginBottom: 3,
+    marginBottom: space.caption,
     textAlign: "right",
   },
   balanceAmount: {
     fontSize: 18,
     fontFamily: "Helvetica-Bold",
     textAlign: "right",
+    lineHeight: displayLineHeight,
   },
   paidBadge: {
     fontSize: 10,
@@ -96,25 +135,28 @@ const styles = StyleSheet.create({
   metaBlock: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 28,
+    marginBottom: space.section,
   },
-  metaColumn: { maxWidth: "48%" },
+  metaColumn: { width: "46%" },
   metaCaption: {
     fontSize: 8,
     fontFamily: "Helvetica-Bold",
     color: colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.8,
-    marginBottom: 3,
+    marginBottom: space.caption,
   },
+  // Second and subsequent captions in a meta column, spaced off the value
+  // above them.
+  metaCaptionStacked: { marginTop: space.field },
   metaLine: { fontSize: 10 },
   metaMuted: { fontSize: 10, color: colors.textMuted },
   tableHeader: {
     flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    paddingBottom: 5,
-    marginBottom: 2,
+    paddingBottom: 8,
+    marginBottom: 4,
   },
   th: {
     fontSize: 8,
@@ -127,60 +169,81 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    paddingVertical: 7,
+    paddingVertical: space.row,
   },
-  cellDescription: { flex: 1, paddingRight: 12 },
-  cellAmount: { width: 90, textAlign: "right" },
-  lineNote: { fontSize: 8, color: colors.textMuted, marginTop: 1 },
+  // The gutter keeps a description that runs the full width clear of the
+  // amount column rather than butting up against it.
+  cellDescription: { flex: 1, paddingRight: 20 },
+  cellAmount: { width: 96, textAlign: "right" },
+  lineNote: {
+    fontSize: 8,
+    color: colors.textMuted,
+    lineHeight: 1.5,
+    marginTop: 3,
+  },
   totals: {
-    marginTop: 14,
+    marginTop: 20,
     marginLeft: "auto",
-    width: 220,
+    width: 240,
   },
   totalsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 2,
+    paddingVertical: 4,
   },
   totalsGrand: {
     flexDirection: "row",
     justifyContent: "space-between",
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    marginTop: 4,
-    paddingTop: 6,
+    marginTop: 8,
+    paddingTop: 10,
     fontFamily: "Helvetica-Bold",
     fontSize: 12,
   },
-  taxNote: { marginTop: 18, fontSize: 9, color: colors.textMuted },
-  notesBlock: { marginTop: 14 },
+  taxNote: {
+    marginTop: space.section,
+    fontSize: 9,
+    color: colors.textMuted,
+    lineHeight: 1.5,
+  },
+  notesBlock: { marginTop: space.section },
   notesCaption: {
     fontSize: 8,
     fontFamily: "Helvetica-Bold",
     color: colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.8,
-    marginBottom: 3,
+    marginBottom: space.caption,
   },
-  notes: { fontSize: 9, color: colors.textMuted },
-  logo: { maxWidth: 180, height: 48, objectFit: "contain", marginBottom: 10 },
-  footer: {
-    position: "absolute",
-    bottom: 36,
-    left: 48,
-    right: 48,
+  // Notes are usually a bulleted list of work done, so they get a looser
+  // line box than body copy to stay scannable.
+  notes: { fontSize: 9, color: colors.textMuted, lineHeight: 1.6 },
+  logo: { maxWidth: 180, height: 48, objectFit: "contain", marginBottom: 14 },
+  // `marginTop: "auto"` eats the leftover space on the page, which pins the
+  // footer to the bottom of the last page while leaving it in the normal
+  // flow. Being in the flow is the point: the footer used to be absolutely
+  // positioned, so content that reached the bottom of a page printed
+  // straight through it. Now the notes simply push it down, onto a new page
+  // if that is what it takes.
+  footer: { marginTop: "auto", paddingTop: space.section },
+  // The rule and its padding sit on an inner view so the clearance above
+  // the rule (the padding on `footer`) stays outside the border.
+  footerRule: {
     borderTopWidth: 1,
     borderTopColor: colors.border,
-    paddingTop: 8,
+    paddingTop: 10,
   },
   footerLine: {
     fontSize: 8,
     color: colors.textMuted,
-    lineHeight: 1.4,
+    lineHeight: 1.5,
   },
 });
 
 export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
+  const noteLines = data.notes ? data.notes.split("\n") : [];
+
   return (
     <Document
       title={data.title}
@@ -195,7 +258,7 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
           </View>
         ) : null}
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerLeft}>
             {data.logoDataUrl ? (
               // eslint-disable-next-line jsx-a11y/alt-text
               <Image src={data.logoDataUrl} style={styles.logo} />
@@ -212,7 +275,7 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
               <Text style={styles.metaMuted}>VAT {data.businessVatNumber}</Text>
             ) : null}
           </View>
-          <View>
+          <View style={styles.headerRight}>
             <Text style={styles.title}>{data.title}</Text>
             <View style={styles.balanceBox}>
               <Text style={styles.balanceCaption}>Balance Due</Text>
@@ -256,13 +319,15 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
             ) : null}
             {data.dueDateLabel ? (
               <>
-                <Text style={[styles.metaCaption, { marginTop: 8 }]}>Due</Text>
+                <Text style={[styles.metaCaption, styles.metaCaptionStacked]}>
+                  Due
+                </Text>
                 <Text style={styles.metaLine}>{data.dueDateLabel}</Text>
               </>
             ) : null}
             {data.periodLabel ? (
               <>
-                <Text style={[styles.metaCaption, { marginTop: 8 }]}>
+                <Text style={[styles.metaCaption, styles.metaCaptionStacked]}>
                   Billing period
                 </Text>
                 <Text style={styles.metaLine}>{data.periodLabel}</Text>
@@ -292,7 +357,7 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
           </View>
         ))}
 
-        <View style={styles.totals}>
+        <View style={styles.totals} wrap={false}>
           <View style={styles.totalsRow}>
             <Text style={styles.metaMuted}>Subtotal</Text>
             <Text>{data.subtotalLabel}</Text>
@@ -308,10 +373,16 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
         </View>
 
         {data.taxNote ? <Text style={styles.taxNote}>{data.taxNote}</Text> : null}
-        {data.notes ? (
+        {noteLines.length > 0 ? (
           <View style={styles.notesBlock}>
-            <Text style={styles.notesCaption}>Notes</Text>
-            {data.notes.split("\n").map((line, i) => (
+            {/* The caption travels with its first note, so the heading is
+                never stranded alone at the foot of a page with the notes
+                themselves overleaf. */}
+            <View wrap={false}>
+              <Text style={styles.notesCaption}>Notes</Text>
+              <Text style={styles.notes}>{noteLines[0] || " "}</Text>
+            </View>
+            {noteLines.slice(1).map((line, i) => (
               <Text key={i} style={styles.notes}>
                 {line || " "}
               </Text>
@@ -320,16 +391,18 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
         ) : null}
 
         {/* Not `fixed`: a fixed element repeats on every page (it was
-            wrongly showing on page 1 of a multi-page invoice). Absolutely
-            positioned and placed last, it renders once, pinned to the bottom
-            of the final page - the very bottom of the invoice. */}
+            wrongly showing on page 1 of a multi-page invoice). Placed last
+            with an auto top margin, it renders once at the bottom of the
+            final page - the very bottom of the invoice. */}
         {data.footerNote ? (
           <View style={styles.footer}>
-            {data.footerNote.split("\n").map((line, i) => (
-              <Text key={i} style={styles.footerLine}>
-                {line || " "}
-              </Text>
-            ))}
+            <View style={styles.footerRule}>
+              {data.footerNote.split("\n").map((line, i) => (
+                <Text key={i} style={styles.footerLine}>
+                  {line || " "}
+                </Text>
+              ))}
+            </View>
           </View>
         ) : null}
       </Page>

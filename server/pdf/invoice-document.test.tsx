@@ -4,6 +4,161 @@ import { buildInvoicePdfData } from "@/modules/billing/pdf-data";
 
 import { buildInvoicePdf } from "./invoice-document";
 
+// The page margin the document is laid out to (styles.page padding).
+const PAGE_MARGIN = 56;
+// Helvetica's ascender and descender as a fraction of the font size - what
+// the glyphs of a line actually occupy, which is what has to stay clear of
+// the line above and below.
+const ASCENDER = 0.718;
+const DESCENDER = 0.207;
+// Text placed within half a point of its neighbour is touching, not
+// overlapping; rounding in the PDF coordinates makes exact zero brittle.
+const TOLERANCE = 0.5;
+
+type Box = {
+  text: string;
+  left: number;
+  right: number;
+  // Distances from the bottom of the page, as PDF coordinates are.
+  top: number;
+  bottom: number;
+};
+
+// Reads back what the renderer actually put on the page. Asserting on the
+// rendered geometry is the only way to catch layout faults - the JSX and the
+// stylesheet both look perfectly reasonable while text prints on top of
+// other text.
+async function textBoxes(pdf: Buffer): Promise<Box[][]> {
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const doc = await pdfjs.getDocument({
+    data: new Uint8Array(pdf),
+    // The document uses only the PDF standard fonts, which need no font
+    // data to measure, and this keeps the parser quiet about not having a
+    // URL to fetch it from.
+    useSystemFonts: false,
+  }).promise;
+
+  const pages: Box[][] = [];
+  for (let n = 1; n <= doc.numPages; n++) {
+    const page = await doc.getPage(n);
+    const content = await page.getTextContent();
+    pages.push(
+      content.items.flatMap((item) => {
+        if (!("str" in item) || !item.str.trim()) return [];
+        const left = item.transform[4];
+        const baseline = item.transform[5];
+        return [
+          {
+            text: item.str,
+            left,
+            right: left + item.width,
+            top: baseline + item.height * ASCENDER,
+            bottom: baseline - item.height * DESCENDER,
+          },
+        ];
+      }),
+    );
+  }
+  return pages;
+}
+
+function overlaps(a: Box, b: Box): boolean {
+  return (
+    a.left < b.right - TOLERANCE &&
+    b.left < a.right - TOLERANCE &&
+    a.bottom < b.top - TOLERANCE &&
+    b.bottom < a.top - TOLERANCE
+  );
+}
+
+// Every pair of text boxes that share space on the page. The watermark is
+// excluded: "VOID" is meant to print across the invoice.
+function collisions(pages: Box[][]): string[] {
+  const found: string[] = [];
+  pages.forEach((boxes, index) => {
+    const printed = boxes.filter((box) => box.text.trim() !== "VOID");
+    for (let i = 0; i < printed.length; i++) {
+      for (let j = i + 1; j < printed.length; j++) {
+        if (overlaps(printed[i], printed[j])) {
+          found.push(
+            `page ${index + 1}: "${printed[i].text}" over "${printed[j].text}"`,
+          );
+        }
+      }
+    }
+  });
+  return found;
+}
+
+function outsideMargins(pages: Box[][], width: number, height: number) {
+  return pages.flatMap((boxes, index) =>
+    boxes
+      .filter(
+        (box) =>
+          box.left < PAGE_MARGIN - TOLERANCE ||
+          box.right > width - PAGE_MARGIN + TOLERANCE ||
+          box.bottom < PAGE_MARGIN - TOLERANCE ||
+          box.top > height - PAGE_MARGIN + TOLERANCE,
+      )
+      .map((box) => `page ${index + 1}: "${box.text}"`),
+  );
+}
+
+// A4, in points.
+const A4_WIDTH = 595.28;
+const A4_HEIGHT = 841.89;
+
+function invoice(overrides: {
+  businessName?: string;
+  notes?: string | null;
+  footerNote?: string | null;
+}) {
+  return buildInvoicePdfData({
+    invoice: {
+      number: "2026-0100",
+      status: "sent",
+      currency: "EUR",
+      issueDate: new Date("2026-06-11T12:00:00Z"),
+      dueDate: new Date("2026-07-11T00:00:00Z"),
+      periodStart: new Date("2026-05-26T00:00:00Z"),
+      periodEnd: new Date("2026-06-08T00:00:00Z"),
+      taxTreatment: "reverse_charge",
+      taxRatePercent: "0",
+      taxNote:
+        "VAT reverse charged to the recipient under Article 196 of Council Directive 2006/112/EC",
+      subtotalMinor: 406287,
+      taxMinor: 0,
+      totalMinor: 406287,
+      notes: overrides.notes ?? null,
+      lines: [
+        {
+          description:
+            "Data engineering and dashboard development for the audit programme",
+          quantity: "43.750000",
+          unitPriceMinor: 9286,
+          totalMinor: 406287,
+          sourceCurrency: "GBP",
+          sourceTotalMinor: 350000,
+          fxRate: "1.1608",
+          fxSource: "ecb",
+        },
+      ],
+    },
+    business: {
+      name: overrides.businessName ?? "Studio Demo",
+      address: "12 Harbour Street\nBristol BS1 4QA",
+      vatNumber: "GB123456789",
+      footerNote: overrides.footerNote ?? null,
+    },
+    client: {
+      name: "Lumen Labs Ltd",
+      address: "44 Riverside\nPrague 110 00",
+      companyNumber: "08123456",
+      vatNumber: "CZ12345678",
+    },
+  });
+}
+
 // Render smoke test: the document actually renders to a valid PDF buffer
 // with all sections present. Content correctness lives in pdf-data tests.
 describe("invoice PDF rendering", () => {
@@ -67,5 +222,82 @@ describe("invoice PDF rendering", () => {
     // A real one-page invoice with embedded structure is comfortably
     // larger than a trivial empty document.
     expect(pdf.length).toBeGreaterThan(2000);
+  });
+});
+
+// Layout regressions, all of which shipped at one point: the invoice looked
+// fine on a short invoice and printed text over text on a real one.
+describe("invoice PDF layout", () => {
+  it("keeps a long business name clear of the invoice title", async () => {
+    const pdf = await buildInvoicePdf(
+      invoice({
+        businessName:
+          "Punter Digital Consulting, Data Engineering & Clinical Audit Services (Northern Division) Limited",
+      }),
+    );
+
+    const pages = await textBoxes(pdf);
+    // The header used to have no column widths, so the business block grew
+    // straight across the page and printed over the title and balance.
+    expect(collisions(pages)).toEqual([]);
+    expect(outsideMargins(pages, A4_WIDTH, A4_HEIGHT)).toEqual([]);
+  });
+
+  it("never prints notes over the footer when they fill the page", async () => {
+    // The footer used to be pinned to the bottom of the page out of the
+    // normal flow, so content that reached that far printed straight through
+    // it. It only showed up when the notes happened to end inside the footer
+    // band, so this walks the notes down through it a line at a time.
+    for (let count = 24; count <= 34; count++) {
+      const notes = Array.from(
+        { length: count },
+        (_, i) => `- Audit workstream item ${i + 1} delivered during the period`,
+      ).join("\n");
+
+      const pages = await textBoxes(
+        await buildInvoicePdf(
+          invoice({
+            notes,
+            footerNote:
+              "Studio Demo, registered in England & Wales no. 08123456.\nBank details on request. Please quote the invoice number.",
+          }),
+        ),
+      );
+
+      expect(collisions(pages), `${count} notes`).toEqual([]);
+      expect(outsideMargins(pages, A4_WIDTH, A4_HEIGHT), `${count} notes`).toEqual(
+        [],
+      );
+
+      // The footer is the last thing on the invoice, and appears once.
+      const footerPages = pages.flatMap((boxes, index) =>
+        boxes.some((box) => box.text.includes("registered in England"))
+          ? [index]
+          : [],
+      );
+      expect(footerPages, `${count} notes`).toEqual([pages.length - 1]);
+    }
+  });
+
+  it("keeps the notes caption with its first note", async () => {
+    // A caption alone at the foot of a page, with the notes it introduces
+    // overleaf, reads as a mistake. Where the block falls depends on how
+    // much else is on the page, so this walks it across the page break.
+    for (let extra = 0; extra < 12; extra++) {
+      const notes = Array.from(
+        { length: 20 + extra },
+        (_, i) => `- Audit workstream item ${i + 1}`,
+      ).join("\n");
+
+      const pages = await textBoxes(
+        await buildInvoicePdf(invoice({ notes, footerNote: "Thank you." })),
+      );
+      const captionPage = pages.findIndex((boxes) =>
+        boxes.some((box) => box.text === "NOTES"),
+      );
+      expect(
+        pages[captionPage].some((box) => box.text.startsWith("- Audit")),
+      ).toBe(true);
+    }
   });
 });
