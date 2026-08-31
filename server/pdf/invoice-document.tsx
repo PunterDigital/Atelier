@@ -241,6 +241,33 @@ const styles = StyleSheet.create({
   },
 });
 
+// A line item is nicer to read whole, so a row is normally kept off a page
+// break. But `wrap={false}` on a row that is taller than the page has
+// nowhere to go: react-pdf renders it overflowing instead, printing every
+// line of it over its neighbours and off the bottom of the page. Invoices
+// generated from time can carry a whole period's task list in a single
+// description, which is exactly that case, so a row is only kept whole when
+// it is short enough to fit comfortably.
+//
+// The estimate below only picks between "keep whole" and "let it break", and
+// it errs towards letting it break: a narrower column than the real one, so
+// it over-counts lines rather than under-counting them. Ten lines is a long
+// way short of the ~730pt of content a page holds, so being wrong by a wide
+// margin still cannot bring the overflow back.
+const DESCRIPTION_CHARS_PER_LINE = 55;
+const MAX_LINES_KEPT_WHOLE = 10;
+
+function fitsOnOnePage(description: string): boolean {
+  const lines = description
+    .split("\n")
+    .reduce(
+      (total, line) =>
+        total + Math.max(1, Math.ceil(line.length / DESCRIPTION_CHARS_PER_LINE)),
+      0,
+    );
+  return lines <= MAX_LINES_KEPT_WHOLE;
+}
+
 export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
   const noteLines = data.notes ? data.notes.split("\n") : [];
 
@@ -341,7 +368,11 @@ export function InvoiceDocument({ data }: { data: InvoicePdfData }) {
           <Text style={[styles.th, styles.cellAmount]}>Amount</Text>
         </View>
         {data.lines.map((line, index) => (
-          <View key={index} style={styles.row} wrap={false}>
+          <View
+            key={index}
+            style={styles.row}
+            wrap={!fitsOnOnePage(line.description)}
+          >
             <View style={styles.cellDescription}>
               {line.description.split("\n").map((descLine, i) => (
                 <Text key={i}>{descLine || " "}</Text>

@@ -112,6 +112,7 @@ function invoice(overrides: {
   businessName?: string;
   notes?: string | null;
   footerNote?: string | null;
+  lineDescription?: string;
 }) {
   return buildInvoicePdfData({
     invoice: {
@@ -133,6 +134,7 @@ function invoice(overrides: {
       lines: [
         {
           description:
+            overrides.lineDescription ??
             "Data engineering and dashboard development for the audit programme",
           quantity: "43.750000",
           unitPriceMinor: 9286,
@@ -276,6 +278,46 @@ describe("invoice PDF layout", () => {
           : [],
       );
       expect(footerPages, `${count} notes`).toEqual([pages.length - 1]);
+    }
+  });
+
+  it("lets a line item taller than the page break across pages", async () => {
+    // An invoice generated from a period's tracked time carries the whole
+    // task list in one line description. A row that tall cannot be kept off
+    // a page break - there is no page it fits on - and asking for it anyway
+    // had react-pdf render the row overflowing, printing every line of it
+    // over its neighbours and off the bottom of the page.
+    const tasks = [
+      "- Expanded Data Validation Spreadsheet to validate Unmatched Procedure Codes",
+      "- Uploaded Procedure Code Matching Spreadsheet",
+      "- Created data validation spreadsheet to independently verify statistics of data validation script",
+      "- Processed the quarterly audit",
+      "- Added an hourly refresh to the dataset",
+      "- Modified the pre-processing script to handle genders as numbers correctly",
+      "- Modified the validation script to only touch the note and report columns if an anonymisation step was taken",
+      "- Swapped the dashboard KPIs to grades instead of modalities",
+    ];
+
+    // Long enough that the description alone runs past a full page, and
+    // again as one unbroken paragraph, which is the other shape the
+    // generator produces.
+    const asLines = `Demo Maker - 80.00 GBP/h\n${Array.from({ length: 8 }, () => tasks)
+      .flat()
+      .join("\n")}`;
+    const asParagraph = `Demo Maker - 80.00 GBP/h (${Array.from(
+      { length: 8 },
+      () => tasks,
+    )
+      .flat()
+      .join(", ")})`;
+
+    for (const lineDescription of [asLines, asParagraph]) {
+      const pages = await textBoxes(
+        await buildInvoicePdf(invoice({ lineDescription })),
+      );
+      expect(pages.length).toBeGreaterThan(1);
+      expect(collisions(pages)).toEqual([]);
+      expect(outsideMargins(pages, A4_WIDTH, A4_HEIGHT)).toEqual([]);
     }
   });
 
